@@ -45,14 +45,26 @@ Two distinct concerns:
 - **Audit trail**: an append-only record (who did what, when) for trading actions — orders placed, filled, cancelled — kept as actual database rows, not just log output, since it's the kind of thing a real trading platform would need to answer questions about after the fact.
 
 ### 8. Database schema: Flyway-first
-The schema lives as versioned SQL migration files under `src/main/resources/db/migration/` (`V1__...sql`, `V2__...sql`, ...). This is the source of truth; JPA entities are written to match it, not the other way around.
+The schema lives as versioned SQL migration files under `src/main/resources/db/migration/` (`V1__...sql`, `V2__...sql`, ...). This is the source of truth; JPA entities are written to match it, not the other way around. An earlier standalone `trading-db-schema.sql` (a drawDB export) has been deleted — it drifted out of sync with `V1__init_schema.sql` and having two "sources of truth" was itself a risk.
+
+#### 8a. Schema hardening (2026-09-03)
+The initial `V1__init_schema.sql` had several gaps that were dangerous for a system handling money and auth. Fixed in place (not yet applied to any real database, so editing `V1` directly instead of adding `V2`):
+- **`user`/`order` were reserved SQL keywords** — every query needed manual quoting, which is a bug waiting to happen. Renamed to `users`/`orders` (already done in a prior pass, kept here).
+- **Broken foreign key**: `holding` was defined with a `portfolio_id` column, but the FK actually constrained `holding_id → portfolio.id` (nonsensical — a table's own PK pointing at an unrelated table's PK). Fixed to `holding.portfolio_id → portfolio.id`.
+- **Missing foreign key**: `orders.instr_id` had no FK to `instrument.instrument_id` at all, so an order could point at a non-existent instrument. Added.
+- **No `NOT NULL` anywhere**, including on FK columns and `users.password`/`email` — silently allowed half-populated rows (e.g. a user with no password, an order with no user). Added `NOT NULL` on every column that must always have a value. `orders.holding_id` and `orders.actual_price` are intentionally left nullable — an order doesn't have a fill/holding until it executes.
+- **`users.email` had no `UNIQUE` constraint** — nothing stopped duplicate accounts for the same email at the DB layer (the app checks this in `UserService`, but the DB should enforce it too — defense in depth).
+- **`users.role` was an unconstrained free-text column** — added `CHECK (role IN ('USER', 'ADMIN'))` so a bad write can't grant an arbitrary role. Extend this list in a new migration if more roles are introduced.
+- **Money/quantity columns (`quote`, `actual_price`, `quantity`) were `DECIMAL` with no precision/scale** — Postgres allows unbounded, ambiguous-precision values here, which is a correctness risk for a trading platform. Fixed to `DECIMAL(19, 6)` everywhere.
+- **No indexes on foreign key columns** — Postgres doesn't auto-index FKs, which means joins and parent-row deletes/updates on `users`, `portfolio`, `holding`, `instrument` would do full table scans. Added indexes on `portfolio.user_id`, `holding.portfolio_id`, `orders.user_id`, `orders.instr_id`, `orders.holding_id`.
+- Added sensible defaults: `join_date`/`place_date`/`order_date` default to `now()`, `orders.status` defaults to `'PENDING'`, `users.role` defaults to `'USER'`.
 
 ### 9. Deployment: containerized, target AWS
 The app is containerized via the existing `Dockerfile` so it can run anywhere consistently (local dev, CI, eventual hosting). We intend to deploy to AWS, but don't yet have AWS access/account details — the container is being built to be cloud-agnostic in the meantime so that decision doesn't block local development.
 
 ## Open questions / not yet decided
 
-- **Database schema**: being finalized — will land as the first set of Flyway migrations.
+- **Database schema**: core tables and constraints are in `V1__init_schema.sql` (see #8a); still missing `marketdata`, `statistics`, and `audit` tables.
 - **External broker/exchange API contract**: unknown until it's provided; the adapter interface (#5) exists specifically to absorb this unknown.
 - **AWS specifics** (ECS/Fargate vs. EC2 vs. App Runner, RDS for Postgres, secrets management, networking): deferred until we have AWS access.
 - **Testing strategy in detail**: planned to use Mockito for service-layer unit tests, `@DataJpaTest` for repository tests, and Testcontainers (real Postgres in Docker) for integration tests — not yet implemented.
