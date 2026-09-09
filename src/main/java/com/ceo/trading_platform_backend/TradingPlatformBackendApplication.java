@@ -21,7 +21,7 @@ public class TradingPlatformBackendApplication {
 		System.out.println(
 			String.format("User: %s; email %s", me.getFullName(),  me.getEmail())
 		);
-		System.out.println("Hello world!");
+		System.out.println("Hi, Trading Platform Backend is running!");
 	}
 
 }
