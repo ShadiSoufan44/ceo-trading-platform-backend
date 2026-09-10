@@ -10,5 +10,5 @@ public class TradingPlatformBackendApplication {
 		SpringApplication.run(TradingPlatformBackendApplication.class, args);
 		System.out.println("Hi, Trading Platform Backend is running!");
 	}
-
+	
 }
