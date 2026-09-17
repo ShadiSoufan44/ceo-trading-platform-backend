@@ -1,4 +1,4 @@
-package com.ceo.trading_platform_backend.common.exception;
+package com.ceo.trading_platform_backend.exception;
 
 public class ResourceNotFoundException extends RuntimeException {
 

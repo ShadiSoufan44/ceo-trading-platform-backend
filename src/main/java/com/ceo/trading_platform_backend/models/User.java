@@ -1,4 +1,4 @@
-package com.ceo.trading_platform_backend.user;
+package com.ceo.trading_platform_backend.models;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "user_account")
 public class User {
 
     @Id

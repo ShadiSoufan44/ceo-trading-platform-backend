@@ -1,4 +1,4 @@
-package com.ceo.trading_platform_backend.user.dto;
+package com.ceo.trading_platform_backend.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

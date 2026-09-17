@@ -5,7 +5,7 @@ import java.time.OffsetDateTime;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import com.ceo.trading_platform_backend.user.User;
+import com.ceo.trading_platform_backend.models.User;
 
 @SpringBootApplication
 public class TradingPlatformBackendApplication {
