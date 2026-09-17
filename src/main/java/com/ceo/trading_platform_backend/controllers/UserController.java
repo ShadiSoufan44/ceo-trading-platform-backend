@@ -1,7 +1,8 @@
-package com.ceo.trading_platform_backend.user;
+package com.ceo.trading_platform_backend.controllers;
 
-import com.ceo.trading_platform_backend.user.dto.CreateUserRequest;
-import com.ceo.trading_platform_backend.user.dto.UserResponse;
+import com.ceo.trading_platform_backend.dto.CreateUserRequest;
+import com.ceo.trading_platform_backend.dto.UserResponse;
+import com.ceo.trading_platform_backend.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

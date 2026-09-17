@@ -1,9 +1,11 @@
-package com.ceo.trading_platform_backend.user;
+package com.ceo.trading_platform_backend.services;
 
-import com.ceo.trading_platform_backend.common.exception.DuplicateResourceException;
-import com.ceo.trading_platform_backend.common.exception.ResourceNotFoundException;
-import com.ceo.trading_platform_backend.user.dto.CreateUserRequest;
-import com.ceo.trading_platform_backend.user.dto.UserResponse;
+import com.ceo.trading_platform_backend.dto.CreateUserRequest;
+import com.ceo.trading_platform_backend.dto.UserResponse;
+import com.ceo.trading_platform_backend.exception.DuplicateResourceException;
+import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
+import com.ceo.trading_platform_backend.models.User;
+import com.ceo.trading_platform_backend.repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
