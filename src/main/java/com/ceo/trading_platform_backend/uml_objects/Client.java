@@ -16,5 +16,17 @@ public class Client extends User{
         return this.name;
     }
 
+    public Set<Portfolio> getPortfolios() {
+        return portfolios;
+    }
+
+    public Portfolio getPortfolio(int portfolioID) {
+        for (Portfolio portfolio : portfolios) {
+            if (portfolio.ID == portfolioID) {
+                return portfolio;
+            }
+        }
+        return null;
+    }
 }
  

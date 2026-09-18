@@ -1,14 +1,16 @@
 package com.ceo.trading_platform_backend.uml_objects;
 
+import java.util.Date;
+
 public class Holding {
     
-    String dateCreated;
+    Date dateCreated;
     double purchasePrice;
-    int quantity;
+    double quantity;
     Instrument instrument;
-    String ID;
+    int ID;
 
-    public Holding(String dateCreated, double purchasePrice, int quantity, Instrument instrument) {
+    public Holding(Date dateCreated, double purchasePrice, double quantity, Instrument instrument) {
         this.dateCreated = dateCreated;
         this.purchasePrice = purchasePrice;
         this.quantity = quantity;

@@ -7,8 +7,9 @@ public class Instrument {
     String symbol;
     InstrumentType type;
 
-    public Instrument() {
-
+    public Instrument(String symbol, InstrumentType type) {
+        this.symbol = symbol;
+        this.type = type;
     }
 
     double getPrice() {
