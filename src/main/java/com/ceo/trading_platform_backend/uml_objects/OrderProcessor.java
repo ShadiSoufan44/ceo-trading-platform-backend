@@ -6,6 +6,9 @@ import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 
 public class OrderProcessor {
     
+
+    //service object to communicate with API
+
     public static Order submit(Order order) throws Exception {
         
         if (order.getSide() == Side.BUY) {

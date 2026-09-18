@@ -8,9 +8,10 @@ public class Holding {
     double purchasePrice;
     double quantity;
     Instrument instrument;
+    Order order;
     int ID;
 
-    public Holding(Date dateCreated, double purchasePrice, double quantity, Instrument instrument) {
+    public Holding(Date dateCreated, double purchasePrice, double quantity, Instrument instrument, Order order) {
         this.dateCreated = dateCreated;
         this.purchasePrice = purchasePrice;
         this.quantity = quantity;

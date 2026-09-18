@@ -14,9 +14,12 @@ public class Portfolio {
 
     public Portfolio(PortfolioType type, double cashBalance) {
         
-        // TODO: Figure out how to make this USD Cash Instrument unique instead of one per place
         // Make Instrument Registry?
-        this.holdings.add(new Holding(new Date(), 1.0, cashBalance, new Instrument("USD", InstrumentType.CASH)));
+        this.holdings.add(new Holding(
+            new Date(), 1.0, cashBalance, 
+            new Instrument("USD", InstrumentType.CASH)
+        ));
+        // TODO: re-use the Instrument from the instrument table
         this.type = type;
         //this.ID = generateUID();   figure out what would generate it
     }
@@ -41,8 +44,9 @@ public class Portfolio {
     double getPortfolioValue() throws Exception {
         double value = getUSDCash();
 
-        for (Holding holding: holdings) {
-            value += (holding.getInstrument().getPrice() * holding.getQuantity());
+        for (Holding holding : holdings) {
+            double price = service.getPrice(holding.getInstrument());
+            value += (price * holding.getQuantity());
         }
         return value;
     }

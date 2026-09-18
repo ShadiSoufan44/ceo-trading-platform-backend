@@ -6,18 +6,25 @@ import com.ceo.trading_platform_backend.uml_objects.Enums.OrderStatus;
 import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 
 public class Order {
+
+    int orderId;
     Client client;
+    int portfolioId;
     
     Instrument instrument;
-    Portfolio portfolio;
+    
     Date createdDate;
+    Date resolvedDate;
+    // TODO Idea: OrderStatusChange class, with list of (status, message, date) and 
+    // current state would be latest date's status and message
+
+
     double quantity;
     double quotedPrice;
     Side side;
     double wentUpTooMuchThreshold;
 
     OrderStatus orderStatus = OrderStatus.PENDING;
-    Holding holding = null;
     String message = "";
 
     public Order(
@@ -39,9 +46,6 @@ public class Order {
     }
     public Date getCreatedDate() {
         return createdDate;
-    }
-    public Holding getHolding() {
-        return holding;
     }
     public Instrument getInstrument() {
         return instrument;

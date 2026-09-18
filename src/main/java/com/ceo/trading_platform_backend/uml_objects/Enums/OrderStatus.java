@@ -6,3 +6,6 @@ public enum OrderStatus {
     FUFILLED,
     CANCELLED;
 }
+
+
+// can orders go through multiple steps of status?

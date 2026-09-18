@@ -12,8 +12,9 @@ public class Instrument {
         this.type = type;
     }
 
-    double getPrice() {
-        return 0;
-    }
+    // double getPrice() {
+    //     return 0;
+    // }
 
 }
+
