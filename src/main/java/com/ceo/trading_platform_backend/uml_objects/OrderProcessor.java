@@ -13,6 +13,7 @@ public class OrderProcessor {
         
         if (order.getSide() == Side.BUY) {
             if (!hasSufficientFundsBuy(order)) {
+                
                 order.setMessage("Insufficient Funds");
                 return order;
             }

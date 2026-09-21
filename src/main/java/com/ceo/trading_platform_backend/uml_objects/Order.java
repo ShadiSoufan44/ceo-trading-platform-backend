@@ -1,6 +1,8 @@
 package com.ceo.trading_platform_backend.uml_objects;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import com.ceo.trading_platform_backend.uml_objects.Enums.OrderStatus;
 import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
@@ -15,17 +17,14 @@ public class Order {
     
     Date createdDate;
     Date resolvedDate;
-    // TODO Idea: OrderStatusChange class, with list of (status, message, date) and 
-    // current state would be latest date's status and message
 
+    List<OrderStatusChange> orderHistory = new ArrayList<>();
 
     double quantity;
     double quotedPrice;
     Side side;
     double wentUpTooMuchThreshold;
 
-    OrderStatus orderStatus = OrderStatus.PENDING;
-    String message = "";
 
     public Order(
         Client client, Instrument instrument,
@@ -39,6 +38,11 @@ public class Order {
         this.quantity = quantity;
         this.quotedPrice = quotedPrice;
         this.wentUpTooMuchThreshold = wentUpTooMuchThreshold;   
+        this.orderHistory.add(new OrderStatusChange(
+            OrderStatus.PENDING,
+            "Order Created",
+            createdDate
+        ));
     }
 
     public Client getClient() {
@@ -49,9 +53,6 @@ public class Order {
     }
     public Instrument getInstrument() {
         return instrument;
-    }
-    public OrderStatus getOrderStatus() {
-        return orderStatus;
     }
     public Portfolio getPortfolio() {
         return portfolio;
@@ -68,10 +69,13 @@ public class Order {
     public Side getSide() {
         return side;
     }
-    public String getMessage() {
-        return message;
+    public List<OrderStatusChange> getOrderHistory() {
+        return orderHistory;
     }
-    public void setMessage(String message) {
-        this.message = message;
+    public void addOrderStatusChange(OrderStatusChange orderStatusChange) {
+        orderHistory.add(orderStatusChange);
+    }
+    public OrderStatusChange getCurrentOrderStatus() {
+        return orderHistory.getLast();
     }
 }
