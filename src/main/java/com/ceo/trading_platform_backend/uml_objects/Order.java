@@ -28,12 +28,12 @@ public class Order {
 
     public Order(
         Client client, Instrument instrument,
-        Portfolio portfolio, Date createdDate, double quantity, 
+        int portfolioId, Date createdDate, double quantity, 
         double quotedPrice, double wentUpTooMuchThreshold
     ) {
         this.client = client;
         this.instrument = instrument;
-        this.portfolio = portfolio;
+        this.portfolioId = portfolioId;
         this.createdDate = createdDate;
         this.quantity = quantity;
         this.quotedPrice = quotedPrice;
@@ -54,8 +54,8 @@ public class Order {
     public Instrument getInstrument() {
         return instrument;
     }
-    public Portfolio getPortfolio() {
-        return portfolio;
+    public int getPortfolioID() {
+        return portfolioId;
     }
     public double getQuantity() {
         return quantity;

@@ -17,7 +17,7 @@ public class Portfolio {
         // Make Instrument Registry?
         this.holdings.add(new Holding(
             new Date(), 1.0, cashBalance, 
-            new Instrument("USD", InstrumentType.CASH)
+            new Instrument("USD", InstrumentType.CASH), null
         ));
         // TODO: re-use the Instrument from the instrument table
         this.type = type;
