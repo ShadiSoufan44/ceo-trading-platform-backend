@@ -25,4 +25,7 @@ Summary
 
 For sell order, if we let user choose which holding to sell, that's not currently possible because the order doesn't have a holding id
 
-Upsides and downsides of storing anything calculatable in the backend database
+## Upsides and downsides of storing anything calculatable in the backend database
+- One option: use nightly recalculation of calculated columns; 
+so it's non-normalized during the day and gets renormalized once per day or once per hour or something.
+- Materialized View?
