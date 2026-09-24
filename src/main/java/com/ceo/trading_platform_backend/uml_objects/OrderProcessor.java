@@ -2,6 +2,7 @@ package com.ceo.trading_platform_backend.uml_objects;
 
 import java.util.List;
 
+import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 
 public class OrderProcessor {

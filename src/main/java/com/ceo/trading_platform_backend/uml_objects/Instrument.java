@@ -12,5 +12,15 @@ public class Instrument {
         this.type = type;
         this.fullName = fullName;
     }
+
+    public String getSymbol() {
+        return symbol;
+    }
+    public InstrumentType getType() {
+        return type;
+    }
+    public String getFullName() {
+        return fullName;
+    }
 }
 
