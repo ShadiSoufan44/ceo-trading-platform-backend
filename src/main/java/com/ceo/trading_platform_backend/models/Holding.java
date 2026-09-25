@@ -58,5 +58,8 @@ public class Holding {
     public double getPurchasedPrice() {
         return purchasedPrice;
     }  
+    public int getID() {
+        return ID;
+    }
 
 }

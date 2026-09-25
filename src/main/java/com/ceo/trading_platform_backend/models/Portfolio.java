@@ -52,7 +52,7 @@ public class Portfolio {
         return type;
     }
 
-    public double getPortfolioBuyingPower() throws Exception {
+    public double getPortfolioBuyingPower() {
         double totalValue = 0;
         for (Holding holding : holdings) {
             if (holding.getInstrument().getSymbol() == "USD") {
@@ -66,7 +66,7 @@ public class Portfolio {
        this.holdings.add(holding);
     }
 
-    public double getPortfolioTotalValue() throws Exception {
+    public double getPortfolioTotalValue() {
         double value = getPortfolioBuyingPower();
 
         for (Holding holding : holdings) {
@@ -74,5 +74,9 @@ public class Portfolio {
             value += (price * holding.getQuantity());
         }
         return value;
+    }
+
+    public int getID() {
+        return ID;
     }
 }
