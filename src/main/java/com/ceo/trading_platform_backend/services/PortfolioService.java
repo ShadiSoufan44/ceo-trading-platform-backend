@@ -25,7 +25,7 @@ public class PortfolioService {
             holdingIds.add(holding.getID());
         }
         return new PortfolioResponse(
-            portfolio.getID(), holdingIds, portfolio.getType()
+            portfolio.getPortfolioId(), holdingIds, portfolio.getType()
         );
     }
     
@@ -45,6 +45,7 @@ public class PortfolioService {
         return repository.findById(portfolioId).orElse(null);
     }
 
+    // TODO: Move this to ClientService.java
     public List<PortfolioResponse> getPortfoliosByClientId(int clientId) {
         List<Portfolio> portfolios = repository.findByClientId(clientId);
         List<PortfolioResponse> result = new ArrayList<>();

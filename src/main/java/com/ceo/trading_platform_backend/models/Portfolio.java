@@ -8,6 +8,7 @@ import com.ceo.trading_platform_backend.uml_objects.Enums.InstrumentType;
 import com.ceo.trading_platform_backend.uml_objects.Enums.PortfolioType;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,7 +22,8 @@ import jakarta.persistence.Table;
 public class Portfolio {
     
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int ID;
+    @Column(name = "portfolio_id")
+    private int portfolioId;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "portfolio_id")
@@ -76,7 +78,7 @@ public class Portfolio {
         return value;
     }
 
-    public int getID() {
-        return ID;
+    public int getPortfolioId() {
+        return portfolioId;
     }
 }

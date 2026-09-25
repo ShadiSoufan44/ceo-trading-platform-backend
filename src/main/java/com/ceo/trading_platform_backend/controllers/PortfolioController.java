@@ -25,6 +25,7 @@ public class PortfolioController {
         this.service = portfolioService;
     }
 
+    // TODO: move this to a ClientController.java
     @GetMapping("/getall/{client_id}")
     public ResponseEntity<List<PortfolioResponse>> getPortfoliosByClientId(
         @PathVariable int clientId
@@ -67,5 +68,6 @@ public class PortfolioController {
         }
         return ResponseEntity.ok(response);
     }
+    
     
 }
