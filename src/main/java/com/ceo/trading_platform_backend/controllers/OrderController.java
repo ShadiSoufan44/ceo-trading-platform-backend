@@ -15,13 +15,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
 import com.ceo.trading_platform_backend.dto.OrderResponseDTO;
 
+import com.ceo.trading_platform_backend.services.OrderService;
+
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/order")
 public class OrderController {
 
-    //private final OrderService orderService;
+    private final OrderService orderService;
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
     }
