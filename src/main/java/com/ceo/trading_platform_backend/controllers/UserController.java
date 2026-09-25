@@ -33,4 +33,4 @@ public class UserController {
     public ResponseEntity<UserResponse> getUser(@PathVariable Integer userId) {
         return ResponseEntity.ok(userService.getUser(userId));
     }
-}
+} 

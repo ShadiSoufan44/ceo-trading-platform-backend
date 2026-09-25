@@ -4,7 +4,7 @@ import com.ceo.trading_platform_backend.dto.CreateUserRequest;
 import com.ceo.trading_platform_backend.dto.UserResponse;
 import com.ceo.trading_platform_backend.exception.DuplicateResourceException;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
-import com.ceo.trading_platform_backend.models.User;
+import com.ceo.trading_platform_backend.uml_objects.User;
 import com.ceo.trading_platform_backend.repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
