@@ -1,17 +1,20 @@
 package com.ceo.trading_platform_backend.uml_objects;
 
-import java.time.OffsetDateTime;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-@Entity 
+import java.time.OffsetDateTime;
+
+@Entity
 @Table(name = "user_account")
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
@@ -19,28 +22,31 @@ public class User {
 
     @Column(name = "full_name", nullable = false, length = 255)
     private String fullName;
-    
+
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
-    @Column(name = "passwordHash", nullable = false, length = 255)
-    private String passwordHash;
+    @Column(name = "password", nullable = false, length = 255)
+    private String password;
 
     @Column(name = "join_date", nullable = false)
     private OffsetDateTime joinDate;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 50)
-    private String role;
+    private Role role;
 
     protected User() {
     }
 
-    public User(String fullName, String email, String passwordHash, OffsetDateTime joinDate, String role) {
+    public User(String fullName, String email, String password, OffsetDateTime joinDate, String role) {
         this.fullName = fullName;
         this.email = email;
-        this.passwordHash = passwordHash;
+        this.password = password;
         this.joinDate = joinDate;
-        this.role = role;
+        this.role = Role.fromString(role);
     }
+
     public Integer getUserId() {
         return userId;
     }
@@ -69,11 +75,11 @@ public class User {
         this.joinDate = joinDate;
     }
 
-    public String getRole() {
+    public Role getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(Role role) {
         this.role = role;
     }
 }
