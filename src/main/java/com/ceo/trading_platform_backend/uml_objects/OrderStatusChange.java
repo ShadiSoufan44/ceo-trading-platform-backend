@@ -13,4 +13,8 @@ public class OrderStatusChange {
         this.message = message;
         this.date = date;
     }
+
+    public OrderStatus getStatus() {
+        return this.status;
+    }
 }

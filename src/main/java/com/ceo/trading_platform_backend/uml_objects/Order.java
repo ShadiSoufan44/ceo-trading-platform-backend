@@ -23,13 +23,13 @@ public class Order {
     double quantity;
     double quotedPrice;
     Side side;
-    double wentUpTooMuchThreshold;
+    double increaseThreshold;
 
 
     public Order(
         Client client, Instrument instrument,
         int portfolioId, Date createdDate, double quantity, 
-        double quotedPrice, double wentUpTooMuchThreshold
+        double quotedPrice, double increaseThreshold
     ) {
         this.client = client;
         this.instrument = instrument;
@@ -37,7 +37,7 @@ public class Order {
         this.createdDate = createdDate;
         this.quantity = quantity;
         this.quotedPrice = quotedPrice;
-        this.wentUpTooMuchThreshold = wentUpTooMuchThreshold;   
+        this.increaseThreshold = increaseThreshold;   
         this.orderHistory.add(new OrderStatusChange(
             OrderStatus.PENDING,
             "Order Created",
@@ -45,6 +45,9 @@ public class Order {
         ));
     }
 
+    public int getId() {
+        return orderId;
+    }
     public Client getClient() {
         return client;
     }
@@ -63,8 +66,8 @@ public class Order {
     public double getQuotedPrice() {
         return quotedPrice;
     }
-    public double getWentUpTooMuchThreshold() {
-        return wentUpTooMuchThreshold;
+    public double getIncreaseThreshold() {
+        return increaseThreshold;
     }
     public Side getSide() {
         return side;
