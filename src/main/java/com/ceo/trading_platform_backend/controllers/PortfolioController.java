@@ -7,12 +7,14 @@ import com.ceo.trading_platform_backend.dto.HoldingResponse;
 import com.ceo.trading_platform_backend.dto.PortfolioResponse;
 import com.ceo.trading_platform_backend.services.PortfolioService;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 
 @RestController 
@@ -39,15 +41,27 @@ public class PortfolioController {
     }
 
     @GetMapping("/{portfolio_id}/buying_power")
-    public ResponseEntity<Double> getBuyingPowerByPortfolioId(
+    public ResponseEntity<BigDecimal> getBuyingPowerByPortfolioId(
         @PathVariable int portfolioId
     ) {
-        Double response = service.getBuyingPowerByPortfolioId(portfolioId);
+        BigDecimal response = service.getBuyingPowerByPortfolioId(portfolioId);
         if (response == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{portfolio_id/total_value")
+    public ResponseEntity<BigDecimal> getTotalValueByPortfolioId(
+        @RequestParam int portfolioId
+    ) {
+        BigDecimal response = service.getTotalValueByPortfolioId(portfolioId);
+        if (response == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        return ResponseEntity.ok(response);
+    }
+    
 
     @GetMapping("/{portfolio_id}/holdings")
     public ResponseEntity<List<HoldingResponse>> getHoldingsByPortfolioId(

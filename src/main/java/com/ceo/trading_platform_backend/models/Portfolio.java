@@ -1,4 +1,5 @@
 package com.ceo.trading_platform_backend.models;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -31,12 +32,12 @@ public class Portfolio {
 
     private PortfolioType type;
 
-    public Portfolio(PortfolioType type, double cashBalance) {
+    public Portfolio(PortfolioType type, BigDecimal cashBalance) {
         
         // Make Instrument Registry?
         this.holdings.add(new Holding(
             new Date(),
-            1.0, 
+            new BigDecimal(1.0), 
             cashBalance, 
             new Instrument(
                 "USD", InstrumentType.CASH, "United States Dollar"
@@ -54,29 +55,10 @@ public class Portfolio {
         return type;
     }
 
-    public double getPortfolioBuyingPower() {
-        double totalValue = 0;
-        for (Holding holding : holdings) {
-            if (holding.getInstrument().getSymbol() == "USD") {
-                totalValue += holding.getQuantity();
-            }
-        }
-        return totalValue;
-    }
-
     public void addHolding(Holding holding) {
        this.holdings.add(holding);
     }
 
-    public double getPortfolioTotalValue() {
-        double value = getPortfolioBuyingPower();
-
-        for (Holding holding : holdings) {
-            double price = service.getPrice(holding.getInstrument());
-            value += (price * holding.getQuantity());
-        }
-        return value;
-    }
 
     public int getPortfolioId() {
         return portfolioId;

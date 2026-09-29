@@ -1,5 +1,6 @@
 package com.ceo.trading_platform_backend.models;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 import org.springframework.data.annotation.CreatedDate;
@@ -31,12 +32,12 @@ public class Holding {
     @OneToOne 
     private Order order;
 
-    private double purchasedPrice;
-    private double quantity;
+    private BigDecimal purchasedPrice;
+    private BigDecimal quantity;
     
     public Holding() {}
 
-    public Holding(Date dateCreated, double purchasedPrice, double quantity, Instrument instrument, Order order) {
+    public Holding(Date dateCreated, BigDecimal purchasedPrice, BigDecimal quantity, Instrument instrument, Order order) {
         this.dateCreated = dateCreated;
         this.purchasedPrice = purchasedPrice;
         this.quantity = quantity;
@@ -46,7 +47,7 @@ public class Holding {
     public Instrument getInstrument() {
         return this.instrument;
     }
-    public double getQuantity() {
+    public BigDecimal getQuantity() {
         return this.quantity;
     }
     public Date getDateCreated() {
@@ -55,7 +56,7 @@ public class Holding {
     public Order getOrder() {
         return order;
     }
-    public double getPurchasedPrice() {
+    public BigDecimal getPurchasedPrice() {
         return purchasedPrice;
     }  
     public int getID() {

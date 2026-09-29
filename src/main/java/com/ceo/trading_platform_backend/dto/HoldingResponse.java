@@ -1,5 +1,6 @@
 package com.ceo.trading_platform_backend.dto;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 public record HoldingResponse (
@@ -7,8 +8,8 @@ public record HoldingResponse (
     Date dateCreated,
     int instrumentId,
     int orderId,
-    double purchasedPrice,
-    double quantity
+    BigDecimal purchasedPrice,
+    BigDecimal quantity
 ) {
     
 }
