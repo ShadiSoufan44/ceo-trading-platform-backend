@@ -37,11 +37,18 @@ public class Holding {
     
     public Holding() {}
 
-    public Holding(Date dateCreated, BigDecimal purchasedPrice, BigDecimal quantity, Instrument instrument, Order order) {
+    public Holding(
+        Date dateCreated, 
+        BigDecimal purchasedPrice, 
+        BigDecimal quantity, 
+        Instrument instrument, 
+        Order order
+    ) {
         this.dateCreated = dateCreated;
         this.purchasedPrice = purchasedPrice;
         this.quantity = quantity;
         this.instrument = instrument;
+        this.order = order;
     }
 
     public Instrument getInstrument() {

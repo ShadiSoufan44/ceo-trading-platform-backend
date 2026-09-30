@@ -66,7 +66,7 @@ public class PortfolioService {
         }
         return value;
     }
-    
+
     public Portfolio getPortfolioById(int portfolioId) {
         return repository.findById(portfolioId).orElse(null);
     }
@@ -102,11 +102,11 @@ public class PortfolioService {
 
     public List<HoldingResponse> getHoldingsByPortfolioId(int portfolioId) {
         List<HoldingResponse> result = new ArrayList<>();
-        for (Holding holding : getPortfolioById(portfolioId).getHoldings()) {
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        if (portfolio == null) return null;
+        for (Holding holding : portfolio.getHoldings()) {
             result.add(createHoldingResponse(holding));
         }
-        if (result.size() == 0) return null;
         return result;
-    }
-    
+    }   
 }
