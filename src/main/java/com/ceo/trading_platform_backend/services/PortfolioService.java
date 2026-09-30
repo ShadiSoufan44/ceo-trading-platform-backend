@@ -12,11 +12,11 @@ import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 
 public class PortfolioService {
     private final PortfolioRepository repository;
-    // private final MarketService marketService;
+    // FIXME private final MarketService marketService;
 
     public PortfolioService(
         PortfolioRepository repository
-        // , MarketService marketService
+        // FIXME , MarketService marketService
     ) {
         this.repository = repository;
     }
@@ -64,7 +64,7 @@ public class PortfolioService {
         BigDecimal value = getPortfolioBuyingPower(portfolio);
 
         for (Holding holding : portfolio.getHoldings()) {
-            // TODO: BigDecimal price = marketService.getPrice(holding.getInstrument());
+            // FIXME: BigDecimal price = marketService.getPrice(holding.getInstrument());
             BigDecimal price = new BigDecimal(1);  
             value = value.add(price.multiply(holding.getQuantity()));
         }
