@@ -85,7 +85,7 @@ public class PortfolioServiceTests {
     }
 
     @Nested
-    @DisplayName("getPortfolioById()")
+    @DisplayName("Test getPortfolioById()")
     class GetPortfolioByIdTests {
         @Test
         @DisplayName("Should return correct portfolio when it exists")
@@ -112,7 +112,7 @@ public class PortfolioServiceTests {
     }
 
     @Nested
-    @DisplayName("getPortfolioResponseById()")
+    @DisplayName("Test getPortfolioResponseById()")
     class GetPortfolioResponseByIdTests {
         @Test
         @DisplayName("Should return correct response when portfolio exists")
@@ -141,7 +141,7 @@ public class PortfolioServiceTests {
     }
 
     @Nested
-    @DisplayName("getBuyingPowerByPortfolioId()")
+    @DisplayName("Test getBuyingPowerByPortfolioId()")
     class GetBuyingPowerByPortfolioIdTests {
         @Test
         @DisplayName("Should return null when portfolio ID doesn't exist")
@@ -198,7 +198,7 @@ public class PortfolioServiceTests {
     }
 
     @Nested
-    @DisplayName("getHoldingsByPortfolioId()")
+    @DisplayName("Test getHoldingsByPortfolioId()")
     class GetHoldingsByPortfolioIdTests {
         @Test
         @DisplayName("Should return null when portfolio ID doesn't exist")
