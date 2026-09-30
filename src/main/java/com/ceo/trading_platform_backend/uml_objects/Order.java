@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.List;
 import java.math.BigDecimal;
 
+import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.uml_objects.Enums.OrderStatus;
 import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 
@@ -92,20 +93,7 @@ public class Order extends com.ceo.trading_platform_backend.models.Order {
     public OrderStatusChange getCurrentOrderStatus() {
         return orderHistory.getLast();
     }
-
-    public Date getResolvedDate() {
-        return resolvedDate;
-    }
-
-    public void setResolvedDate(Date resolvedDate) {
-        this.resolvedDate = resolvedDate;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
+    public int getOrderId() {
+        return orderId;
     }
 }
