@@ -41,7 +41,7 @@ public class Order extends com.ceo.trading_platform_backend.models.Order {
         setQuote(BigDecimal.valueOf(quotedPrice));
         setIncreaseThreshold(BigDecimal.valueOf(wentUpTooMuchThreshold));
         if (client != null) {
-            setUserId(client.userID);
+            // setUserId(client.userID);
         }
         this.orderHistory.add(new OrderStatusChange(
             OrderStatus.PENDING,

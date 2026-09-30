@@ -23,31 +23,6 @@ public class PortfolioService {
     ) {
         this.repository = repository;
     }
-    
-    private PortfolioResponse createPortfolioResponse(Portfolio portfolio) {
-        if (portfolio == null) return null;
-
-        List<Integer> holdingIds = new ArrayList<>();
-
-        for (Holding holding : portfolio.getHoldings()) {
-            holdingIds.add(holding.getID());
-        }
-        return new PortfolioResponse(
-            portfolio.getPortfolioId(), holdingIds, portfolio.getType()
-        );
-    }
-    
-    private HoldingResponse createHoldingResponse(Holding holding) {
-        if (holding == null) return null;
-        return new HoldingResponse(
-            holding.getID(),
-            holding.getDateCreated(), 
-            holding.getInstrument().getID(),
-            holding.getOrder().getOrderId(),
-            holding.getPurchasedPrice(),
-            holding.getQuantity()
-        );
-    }
 
     private BigDecimal getPortfolioBuyingPower(Portfolio portfolio) {
         BigDecimal totalValue = new BigDecimal(0);
@@ -75,22 +50,13 @@ public class PortfolioService {
     }
 
     // TODO: Move this to ClientService.java
-    public List<PortfolioResponse> getPortfoliosByClientId(int clientId) {
+    public List<Portfolio> getPortfoliosByClientId(int clientId) {
         List<Portfolio> portfolios = repository.findByClientId(clientId);
-        List<PortfolioResponse> result = new ArrayList<>();
-        for (Portfolio portfolio : portfolios) {
-            result.add(createPortfolioResponse(portfolio));
-        }
-        if (result.size() == 0) return null;
-        return result;
+        if (portfolios == null) return null;
+        // if (portfolios.size() == 0) return null;
+        return portfolios;
     }
     
-    public PortfolioResponse getPortfolioResponseById(int portfolioId) {
-        Portfolio portfolio = repository.findById(portfolioId).orElse(null);
-        if (portfolio == null) return null;
-        return createPortfolioResponse(portfolio);
-    }
-
     public BigDecimal getBuyingPowerByPortfolioId(int portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         if (portfolio == null) return null;
@@ -103,13 +69,10 @@ public class PortfolioService {
         return getPortfolioTotalValue(portfolio);
     }
 
-    public List<HoldingResponse> getHoldingsByPortfolioId(int portfolioId) {
-        List<HoldingResponse> result = new ArrayList<>();
-        for (Holding holding : getPortfolioById(portfolioId).getHoldings()) {
-            result.add(createHoldingResponse(holding));
-        }
-        if (result.size() == 0) return null;
-        return result;
+    public List<Holding> getHoldingsByPortfolioId(int portfolioId) {
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        if (portfolio == null) return null;
+        return portfolio.getHoldings();
     }
     
 }
