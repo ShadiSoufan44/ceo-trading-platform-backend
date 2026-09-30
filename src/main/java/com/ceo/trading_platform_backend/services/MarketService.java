@@ -169,7 +169,7 @@ public class MarketService {
 			if (errorEnvelope.error() != null && errorEnvelope.error().message() != null && !errorEnvelope.error().message().isBlank()) {
 				return errorEnvelope.error().message();
 			}
-		} catch (IOException ignored) {
+		} catch (Exception ignored) {
 		}
 
 		return fallbackMessage;

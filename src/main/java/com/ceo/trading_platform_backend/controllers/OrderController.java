@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
 import com.ceo.trading_platform_backend.dto.OrderResponseDTO;
+import com.ceo.trading_platform_backend.services.OrderService;
 
 import jakarta.validation.Valid;
 
@@ -21,7 +22,7 @@ import jakarta.validation.Valid;
 @RequestMapping("/order")
 public class OrderController {
 
-    //private final OrderService orderService;
+    private final OrderService orderService;
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
     }
@@ -35,7 +36,7 @@ public class OrderController {
     //get orders absed off client id
     @GetMapping
     public List <OrderResponseDTO> getClientOrders(@RequestParam Long clientID) { 
-        return orderService.getClientOrders(clientID)
+        return orderService.getClientOrders(clientID);
     }
 
     @GetMapping("/{orderID}")
