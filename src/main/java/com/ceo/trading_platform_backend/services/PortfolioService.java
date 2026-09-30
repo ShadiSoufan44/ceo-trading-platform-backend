@@ -49,10 +49,6 @@ public class PortfolioService {
         );
     }
 
-    private Portfolio getPortfolioById(int portfolioId) {
-        return repository.findById(portfolioId).orElse(null);
-    }
-
     private BigDecimal getPortfolioBuyingPower(Portfolio portfolio) {
         BigDecimal totalValue = new BigDecimal(0);
         for (Holding holding : portfolio.getHoldings()) {
@@ -72,6 +68,10 @@ public class PortfolioService {
             value = value.add(price.multiply(holding.getQuantity()));
         }
         return value;
+    }
+
+    public Portfolio getPortfolioById(int portfolioId) {
+        return repository.findById(portfolioId).orElse(null);
     }
 
     // TODO: Move this to ClientService.java
