@@ -93,7 +93,5 @@ public class Order extends com.ceo.trading_platform_backend.models.Order {
     public OrderStatusChange getCurrentOrderStatus() {
         return orderHistory.getLast();
     }
-    public int getOrderId() {
-        return orderId;
-    }
+   
 }
