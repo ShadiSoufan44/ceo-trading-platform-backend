@@ -4,20 +4,29 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import com.ceo.trading_platform_backend.uml_objects.Client;
-import com.ceo.trading_platform_backend.uml_objects.Holding;
-import com.ceo.trading_platform_backend.uml_objects.Instrument;
+import com.ceo.trading_platform_backend.models.Holding;
+// import com.ceo.trading_platform_backend.uml_objects.Holding;
+import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.uml_objects.OrderStatusChange;
 import com.ceo.trading_platform_backend.uml_objects.Enums.InstrumentType;
 import com.ceo.trading_platform_backend.uml_objects.Enums.OrderStatus;
 import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 
+import com.ceo.trading_platform_backend.services.*;
+
 import jakarta.annotation.Resource;
 
 import com.ceo.trading_platform_backend.repositories.OrderRepository; // waiting for implementation
+import com.ceo.trading_platform_backend.dto.HoldingResponse;
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
 import com.ceo.trading_platform_backend.dto.OrderResponseDTO;
 
@@ -34,21 +43,25 @@ import com.ceo.trading_platform_backend.dto.OrderResponseDTO;
  * 
  */
 
+@Service
 public class OrderService {
     
 
     //service object to communicate with API
     private final OrderRepository repository;
-    private final ClientService clientService;
+    private final PortfolioService portfolioService;
+    private final InstrumentService instrumentService;
 
-    public OrderService(OrderRepository repository) {
+    public OrderService(OrderRepository repository, PortfolioService portfolioService, InstrumentService instrumentService) {
         this.repository = repository;
+        this.portfolioService = portfolioService;
+        this.instrumentService = instrumentService;
     }
 
     public Order createOrder(OrderRequestDTO orderRequest) {
         int clientId = orderRequest.clientId();
-        int portfolioId = portfolioService.getPortfolioById(orderRequest.portfolioId());
-        Integer instrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.instrumentSymbol()).getId(); // instrument servcie asks external api for instrument info
+        int portfolioId = portfolioService.getPortfolioById(orderRequest.portfolioId()).getPortfolioId();
+        Integer instrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.instrumentSymbol()).getID(); // instrument servcie asks external api for instrument info
         Date createdDate = new Date();
         BigDecimal quantity = orderRequest.quantity();
         BigDecimal quotedPrice = orderRequest.quotedPrice();
@@ -76,20 +89,21 @@ public class OrderService {
     private Order validate(Order order) {
         // TODO need to check time and put into different queues if doing after hours
         if (!instrumentIsTradeable(order)) {
-            Date today = new Date();
+            LocalDateTime today = LocalDateTime.now();
+            
             OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "instrument not tradable", today);
             order.addOrderStatusChange(rejectedOrderStatus);
             return order;
         }
         if (order.getSide() == Side.SELL) {
             if (!hasSufficientHoldingsSell(order)) {
-                Date today = new Date();
+                LocalDateTime today = LocalDateTime.now();
                 OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "insufficient holdings", today);
                 order.addOrderStatusChange(rejectedOrderStatus);
                 return order;
             }
         }
-        Date today = new Date();
+        LocalDateTime today = LocalDateTime.now();
         OrderStatusChange acceptedOrderStatus = new OrderStatusChange(OrderStatus.ACCEPTED, "order accepted", today);
         order.addOrderStatusChange(acceptedOrderStatus);
         return order; // go ahead to send to queue base don order status
@@ -98,24 +112,28 @@ public class OrderService {
     private Order execute(Order order) {
         if (order.getSide() == Side.BUY) {
             if (!hasSufficientFundsBuy(order)) {
-                Date today = new Date();
+                LocalDateTime today = LocalDateTime.now();
                 OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "insufficient funds", today);
                 order.addOrderStatusChange(rejectedOrderStatus);
                 return order;
             }
         }
-        Date marketOpen = new Date(); // general times...?
-        Date marketClose = new Date();
-        Date submittedTime = order.getCreatedDate();
-        if (submittedTime < marketOpen || submittedTime > marketClose) { // submitted time shoudl be in request dto
-            Date today = new Date();
+        LocalDate currentDay = LocalDate.now();
+        LocalDate nextDay = currentDay.plusDays(1);
+        LocalTime openTime = LocalTime.of(9, 30, 0);
+        LocalTime closeTime = LocalTime.of(16, 0, 0);
+        LocalDateTime marketOpen = LocalDateTime.of(currentDay, closeTime); // general times...?
+        LocalDateTime marketClose = LocalDateTime.of(nextDay, openTime);
+        LocalDateTime submittedTime = order.getCreatedDate();
+        if (submittedTime.isBefore(marketOpen) || submittedTime.isAfter(marketClose)) { // submitted time shoudl be in request dto
+            LocalDateTime today = LocalDateTime.now();
             OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
             order.addOrderStatusChange(pendingOrderStatus);
             return order; // early return, don't execute
         }
         portfolioService.updateHoldingsFromOrder(order);
         // update status - shoudl this happen based on portfolio service results above or is it just assumed thos will work?
-        Date today = new Date();
+        LocalDateTime today = LocalDateTime.now();
         OrderStatusChange fulfilledOrderStatus = new OrderStatusChange(OrderStatus.FUFILLED, "order fulfilled", today);
         order.addOrderStatusChange(fulfilledOrderStatus);
         return order;
@@ -128,9 +146,9 @@ public class OrderService {
         Integer orderId = order.getOrderId();
         Integer clientId = order.getUserId();
         Integer portfolioId = order.getPortfolioId();
-        String instrumentSymbol = instrumentService.getInstrumentById(order.getInstrumentId()).getInstrumentSymbol();
-        String instrumentFullName = instrumentService.getInstrumentById(order.getInstrumentId()).getInstrumentfullName();
-        InstrumentType instrumentType = instrumentService.getInstrumentById(order.getInstrumentId()).getInstrumentType();
+        String instrumentSymbol = instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol();
+        String instrumentFullName = instrumentService.getInstrumentById(order.getInstrumentId()).getFullName();
+        InstrumentType instrumentType = instrumentService.getInstrumentById(order.getInstrumentId()).getType();
         String createdDate = order.getCreatedDate().toString();
         BigDecimal quantity = order.getQuantity();
         BigDecimal quotedPrice = order.getQuote();
@@ -139,6 +157,8 @@ public class OrderService {
         String resolvedDate = ""; // not resolved yet?
         OrderStatus currentStatus = order.getCurrentOrderStatus().getStatus();
         OrderResponseDTO response = new OrderResponseDTO(orderId, clientId, portfolioId, instrumentSymbol, instrumentType, instrumentFullName, quantity, quotedPrice, side, increaseThreshold, createdDate, resolvedDate, currentStatus); 
+        
+        return response;
     }
 
     // get orders by portfolio
@@ -169,27 +189,24 @@ public class OrderService {
     // }
 
     // Buy Order
-    private static boolean hasSufficientFundsBuy(Order order) throws Exception {
-        double funds = portfolioService.getPortfolioById(order.getPortfolioId()).getUSDCash();
-        double cost = order.getQuantity() * order.getQuote(); // should be evaluating against real price from marketService
-        return funds >= cost;
+    private boolean hasSufficientFundsBuy(Order order) throws Exception {
+        BigDecimal funds = portfolioService.getBuyingPowerByPortfolioId(order.getPortfolioId());
+        BigDecimal cost = order.getQuantity().multiply(order.getQuote()); // should be evaluating against real price from marketService
+        return funds.compareTo(cost) >= 0;
     }
+    
+    private boolean hasSufficientHoldingsSell(Order order) {
+        List<HoldingResponse> holdings = portfolioService.getHoldingsByPortfolioId(order.getPortfolioId());
 
-    // Sell Order
-
-    // 
-    private static boolean hasSufficientHoldingsSell(Order order) {
-        List<Holding> holdings = order.portfolioService.getPortfolioById(order.getPortfolioID()).getHoldings();
-
-        double numSharesOwned = 0;
+        BigDecimal numSharesOwned = BigDecimal.ZERO;
 
         for (Holding holding : holdings) {
-            if (holding.getInstrument().equals(order.getInstrument())) {
-                numSharesOwned += holding.getQuantity();
+            if (holding.getInstrument().equals(instrumentService.getInstrumentById(order.getInstrumentId()))) {
+                numSharesOwned = numSharesOwned.add(holding.getQuantity());
             }
         }
 
-        if (numSharesOwned < order.getQuantity()) {
+        if (numSharesOwned.compareTo(order.getQuantity()) < 0) {
             return false;
         }
         

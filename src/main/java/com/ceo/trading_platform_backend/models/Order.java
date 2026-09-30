@@ -1,6 +1,7 @@
 package com.ceo.trading_platform_backend.models;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -154,7 +155,7 @@ public class Order {
         this.increaseThreshold = increaseThreshold;
     }
 
-    public Date getCreatedDate() {
+    public LocalDateTime getCreatedDate() {
         return this.orderHistory.getFirst().getDate();
     }
 
