@@ -96,12 +96,9 @@ CREATE TABLE public.order (
   side text,
   portfolio_id integer,
   user_id integer,
-  holding_id integer,
   quote numeric,
-  final_price numeric,
   increase_threshold numeric,
   CONSTRAINT order_pkey PRIMARY KEY (order_id),
-  CONSTRAINT order_holding_id_fkey FOREIGN KEY (holding_id) REFERENCES public.holding(holding_id),
   CONSTRAINT order_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_account(user_id),
   CONSTRAINT order_instr_id_fkey FOREIGN KEY (instr_id) REFERENCES public.instrument(instrument_id),
   CONSTRAINT order_portfolio_id_fkey FOREIGN KEY (portfolio_id) REFERENCES public.portfolio(portfolio_id)
@@ -119,8 +116,10 @@ CREATE TABLE public.holding (
   portfolio_id integer,
   purchased_price numeric,
   quantity numeric,
+  order_id integer,
   CONSTRAINT holding_pkey PRIMARY KEY (holding_id),
-  CONSTRAINT Holding_holding_id_fkey FOREIGN KEY (holding_id) REFERENCES public.portfolio(portfolio_id)
+  CONSTRAINT Holding_holding_id_fkey FOREIGN KEY (holding_id) REFERENCES public.portfolio(portfolio_id),
+  CONSTRAINT holding_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.order(order_id)
 );
 CREATE TABLE public.flyway_schema_history (
   installed_rank integer NOT NULL,
