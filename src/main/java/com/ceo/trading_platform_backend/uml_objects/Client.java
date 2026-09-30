@@ -2,6 +2,9 @@ package com.ceo.trading_platform_backend.uml_objects;
 
 import java.time.OffsetDateTime;
 import java.util.Set;
+
+import com.ceo.trading_platform_backend.models.Portfolio;
+
 import java.util.HashSet;
 
 /**
@@ -29,7 +32,7 @@ public class Client extends User {
 
     public Portfolio getPortfolio(int portfolioID) {
         for (Portfolio portfolio : portfolios) {
-            if (portfolio.ID == portfolioID) {
+            if (portfolio.getPortfolioId() == portfolioID) {
                 return portfolio;
             }
         }

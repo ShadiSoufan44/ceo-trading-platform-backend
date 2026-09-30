@@ -78,4 +78,7 @@ public class Order {
     public OrderStatusChange getCurrentOrderStatus() {
         return orderHistory.getLast();
     }
+    public int getOrderId() {
+        return orderId;
+    }
 }
