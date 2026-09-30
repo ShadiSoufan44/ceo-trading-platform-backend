@@ -4,12 +4,15 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import com.ceo.trading_platform_backend.dto.HoldingResponse;
 import com.ceo.trading_platform_backend.dto.PortfolioResponse;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 
+@Service 
 public class PortfolioService {
     private final PortfolioRepository repository;
     // FIXME private final MarketService marketService;
@@ -46,10 +49,6 @@ public class PortfolioService {
         );
     }
 
-    private Portfolio getPortfolioById(int portfolioId) {
-        return repository.findById(portfolioId).orElse(null);
-    }
-
     private BigDecimal getPortfolioBuyingPower(Portfolio portfolio) {
         BigDecimal totalValue = new BigDecimal(0);
         for (Holding holding : portfolio.getHoldings()) {
@@ -69,6 +68,10 @@ public class PortfolioService {
             value = value.add(price.multiply(holding.getQuantity()));
         }
         return value;
+    }
+
+    public Portfolio getPortfolioById(int portfolioId) {
+        return repository.findById(portfolioId).orElse(null);
     }
 
     // TODO: Move this to ClientService.java

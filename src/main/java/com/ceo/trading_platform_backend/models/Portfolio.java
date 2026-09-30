@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import com.ceo.trading_platform_backend.uml_objects.Instrument;
 import com.ceo.trading_platform_backend.uml_objects.Enums.InstrumentType;
 import com.ceo.trading_platform_backend.uml_objects.Enums.PortfolioType;
 
