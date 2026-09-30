@@ -1,20 +1,18 @@
 package com.ceo.trading_platform_backend.uml_objects;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.math.BigDecimal;
 
 import com.ceo.trading_platform_backend.uml_objects.Enums.OrderStatus;
 import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 
-public class Order {
+public class Order extends com.ceo.trading_platform_backend.models.Order {
 
-    int orderId;
     Client client;
-    int portfolioId;
-    
     Instrument instrument;
-    
     Date createdDate;
     Date resolvedDate;
 
@@ -24,6 +22,7 @@ public class Order {
     double quotedPrice;
     Side side;
     double increaseThreshold;
+    String message;
 
 
     public Order(
@@ -31,13 +30,19 @@ public class Order {
         int portfolioId, Date createdDate, double quantity, 
         double quotedPrice, double increaseThreshold
     ) {
+        super();
         this.client = client;
         this.instrument = instrument;
-        this.portfolioId = portfolioId;
         this.createdDate = createdDate;
         this.quantity = quantity;
         this.quotedPrice = quotedPrice;
         this.increaseThreshold = increaseThreshold;   
+        // setPortfolioId(portfolioId);
+        // setQuote(BigDecimal.valueOf(quotedPrice));
+        // setIncreaseThreshold(BigDecimal.valueOf(increaseThreshold));
+        // if (client != null) {
+        //     setUserId(client.userID);
+        // }
         this.orderHistory.add(new OrderStatusChange(
             OrderStatus.PENDING,
             "Order Created",
@@ -45,40 +50,62 @@ public class Order {
         ));
     }
 
-    public int getId() {
-        return orderId;
-    }
+    // public int getId() {
+    //     return orderId;
+    // }
     public Client getClient() {
         return client;
     }
+
     public Date getCreatedDate() {
         return createdDate;
     }
+
     public Instrument getInstrument() {
         return instrument;
     }
+
     public int getPortfolioID() {
-        return portfolioId;
+        return getPortfolioId() == null ? 0 : getPortfolioId();
     }
+
     public double getQuantity() {
         return quantity;
     }
+
     public double getQuotedPrice() {
         return quotedPrice;
     }
+
     public double getIncreaseThreshold() {
         return increaseThreshold;
     }
-    public Side getSide() {
-        return side;
-    }
+
     public List<OrderStatusChange> getOrderHistory() {
-        return orderHistory;
+        return Collections.unmodifiableList(orderHistory);
     }
+
     public void addOrderStatusChange(OrderStatusChange orderStatusChange) {
         orderHistory.add(orderStatusChange);
     }
+
     public OrderStatusChange getCurrentOrderStatus() {
         return orderHistory.getLast();
+    }
+
+    public Date getResolvedDate() {
+        return resolvedDate;
+    }
+
+    public void setResolvedDate(Date resolvedDate) {
+        this.resolvedDate = resolvedDate;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

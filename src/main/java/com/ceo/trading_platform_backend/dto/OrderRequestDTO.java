@@ -1,5 +1,7 @@
 package com.ceo.trading_platform_backend.dto;
 
+import java.math.BigDecimal;
+
 import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 
 public record OrderRequestDTO(
@@ -7,8 +9,8 @@ public record OrderRequestDTO(
     String clientName,
     Integer portfolioId,
     String instrumentSymbol,
-    Double quantity,
-    Double quotedPrice,
+    BigDecimal quantity,
+    BigDecimal quotedPrice,
     Side side,
-    Double increaseThreshold
+    BigDecimal increaseThreshold
 ) {}

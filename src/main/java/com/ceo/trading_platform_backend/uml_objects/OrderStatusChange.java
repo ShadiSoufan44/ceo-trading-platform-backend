@@ -17,4 +17,8 @@ public class OrderStatusChange {
     public OrderStatus getStatus() {
         return this.status;
     }
+
+    public Date getDate() {
+        return this.date;
+    }
 }
