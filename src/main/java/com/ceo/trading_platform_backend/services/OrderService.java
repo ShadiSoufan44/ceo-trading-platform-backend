@@ -182,8 +182,4 @@ public class OrderService {
         Boolean tradable = marketService.isActiveSymbol(instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol());
         return tradable;
     }
-
-
-
-
 }
