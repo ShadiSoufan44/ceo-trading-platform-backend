@@ -2,7 +2,7 @@ package com.ceo.trading_platform_backend.dto;
 
 import java.math.BigDecimal;
 
-import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
+import com.ceo.trading_platform_backend.enums.Side;
 
 public record OrderRequestDTO(
     Integer clientId,
