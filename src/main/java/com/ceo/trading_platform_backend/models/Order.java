@@ -38,8 +38,8 @@ public class Order {
     @Column(name = "portfolio_id")
     private Integer portfolioId;
 
-    @Column(name = "user_id")
-    private Integer userId;
+    @Column(name = "client_id")
+    private Integer clientId;
 
     @Column(name = "holding_id")
     private Integer holdingId;

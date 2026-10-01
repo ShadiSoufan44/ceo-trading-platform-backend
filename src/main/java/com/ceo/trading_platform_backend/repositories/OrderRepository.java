@@ -16,4 +16,6 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 	// find all orders of with that portfolioid valie in portfolioId column
 	List<Order> findByPortfolioId(Integer portfolioId);
 
+	List<Order> findByClientId(Integer clientId);
+
 }

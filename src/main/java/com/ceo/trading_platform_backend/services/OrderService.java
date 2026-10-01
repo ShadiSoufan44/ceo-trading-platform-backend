@@ -2,6 +2,7 @@ package com.ceo.trading_platform_backend.services;
 
 // import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -49,6 +50,21 @@ public class OrderService {
         BigDecimal increaseThreshold = orderRequest.increaseThreshold();
         Order order = new Order(instrumentId, side, portfolioId, clientId, quotedPrice, increaseThreshold, quantity);
         this.repository.save(order);
+        return order;
+    }
+
+    public List<Order> getAllOrders() {
+        List<Order> allOrders = this.repository.findAll();
+        return allOrders;
+    }
+
+    public List<Order> getClientOrders(int clientId) {
+        List<Order> orders = this.repository.findByClientId(clientId);
+        return orders;
+    }
+
+    public Optional<Order> getOrderById(int orderId) {
+        Optional<Order> order = this.repository.findById(orderId); // shoudl throw error if not found?
         return order;
     }
 
