@@ -4,8 +4,10 @@ import com.ceo.trading_platform_backend.dto.CreateUserRequest;
 import com.ceo.trading_platform_backend.dto.UserResponse;
 import com.ceo.trading_platform_backend.exception.DuplicateResourceException;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
-import com.ceo.trading_platform_backend.uml_objects.User;
-import com.ceo.trading_platform_backend.uml_objects.Client;
+import com.ceo.trading_platform_backend.models.User;
+import com.ceo.trading_platform_backend.models.Client;
+import com.ceo.trading_platform_backend.models.Analyst;
+import com.ceo.trading_platform_backend.models.Administrator;
 import com.ceo.trading_platform_backend.repositories.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -95,9 +97,9 @@ public class UserService {
     private String getRoleFromUser(User user) {
         if (user instanceof Client) {
             return "CLIENT";
-        } else if (user instanceof com.ceo.trading_platform_backend.uml_objects.Analyst) {
+        } else if (user instanceof Analyst) {
             return "ANALYST";
-        } else if (user instanceof com.ceo.trading_platform_backend.uml_objects.Administrator) {
+        } else if (user instanceof Administrator) {
             return "ADMIN";
         }
         return "CLIENT"; // Default fallback

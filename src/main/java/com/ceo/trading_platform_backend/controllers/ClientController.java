@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ceo.trading_platform_backend.services.ClientService;
-import com.ceo.trading_platform_backend.uml_objects.Order;
-import com.ceo.trading_platform_backend.uml_objects.Holding;
-import com.ceo.trading_platform_backend.uml_objects.Portfolio;
+import com.ceo.trading_platform_backend.models.Order;
+import com.ceo.trading_platform_backend.models.Holding;
+import com.ceo.trading_platform_backend.models.Portfolio;
 
 
 @RestController 

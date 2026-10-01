@@ -7,6 +7,7 @@ import java.util.List;
 import java.math.BigDecimal;
 
 import com.ceo.trading_platform_backend.models.Instrument;
+import com.ceo.trading_platform_backend.models.Client;
 import com.ceo.trading_platform_backend.uml_objects.Enums.OrderStatus;
 import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 
@@ -41,7 +42,7 @@ public class Order extends com.ceo.trading_platform_backend.models.Order {
         setQuote(BigDecimal.valueOf(quotedPrice));
         setIncreaseThreshold(BigDecimal.valueOf(wentUpTooMuchThreshold));
         if (client != null) {
-            setUserId(client.userID);
+            setUserId(client.getUserId());
         }
         this.orderHistory.add(new OrderStatusChange(
             OrderStatus.PENDING,

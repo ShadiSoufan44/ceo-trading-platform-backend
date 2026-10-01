@@ -5,18 +5,18 @@ import java.time.OffsetDateTime;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import com.ceo.trading_platform_backend.uml_objects.User;
+import com.ceo.trading_platform_backend.models.Client;
 
 @SpringBootApplication
 public class TradingPlatformBackendApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(TradingPlatformBackendApplication.class, args);
-		User me = new User(
+		Client me = new Client(
 			"Drake Maye", 
 			"drakemaye@not.real", 
-			"goat", OffsetDateTime.now(), 
-			"Quarterback"
+			"goat", 
+			OffsetDateTime.now()
 		);
 		System.out.println(
 			String.format("User: %s; email %s", me.getFullName(),  me.getEmail())

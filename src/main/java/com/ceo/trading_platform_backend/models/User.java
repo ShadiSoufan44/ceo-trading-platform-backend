@@ -1,4 +1,4 @@
-package com.ceo.trading_platform_backend.uml_objects;
+package com.ceo.trading_platform_backend.models;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorColumn;

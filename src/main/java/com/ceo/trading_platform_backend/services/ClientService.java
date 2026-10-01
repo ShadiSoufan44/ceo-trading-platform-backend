@@ -7,9 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ceo.trading_platform_backend.repositories.OrderRepository;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
-import com.ceo.trading_platform_backend.uml_objects.Holding;
-import com.ceo.trading_platform_backend.uml_objects.Order;
-import com.ceo.trading_platform_backend.uml_objects.Portfolio;
+import com.ceo.trading_platform_backend.models.Holding;
+import com.ceo.trading_platform_backend.models.Order;
+import com.ceo.trading_platform_backend.models.Portfolio;
 
 /**
  * ClientService handles client-specific business logic.

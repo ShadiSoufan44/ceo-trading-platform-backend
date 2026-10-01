@@ -7,8 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ceo.trading_platform_backend.repositories.OrderRepository;
 import com.ceo.trading_platform_backend.repositories.UserRepository;
-import com.ceo.trading_platform_backend.uml_objects.Order;
-import com.ceo.trading_platform_backend.uml_objects.User;
+import com.ceo.trading_platform_backend.models.Order;
+import com.ceo.trading_platform_backend.models.User;
 
 /**
  * AdminService handles admin-only system operations.
