@@ -1,7 +1,5 @@
 package com.ceo.trading_platform_backend.dto;
 
-import java.time.OffsetDateTime;
-
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -17,3 +15,4 @@ public record CreateUserRequest(
     String password
 ) {
 }
+ 

@@ -35,7 +35,7 @@ public class Client extends User {
 
     public Portfolio getPortfolio(int portfolioID) {
         for (Portfolio portfolio : portfolios) {
-            if (portfolio.ID == portfolioID) {
+            if (portfolio.getPortfolioId() == portfolioID) {
                 return portfolio;
             }
         }
