@@ -9,5 +9,5 @@ import com.ceo.trading_platform_backend.models.Portfolio;
 
 public interface PortfolioRepository extends JpaRepository<Portfolio, Integer> {
     
-    public List<Portfolio> findByClientId(int clientId);
+    // public List<Portfolio> findByClientId(int clientId);
 }

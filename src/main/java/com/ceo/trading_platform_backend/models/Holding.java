@@ -5,7 +5,7 @@ import java.util.Date;
 
 import org.springframework.data.annotation.CreatedDate;
 
-import com.ceo.trading_platform_backend.uml_objects.Order;
+import com.ceo.trading_platform_backend.models.Order;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
