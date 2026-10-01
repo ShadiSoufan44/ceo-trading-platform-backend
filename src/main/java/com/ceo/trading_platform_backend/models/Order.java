@@ -64,12 +64,12 @@ public class Order {
     protected Order() {
     }
 
-    public Order(Integer instrumentId, Side side, Integer portfolioId, Integer userId, /*Integer holdingId,*/
+    public Order(Integer instrumentId, Side side, Integer portfolioId, Integer clientId, /*Integer holdingId,*/
             BigDecimal quote/* , BigDecimal finalPrice */, BigDecimal increaseThreshold, BigDecimal quantity) {
         this.instrumentId = instrumentId;
         this.side = side;
         this.portfolioId = portfolioId;
-        this.userId = userId;
+        this.clientId = clientId;
         // this.holdingId = holdingId;
         this.quote = quote;
         // this.finalPrice = finalPrice;
@@ -115,12 +115,12 @@ public class Order {
         this.portfolioId = portfolioId;
     }
 
-    public Integer getUserId() {
-        return userId;
+    public Integer getClientId() {
+        return clientId;
     }
 
-    public void setUserId(Integer userId) {
-        this.userId = userId;
+    public void setClientId(Integer clientId) {
+        this.clientId = clientId;
     }
 
     public Integer getHoldingId() {

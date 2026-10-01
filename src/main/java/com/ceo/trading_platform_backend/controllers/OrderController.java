@@ -72,7 +72,7 @@ public class OrderController {
     
     public OrderResponseDTO createOrderResponse(Order order) {
         Integer orderId = order.getOrderId();
-        Integer clientId = order.getUserId();
+        Integer clientId = order.getClientId();
         Integer portfolioId = order.getPortfolioId();
         String instrumentSymbol = instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol();
         String instrumentFullName = instrumentService.getInstrumentById(order.getInstrumentId()).getFullName();
