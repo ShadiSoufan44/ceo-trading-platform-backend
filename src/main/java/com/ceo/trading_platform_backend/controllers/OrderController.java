@@ -37,8 +37,8 @@ public class OrderController {
     }
     
     //get orders absed off client id
-    @GetMapping
-    public List <OrderResponseDTO> getClientOrders(@RequestParam Long clientID) { 
+    @GetMapping("/by_client/{clientID}")
+    public List <OrderResponseDTO> getClientOrders(@PathVariable Long clientID) { 
         return orderService.getClientOrders(clientID);
     }
 

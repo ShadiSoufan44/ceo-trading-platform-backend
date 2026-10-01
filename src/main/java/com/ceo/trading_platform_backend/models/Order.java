@@ -75,7 +75,7 @@ public class Order {
         // this.finalPrice = finalPrice;
         this.increaseThreshold = increaseThreshold;
         this.quantity = quantity;
-        Date createdDate = new Date(); //not sure if this is correct place ot get date
+        LocalDateTime createdDate = LocalDateTime.now(); //not sure if this is correct place ot get date
         this.orderHistory.add(new OrderStatusChange(
             OrderStatus.PENDING,
             "Order Created",
