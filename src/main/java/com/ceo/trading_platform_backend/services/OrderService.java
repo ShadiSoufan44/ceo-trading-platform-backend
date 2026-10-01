@@ -52,12 +52,6 @@ public class OrderService {
         return order;
     }
 
-    // public Order submit(OrderRequestDTO orderRequest) {
-    //     Order order = createOrder(orderRequest);
-    //     Date submittedTime = new Date(); // add time filed so we know what tie order was subitted fo rafter hour processing
-    //     return validate(order, submittedTime);
-    // }
-
     // these methods get called from kafka pipeline
 
     // validate info liek instrument tradable and has sufficient holdings
