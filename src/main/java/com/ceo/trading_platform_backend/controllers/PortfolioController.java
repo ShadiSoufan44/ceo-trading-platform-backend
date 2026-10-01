@@ -17,7 +17,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 
 
 @RestController 
@@ -31,23 +30,23 @@ public class PortfolioController {
     }
 
     // TODO: move this to a ClientController.java
-    @GetMapping("/getall/{client_id}")
-    public ResponseEntity<List<PortfolioResponse>> getPortfoliosByClientId(
-        @PathVariable int clientId
-    ) {
-        List<Portfolio> portfolios = service.getPortfoliosByClientId(clientId);
-        if (portfolios == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        List<PortfolioResponse> response = new ArrayList<>();
-        for (Portfolio portfolio : portfolios) {
-            response.add(createPortfolioResponse(portfolio));
-        }
+    // @GetMapping("/getall/{client_id}")
+    // public ResponseEntity<List<PortfolioResponse>> getPortfoliosByClientId(
+    //     @PathVariable int clientId
+    // ) {
+    //     List<Portfolio> portfolios = service.getPortfoliosByClientId(clientId);
+    //     if (portfolios == null) {
+    //         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    //     }
+    //     List<PortfolioResponse> response = new ArrayList<>();
+    //     for (Portfolio portfolio : portfolios) {
+    //         response.add(createPortfolioResponse(portfolio));
+    //     }
         
-        return ResponseEntity.ok(response);
-    }
+    //     return ResponseEntity.ok(response);
+    // }
 
-    @GetMapping("/{portfolio_id}/buying_power")
+    @GetMapping("/{portfolioId}/buying_power")
     public ResponseEntity<BigDecimal> getBuyingPowerByPortfolioId(
         @PathVariable int portfolioId
     ) {
@@ -58,9 +57,9 @@ public class PortfolioController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{portfolio_id/total_value")
+    @GetMapping("/{portfolioId}/total_value")
     public ResponseEntity<BigDecimal> getTotalValueByPortfolioId(
-        @RequestParam int portfolioId
+        @PathVariable int portfolioId
     ) {
         BigDecimal response = service.getTotalValueByPortfolioId(portfolioId);
         if (response == null) {
@@ -70,7 +69,7 @@ public class PortfolioController {
     }
     
 
-    @GetMapping("/{portfolio_id}/holdings")
+    @GetMapping("/{portfolioId}/holdings")
     public ResponseEntity<List<HoldingResponse>> getHoldingsByPortfolioId(
         @PathVariable int portfolioId
     ) {
@@ -85,7 +84,7 @@ public class PortfolioController {
         return ResponseEntity.ok(response);
     }
     
-    @GetMapping("/{portfolio_id}")
+    @GetMapping("/{portfolioId}")
     public ResponseEntity<PortfolioResponse> getPortfolioById(@PathVariable int portfolioId) {
         Portfolio portfolio = service.getPortfolioById(portfolioId);
         if (portfolio == null) {
