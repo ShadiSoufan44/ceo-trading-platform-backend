@@ -16,7 +16,7 @@ import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "dtype", discriminatorType = DiscriminatorType.STRING, length = 50)
+@DiscriminatorColumn(name = "role", discriminatorType = DiscriminatorType.STRING, length = 50)
 @Table(name = "user_account")
 public abstract class User {
 
