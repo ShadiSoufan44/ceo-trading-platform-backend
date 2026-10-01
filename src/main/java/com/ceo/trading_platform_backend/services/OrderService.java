@@ -1,7 +1,6 @@
 package com.ceo.trading_platform_backend.services;
 
-import java.util.ArrayList;
-import java.util.Date;
+// import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -11,23 +10,16 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-import com.ceo.trading_platform_backend.uml_objects.Client;
 import com.ceo.trading_platform_backend.models.Holding;
-import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.uml_objects.OrderStatusChange;
-import com.ceo.trading_platform_backend.uml_objects.Enums.InstrumentType;
 import com.ceo.trading_platform_backend.uml_objects.Enums.OrderStatus;
 import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
-
-import com.ceo.trading_platform_backend.services.*;
 
 import jakarta.annotation.Resource;
 
 import com.ceo.trading_platform_backend.repositories.OrderRepository; // waiting for implementation
-import com.ceo.trading_platform_backend.dto.HoldingResponse;
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
-import com.ceo.trading_platform_backend.dto.OrderResponseDTO;
 
 @Service
 public class OrderService {
@@ -46,6 +38,7 @@ public class OrderService {
         this.marketService = marketService;
     }
 
+    // TODO move to ordercontroller and orderservice only gets order objects?
     public Order createOrder(OrderRequestDTO orderRequest) {
         int clientId = orderRequest.clientId();
         int portfolioId = portfolioService.getPortfolioById(orderRequest.portfolioId()).getPortfolioId();
@@ -186,7 +179,7 @@ public class OrderService {
     }
 
     // Buy Order
-    private boolean hasSufficientFundsBuy(Order order, BigDecimal price) throws Exception {
+    private boolean hasSufficientFundsBuy(Order order, BigDecimal price){
         BigDecimal funds = portfolioService.getBuyingPowerByPortfolioId(order.getPortfolioId());
         BigDecimal cost = order.getQuantity().multiply(price); // should be evaluating against real price from marketService
         return funds.compareTo(cost) >= 0;
