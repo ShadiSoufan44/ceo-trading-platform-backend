@@ -1,7 +1,13 @@
 package com.ceo.trading_platform_backend.models;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
+import com.ceo.trading_platform_backend.uml_objects.OrderStatusChange;
+import com.ceo.trading_platform_backend.uml_objects.Enums.OrderStatus;
 import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 
 import jakarta.persistence.Column;
@@ -50,19 +56,35 @@ public class Order {
     @Column(name = "quantity")
     private BigDecimal quantity;
 
+    // not a column in table
+    List<OrderStatusChange> orderHistory = new ArrayList<>();
+    
+
+
     protected Order() {
     }
 
-    public Order(Integer instrumentId, Side side, Integer portfolioId, Integer userId, Integer holdingId,
-            BigDecimal quote, BigDecimal finalPrice, BigDecimal increaseThreshold) {
+    public Order(Integer instrumentId, Side side, Integer portfolioId, Integer userId, /*Integer holdingId,*/
+            BigDecimal quote/* , BigDecimal finalPrice */, BigDecimal increaseThreshold, BigDecimal quantity) {
         this.instrumentId = instrumentId;
         this.side = side;
         this.portfolioId = portfolioId;
         this.userId = userId;
-        this.holdingId = holdingId;
+        // this.holdingId = holdingId;
         this.quote = quote;
-        this.finalPrice = finalPrice;
+        // this.finalPrice = finalPrice;
         this.increaseThreshold = increaseThreshold;
+        this.quantity = quantity;
+        LocalDateTime createdDate = LocalDateTime.now(); //not sure if this is correct place ot get date
+        this.orderHistory.add(new OrderStatusChange(
+            OrderStatus.PENDING,
+            "Order Created",
+            createdDate
+        ));
+    }
+
+    public void addOrderStatusChange(OrderStatusChange orderStatusChange) {
+        orderHistory.add(orderStatusChange);
     }
 
     public Integer getOrderId() {
@@ -132,8 +154,17 @@ public class Order {
     public void setIncreaseThreshold(BigDecimal increaseThreshold) {
         this.increaseThreshold = increaseThreshold;
     }
-    
+
+    public LocalDateTime getCreatedDate() {
+        return this.orderHistory.getFirst().getDate();
+    }
+
     public BigDecimal getQuantity() {
         return quantity;
     }
+
+    public OrderStatusChange getCurrentOrderStatus() {
+        return orderHistory.getLast();
+    }
+
 }
