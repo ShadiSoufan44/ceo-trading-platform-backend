@@ -1,6 +1,6 @@
 package com.ceo.trading_platform_backend.models;
 
-import com.ceo.trading_platform_backend.uml_objects.Enums.InstrumentType;
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

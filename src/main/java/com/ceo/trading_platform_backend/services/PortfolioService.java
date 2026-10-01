@@ -6,12 +6,12 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.ceo.trading_platform_backend.enums.Side;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
-import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 
 @Service 
 public class PortfolioService {

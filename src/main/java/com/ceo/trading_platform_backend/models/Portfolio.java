@@ -2,7 +2,7 @@ package com.ceo.trading_platform_backend.models;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.ceo.trading_platform_backend.uml_objects.Enums.PortfolioType;
+import com.ceo.trading_platform_backend.enums.PortfolioType;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
