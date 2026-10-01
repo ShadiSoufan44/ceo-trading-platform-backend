@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS "user_account" (
 	"email" VARCHAR(255) NOT NULL UNIQUE,
 	"password" VARCHAR(255) NOT NULL,
 	"join_date" TIMESTAMPTZ NOT NULL DEFAULT now(),
-	"role" VARCHAR(50) NOT NULL DEFAULT 'USER' CHECK ("role" IN ('USER', 'ADMIN')),
+	"dtype" VARCHAR(50) NOT NULL DEFAULT 'CLIENT' CHECK ("dtype" IN ('CLIENT', 'ANALYST', 'ADMIN')),
 	PRIMARY KEY("user_id")
 );
 
@@ -70,3 +70,4 @@ CREATE INDEX ON "holding" ("portfolio_id");
 CREATE INDEX ON "orders" ("user_id");
 CREATE INDEX ON "orders" ("instr_id");
 CREATE INDEX ON "orders" ("holding_id");
+CREATE INDEX ON "user_account" ("dtype");
