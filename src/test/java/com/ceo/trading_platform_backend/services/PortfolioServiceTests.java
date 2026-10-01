@@ -18,13 +18,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.ceo.trading_platform_backend.enums.InstrumentType;
+import com.ceo.trading_platform_backend.enums.PortfolioType;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
-import com.ceo.trading_platform_backend.uml_objects.Enums.InstrumentType;
-import com.ceo.trading_platform_backend.uml_objects.Enums.PortfolioType;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PortfolioService Tests")
@@ -51,7 +51,6 @@ public class PortfolioServiceTests {
 
     private Order createTestOrder(int orderId) {
         Order order = new Order(
-            null, 
             null, 
             null, 
             null, 
