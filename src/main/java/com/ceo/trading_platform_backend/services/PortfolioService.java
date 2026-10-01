@@ -103,10 +103,10 @@ public class PortfolioService {
         return getPortfolioTotalValue(portfolio);
     }
 
-    public List<HoldingResponse> getHoldingsByPortfolioId(int portfolioId) {
-        List<HoldingResponse> result = new ArrayList<>();
+    public List<Holding> getHoldingsByPortfolioId(int portfolioId) {
+        List<Holding> result = new ArrayList<>();
         for (Holding holding : getPortfolioById(portfolioId).getHoldings()) {
-            result.add(createHoldingResponse(holding));
+            result.add(holding);
         }
         if (result.size() == 0) return null;
         return result;

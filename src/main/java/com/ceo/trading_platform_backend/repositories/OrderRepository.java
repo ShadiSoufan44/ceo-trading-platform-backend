@@ -14,6 +14,6 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 	// OrderStatusChange findByStatus(OrderStatus status);
 
 	// find all orders of with that portfolioid valie in portfolioId column
-	Integer findByPortfolioId(Integer portfolioId);
+	List<Order> findByPortfolioId(Integer portfolioId);
 
 }

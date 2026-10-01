@@ -13,7 +13,6 @@ import java.time.LocalTime;
 
 import com.ceo.trading_platform_backend.uml_objects.Client;
 import com.ceo.trading_platform_backend.models.Holding;
-// import com.ceo.trading_platform_backend.uml_objects.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.uml_objects.OrderStatusChange;
@@ -30,19 +29,6 @@ import com.ceo.trading_platform_backend.dto.HoldingResponse;
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
 import com.ceo.trading_platform_backend.dto.OrderResponseDTO;
 
-/*
- * 
- * OrderService
- * TODO:
- * submit
- * validate
- * execute
- * execute after hours?
- * 
- * use the repo (jpa stuff) functions to get info about the order
- * 
- */
-
 @Service
 public class OrderService {
     
@@ -51,18 +37,19 @@ public class OrderService {
     private final OrderRepository repository;
     private final PortfolioService portfolioService;
     private final InstrumentService instrumentService;
+    private final MarketService marketService;
 
-    public OrderService(OrderRepository repository, PortfolioService portfolioService, InstrumentService instrumentService) {
+    public OrderService(OrderRepository repository, PortfolioService portfolioService, InstrumentService instrumentService, MarketService marketService) {
         this.repository = repository;
         this.portfolioService = portfolioService;
         this.instrumentService = instrumentService;
+        this.marketService = marketService;
     }
 
     public Order createOrder(OrderRequestDTO orderRequest) {
         int clientId = orderRequest.clientId();
         int portfolioId = portfolioService.getPortfolioById(orderRequest.portfolioId()).getPortfolioId();
         Integer instrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.instrumentSymbol()).getID(); // instrument servcie asks external api for instrument info
-        Date createdDate = new Date();
         BigDecimal quantity = orderRequest.quantity();
         BigDecimal quotedPrice = orderRequest.quotedPrice();
         Side side = orderRequest.side();
@@ -78,19 +65,13 @@ public class OrderService {
     //     return validate(order, submittedTime);
     // }
 
-    // current plan of aciton
-    // validation --> checks whatever it can
-    // send to queue
-    // validation + execute --> check liek info liek price and execute
-
-    // these methods get claled from kafka pipeline
+    // these methods get called from kafka pipeline
 
     // validate info liek instrument tradable and has sufficient holdings
     private Order validate(Order order) {
         // TODO need to check time and put into different queues if doing after hours
         if (!instrumentIsTradeable(order)) {
             LocalDateTime today = LocalDateTime.now();
-            
             OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "instrument not tradable", today);
             order.addOrderStatusChange(rejectedOrderStatus);
             return order;
@@ -110,28 +91,23 @@ public class OrderService {
     }
 
     private Order execute(Order order) {
+        BigDecimal price =  marketService.getPrice(instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol());
+        if (outOfHours(order)) {
+            LocalDateTime today = LocalDateTime.now();
+            OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+            order.addOrderStatusChange(pendingOrderStatus);
+            return order; // early return, don't execute
+        }
         if (order.getSide() == Side.BUY) {
-            if (!hasSufficientFundsBuy(order)) {
+            if (!hasSufficientFundsBuy(order, price)) {
                 LocalDateTime today = LocalDateTime.now();
                 OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "insufficient funds", today);
                 order.addOrderStatusChange(rejectedOrderStatus);
                 return order;
             }
         }
-        LocalDate currentDay = LocalDate.now();
-        LocalDate nextDay = currentDay.plusDays(1);
-        LocalTime openTime = LocalTime.of(9, 30, 0);
-        LocalTime closeTime = LocalTime.of(16, 0, 0);
-        LocalDateTime marketOpen = LocalDateTime.of(currentDay, closeTime); // general times...?
-        LocalDateTime marketClose = LocalDateTime.of(nextDay, openTime);
-        LocalDateTime submittedTime = order.getCreatedDate();
-        if (submittedTime.isBefore(marketOpen) || submittedTime.isAfter(marketClose)) { // submitted time shoudl be in request dto
-            LocalDateTime today = LocalDateTime.now();
-            OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
-            order.addOrderStatusChange(pendingOrderStatus);
-            return order; // early return, don't execute
-        }
-        portfolioService.updateHoldingsFromOrder(order);
+  
+        portfolioService.updateHoldingsFromOrder(order, price);
         // update status - shoudl this happen based on portfolio service results above or is it just assumed thos will work?
         LocalDateTime today = LocalDateTime.now();
         OrderStatusChange fulfilledOrderStatus = new OrderStatusChange(OrderStatus.FUFILLED, "order fulfilled", today);
@@ -141,25 +117,25 @@ public class OrderService {
 
 
     // TODO: fix placeholders like date and stuff
-    public OrderResponseDTO createOrderResponse(Order order) {
-        // controller gets response back
-        Integer orderId = order.getOrderId();
-        Integer clientId = order.getUserId();
-        Integer portfolioId = order.getPortfolioId();
-        String instrumentSymbol = instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol();
-        String instrumentFullName = instrumentService.getInstrumentById(order.getInstrumentId()).getFullName();
-        InstrumentType instrumentType = instrumentService.getInstrumentById(order.getInstrumentId()).getType();
-        String createdDate = order.getCreatedDate().toString();
-        BigDecimal quantity = order.getQuantity();
-        BigDecimal quotedPrice = order.getQuote();
-        Side side = order.getSide();
-        BigDecimal increaseThreshold = order.getIncreaseThreshold();
-        String resolvedDate = ""; // not resolved yet?
-        OrderStatus currentStatus = order.getCurrentOrderStatus().getStatus();
-        OrderResponseDTO response = new OrderResponseDTO(orderId, clientId, portfolioId, instrumentSymbol, instrumentType, instrumentFullName, quantity, quotedPrice, side, increaseThreshold, createdDate, resolvedDate, currentStatus); 
+    // public OrderResponseDTO createOrderResponse(Order order) {
+    //     // controller gets response back
+    //     Integer orderId = order.getOrderId();
+    //     Integer clientId = order.getUserId();
+    //     Integer portfolioId = order.getPortfolioId();
+    //     String instrumentSymbol = instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol();
+    //     String instrumentFullName = instrumentService.getInstrumentById(order.getInstrumentId()).getFullName();
+    //     InstrumentType instrumentType = instrumentService.getInstrumentById(order.getInstrumentId()).getType();
+    //     String createdDate = order.getCreatedDate().toString();
+    //     BigDecimal quantity = order.getQuantity();
+    //     BigDecimal quotedPrice = order.getQuote();
+    //     Side side = order.getSide();
+    //     BigDecimal increaseThreshold = order.getIncreaseThreshold();
+    //     String resolvedDate = ""; // not resolved yet?
+    //     OrderStatus currentStatus = order.getCurrentOrderStatus().getStatus();
+    //     OrderResponseDTO response = new OrderResponseDTO(orderId, clientId, portfolioId, instrumentSymbol, instrumentType, instrumentFullName, quantity, quotedPrice, side, increaseThreshold, createdDate, resolvedDate, currentStatus); 
         
-        return response;
-    }
+    //     return response;
+    // }
 
     // get orders by portfolio
     // portfolioService calls orderRepository
@@ -169,9 +145,10 @@ public class OrderService {
     // method for portfolios service to use to find which orders belong to it
     // do we need this method or woudl it just be holdings? but i think we should still need it because we woudl want transaction history to reflect based on chosen portfolio right?
     // does history belong to portfolio...?
-    public Order getOrderByPortfolioId(int ID) { // currently int but shoudl not be...
-        this.repository.findByPortfolioId(ID).map(OrderMapper::toDto).orElseThrow(() -> new ResourceNortFoundException("order not found"));
-    }
+    public List<Order> getOrdersByPortfolioId(int ID) { // currently int but shoudl not be...
+        List<Order> orders = this.repository.findByPortfolioId(ID);
+        return orders;
+    } 
 
 
     // method for processing after hours orders
@@ -188,15 +165,35 @@ public class OrderService {
     //     return processedAfterHoursOrders;
     // }
 
+    // Check if in hours
+    private boolean outOfHours(Order order) {
+                          // use LocalTime to capture just time for market open and close
+        // use instant for the order submissions time
+        // convert this instant to zoned then to the local time (.toLocalTime()) of the market
+        // compare in the ny time zone
+        // also check day of week from the zoneddatetiem
+        LocalDate currentDay = LocalDate.now();
+        LocalDate nextDay = currentDay.plusDays(1);
+        LocalTime openTime = LocalTime.of(9, 30, 0);
+        LocalTime closeTime = LocalTime.of(16, 0, 0);
+        LocalDateTime marketOpen = LocalDateTime.of(nextDay, openTime); // general times...?
+        LocalDateTime marketClose = LocalDateTime.of(currentDay, closeTime);
+        LocalDateTime submittedTime = order.getCreatedDate();
+        if (submittedTime.isBefore(marketOpen) || submittedTime.isAfter(marketClose)) { // submitted time shoudl be in request dto
+            return false;
+        }
+        return true;
+    }
+
     // Buy Order
-    private boolean hasSufficientFundsBuy(Order order) throws Exception {
+    private boolean hasSufficientFundsBuy(Order order, BigDecimal price) throws Exception {
         BigDecimal funds = portfolioService.getBuyingPowerByPortfolioId(order.getPortfolioId());
-        BigDecimal cost = order.getQuantity().multiply(order.getQuote()); // should be evaluating against real price from marketService
+        BigDecimal cost = order.getQuantity().multiply(price); // should be evaluating against real price from marketService
         return funds.compareTo(cost) >= 0;
     }
     
     private boolean hasSufficientHoldingsSell(Order order) {
-        List<HoldingResponse> holdings = portfolioService.getHoldingsByPortfolioId(order.getPortfolioId());
+        List<Holding> holdings = portfolioService.getHoldingsByPortfolioId(order.getPortfolioId());
 
         BigDecimal numSharesOwned = BigDecimal.ZERO;
 
@@ -213,9 +210,10 @@ public class OrderService {
         return true;
     }
 
-    private static boolean instrumentIsTradeable(Order order) {
+    private boolean instrumentIsTradeable(Order order) {
         // comes from market API
-        return true;
+        Boolean tradable = marketService.isActiveSymbol(instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol());
+        return tradable;
     }
 
 
