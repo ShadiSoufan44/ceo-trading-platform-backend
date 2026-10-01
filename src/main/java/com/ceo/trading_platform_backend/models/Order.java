@@ -47,6 +47,9 @@ public class Order {
     @Column(name = "increase_threshold")
     private BigDecimal increaseThreshold;
 
+    @Column(name = "quantity")
+    private BigDecimal quantity;
+
     protected Order() {
     }
 
@@ -128,5 +131,9 @@ public class Order {
 
     public void setIncreaseThreshold(BigDecimal increaseThreshold) {
         this.increaseThreshold = increaseThreshold;
+    }
+    
+    public BigDecimal getQuantity() {
+        return quantity;
     }
 }
