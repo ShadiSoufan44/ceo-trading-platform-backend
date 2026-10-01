@@ -130,37 +130,17 @@ public class OrderService {
     //     return response;
     // }
 
-    // get orders by portfolio
-    // portfolioService calls orderRepository
-    //
-    // portfolioService -> orderService -> orderRepository
-    // portfolioService -> portfolioRepository and it owudl do joins
-    // method for portfolios service to use to find which orders belong to it
-    // do we need this method or woudl it just be holdings? but i think we should still need it because we woudl want transaction history to reflect based on chosen portfolio right?
-    // does history belong to portfolio...?
+    // get all orders of a portfolio
     public List<Order> getOrdersByPortfolioId(int ID) { // currently int but shoudl not be...
         List<Order> orders = this.repository.findByPortfolioId(ID);
         return orders;
     } 
 
 
-    // method for processing after hours orders
-    // not requested by front end
-    // chganging now that using queueue...?
-    // public List<Order> processBatchOrders() {
-    //     List<Order> afterHourOrders = new ArrayList<Order>(); // or whatever repository method returns
-    //     afterHoursOrders = this.repository.findByStatus(OrderStatus.PENDING); //jpa knows its order table because its order repo
-    //     List<Order> processedAfterHoursOrders = new ArrayList<Order>();
-    //     for (Order order : afterHourOrders) {
-    //         Order processedOrder = this.validate(order); // process (val + exec) instead, since validate shouldnt call eexecute anymore
-    //         processedAfterHoursOrders.add(processedOrder);
-    //     }
-    //     return processedAfterHoursOrders;
-    // }
-
     // Check if in hours
     private boolean outOfHours(Order order) {
-                          // use LocalTime to capture just time for market open and close
+        // TODO fix time
+        // use LocalTime to capture just time for market open and close
         // use instant for the order submissions time
         // convert this instant to zoned then to the local time (.toLocalTime()) of the market
         // compare in the ny time zone
