@@ -5,7 +5,7 @@ import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,15 +18,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.ceo.trading_platform_backend.dto.HoldingResponse;
-import com.ceo.trading_platform_backend.dto.PortfolioResponse;
 import com.ceo.trading_platform_backend.models.Holding;
+import com.ceo.trading_platform_backend.models.Instrument;
+import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 import com.ceo.trading_platform_backend.uml_objects.Enums.InstrumentType;
 import com.ceo.trading_platform_backend.uml_objects.Enums.PortfolioType;
-import com.ceo.trading_platform_backend.uml_objects.Instrument;
-import com.ceo.trading_platform_backend.uml_objects.Order;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PortfolioService Tests")
@@ -47,7 +45,7 @@ public class PortfolioServiceTests {
     }
 
     private Portfolio createTestPortfolio(int id, PortfolioType type) {
-        Portfolio portfolio = new Portfolio(type, BigDecimal.ZERO);
+        Portfolio portfolio = new Portfolio(type);
         return portfolio;
     }
 
@@ -55,18 +53,19 @@ public class PortfolioServiceTests {
         Order order = new Order(
             null, 
             null, 
-            0, 
             null, 
-            0, 
-            0, 
-            0
+            null, 
+            null, 
+            null, 
+            null, 
+            null
         );
         return order;
     }
 
     private Holding createCashHolding(BigDecimal quantity) {
         return new Holding(
-            new Date(),
+            Instant.now(),
             BigDecimal.ONE,
             quantity,
             usdInstrument,
@@ -76,7 +75,7 @@ public class PortfolioServiceTests {
 
     private Holding createStockHolding(BigDecimal quantity, BigDecimal price) {
         return new Holding(
-            new Date(),
+            Instant.now(),
             price,
             quantity,
             stockInstrument,
@@ -105,35 +104,6 @@ public class PortfolioServiceTests {
             when(portfolioRepository.findById(999)).thenReturn(Optional.empty());
 
             Portfolio result = portfolioService.getPortfolioById(999);
-
-            assertThat(result).isNull();
-            verify(portfolioRepository).findById(999);
-        }
-    }
-
-    @Nested
-    @DisplayName("Test getPortfolioResponseById()")
-    class GetPortfolioResponseByIdTests {
-        @Test
-        @DisplayName("Should return correct response when portfolio exists")
-        void shouldReturnResponseWhenExists() {
-            Portfolio portfolio = createTestPortfolio(1, PortfolioType.BROKERAGE);
-            when(portfolioRepository.findById(1)).thenReturn(Optional.of(portfolio));
-
-            PortfolioResponse result = portfolioService.getPortfolioResponseById(1);
-
-            assertThat(result).isNotNull();
-            assertThat(result.ID()).isEqualTo(portfolio.getPortfolioId());
-            assertThat(result.type()).isEqualTo(PortfolioType.BROKERAGE);
-            verify(portfolioRepository).findById(1);
-        }
-
-        @Test
-        @DisplayName("Should return null when portfolio ID doesn't exist")
-        void shouldReturnNullWhenNotExists() {
-            when(portfolioRepository.findById(999)).thenReturn(Optional.empty());
-
-            PortfolioResponse result = portfolioService.getPortfolioResponseById(999);
 
             assertThat(result).isNull();
             verify(portfolioRepository).findById(999);
@@ -205,7 +175,7 @@ public class PortfolioServiceTests {
         void shouldReturnNullWhenPortfolioNotExists() {
             when(portfolioRepository.findById(999)).thenReturn(Optional.empty());
 
-            List<HoldingResponse> result = portfolioService.getHoldingsByPortfolioId(999);
+            List<Holding> result = portfolioService.getHoldingsByPortfolioId(999);
 
             assertThat(result).isNull();
         }
@@ -218,7 +188,7 @@ public class PortfolioServiceTests {
             
             when(portfolioRepository.findById(1)).thenReturn(Optional.of(portfolio));
 
-            List<HoldingResponse> result = portfolioService.getHoldingsByPortfolioId(1);
+            List<Holding> result = portfolioService.getHoldingsByPortfolioId(1);
 
             assertThat(result).isNotNull().isEmpty();
         }
@@ -232,7 +202,7 @@ public class PortfolioServiceTests {
             
             when(portfolioRepository.findById(1)).thenReturn(Optional.of(portfolio));
 
-            List<HoldingResponse> result = portfolioService.getHoldingsByPortfolioId(1);
+            List<Holding> result = portfolioService.getHoldingsByPortfolioId(1);
 
             assertThat(result)
                 .isNotNull()
@@ -251,7 +221,7 @@ public class PortfolioServiceTests {
             
             when(portfolioRepository.findById(1)).thenReturn(Optional.of(portfolio));
 
-            List<HoldingResponse> result = portfolioService.getHoldingsByPortfolioId(1);
+            List<Holding> result = portfolioService.getHoldingsByPortfolioId(1);
 
             assertThat(result)
                 .isNotNull()

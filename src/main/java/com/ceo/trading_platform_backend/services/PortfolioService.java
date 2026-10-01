@@ -1,49 +1,31 @@
 package com.ceo.trading_platform_backend.services;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
 
-import com.ceo.trading_platform_backend.dto.HoldingResponse;
-import com.ceo.trading_platform_backend.dto.PortfolioResponse;
+import org.springframework.stereotype.Service;
+
 import com.ceo.trading_platform_backend.models.Holding;
+import com.ceo.trading_platform_backend.models.Instrument;
+import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
+import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 
+@Service 
 public class PortfolioService {
     private final PortfolioRepository repository;
+    private final InstrumentService instrumentService;
     // FIXME private final MarketService marketService;
 
     public PortfolioService(
         PortfolioRepository repository
+        , InstrumentService instrumentService
         // FIXME , MarketService marketService
     ) {
         this.repository = repository;
-    }
-    
-    private PortfolioResponse createPortfolioResponse(Portfolio portfolio) {
-        if (portfolio == null) return null;
-
-        List<Integer> holdingIds = new ArrayList<>();
-
-        for (Holding holding : portfolio.getHoldings()) {
-            holdingIds.add(holding.getID());
-        }
-        return new PortfolioResponse(
-            portfolio.getPortfolioId(), holdingIds, portfolio.getType()
-        );
-    }
-    
-    private HoldingResponse createHoldingResponse(Holding holding) {
-        if (holding == null) return null;
-        return new HoldingResponse(
-            holding.getID(),
-            holding.getDateCreated(), 
-            holding.getInstrument().getID(),
-            holding.getOrder().getOrderId(),
-            holding.getPurchasedPrice(),
-            holding.getQuantity()
-        );
+        this.instrumentService = instrumentService;
     }
 
     private BigDecimal getPortfolioBuyingPower(Portfolio portfolio) {
@@ -72,22 +54,13 @@ public class PortfolioService {
     }
 
     // TODO: Move this to ClientService.java
-    public List<PortfolioResponse> getPortfoliosByClientId(int clientId) {
-        List<Portfolio> portfolios = repository.findByClientId(clientId);
-        List<PortfolioResponse> result = new ArrayList<>();
-        for (Portfolio portfolio : portfolios) {
-            result.add(createPortfolioResponse(portfolio));
-        }
-        if (result.size() == 0) return null;
-        return result;
-    }
+    // public List<Portfolio> getPortfoliosByClientId(int clientId) {
+    //     List<Portfolio> portfolios = repository.findByClientId(clientId);
+    //     if (portfolios == null) return null;
+    //     // if (portfolios.size() == 0) return null;
+    //     return portfolios;
+    // }
     
-    public PortfolioResponse getPortfolioResponseById(int portfolioId) {
-        Portfolio portfolio = repository.findById(portfolioId).orElse(null);
-        if (portfolio == null) return null;
-        return createPortfolioResponse(portfolio);
-    }
-
     public BigDecimal getBuyingPowerByPortfolioId(int portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         if (portfolio == null) return null;
@@ -100,13 +73,49 @@ public class PortfolioService {
         return getPortfolioTotalValue(portfolio);
     }
 
-    public List<HoldingResponse> getHoldingsByPortfolioId(int portfolioId) {
-        List<HoldingResponse> result = new ArrayList<>();
+    public List<Holding> getHoldingsByPortfolioId(int portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         if (portfolio == null) return null;
-        for (Holding holding : portfolio.getHoldings()) {
-            result.add(createHoldingResponse(holding));
+        return portfolio.getHoldings();
+    }
+    
+    public void updateHoldingsFromOrder(Order order, BigDecimal instrumentPrice) {
+        Portfolio portfolio = getPortfolioById(order.getPortfolioId());
+        Side side = order.getSide();
+
+        BigDecimal totalCashQuantity;
+        BigDecimal instrumentQuantity;
+        if (side == Side.BUY) {
+            totalCashQuantity = instrumentPrice.negate().multiply(order.getQuantity());
+            instrumentQuantity = order.getQuantity();
+        } else {
+            totalCashQuantity = instrumentPrice.multiply(order.getQuantity());
+            instrumentQuantity = order.getQuantity().negate();
         }
-        return result;
-    }   
+
+        Instrument tradeInstrument = instrumentService.getInstrumentById(order.getInstrumentId());
+        Instrument cashInstrument = instrumentService.getInstrumentBySymbol("USD");
+
+        Instant now = Instant.now();
+
+        Holding cashHolding = new Holding(
+            now,
+            new BigDecimal(0),
+            totalCashQuantity,
+            cashInstrument,
+            order
+        );
+
+        Holding tradeHolding = new Holding(
+            now,
+            instrumentPrice,
+            instrumentQuantity,
+            tradeInstrument,
+            order
+        );
+
+        portfolio.addHolding(cashHolding);
+        portfolio.addHolding(tradeHolding);
+        repository.save(portfolio);
+    }
 }

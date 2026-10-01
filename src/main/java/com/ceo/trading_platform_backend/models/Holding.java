@@ -1,13 +1,11 @@
 package com.ceo.trading_platform_backend.models;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.Instant;
 
 import org.springframework.data.annotation.CreatedDate;
 
-import com.ceo.trading_platform_backend.uml_objects.Instrument;
-import com.ceo.trading_platform_backend.uml_objects.Order;
-
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,10 +19,11 @@ import jakarta.persistence.Table;
 public class Holding {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "holding_id")
     private int ID;
 
     @CreatedDate 
-    private Date dateCreated;
+    private Instant dateCreated;
 
     @ManyToOne 
     private Instrument instrument;
@@ -38,7 +37,7 @@ public class Holding {
     public Holding() {}
 
     public Holding(
-        Date dateCreated, 
+        Instant dateCreated, 
         BigDecimal purchasedPrice, 
         BigDecimal quantity, 
         Instrument instrument, 
@@ -57,7 +56,7 @@ public class Holding {
     public BigDecimal getQuantity() {
         return this.quantity;
     }
-    public Date getDateCreated() {
+    public Instant getDateCreated() {
         return dateCreated;
     }
     public Order getOrder() {
