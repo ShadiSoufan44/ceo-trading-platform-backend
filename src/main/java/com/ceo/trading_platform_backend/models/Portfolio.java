@@ -1,11 +1,8 @@
 package com.ceo.trading_platform_backend.models;
-import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
-import com.ceo.trading_platform_backend.uml_objects.Enums.InstrumentType;
-import com.ceo.trading_platform_backend.uml_objects.Enums.PortfolioType;
+import com.ceo.trading_platform_backend.enums.PortfolioType;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -31,19 +28,7 @@ public class Portfolio {
 
     private PortfolioType type;
 
-    public Portfolio(PortfolioType type, BigDecimal cashBalance) {
-        
-        // Make Instrument Registry?
-        this.holdings.add(new Holding(
-            new Date(),
-            new BigDecimal(1.0), 
-            cashBalance, 
-            new Instrument(
-                "USD", InstrumentType.CASH, "United States Dollar"
-            ), 
-            null
-        ));
-        // TODO: re-use the Instrument from the instrument table
+    public Portfolio(PortfolioType type) {
         this.type = type;
     }
 
@@ -57,7 +42,6 @@ public class Portfolio {
     public void addHolding(Holding holding) {
        this.holdings.add(holding);
     }
-
 
     public int getPortfolioId() {
         return portfolioId;

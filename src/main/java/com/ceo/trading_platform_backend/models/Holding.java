@@ -1,11 +1,9 @@
 package com.ceo.trading_platform_backend.models;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.Instant;
 
 import org.springframework.data.annotation.CreatedDate;
-
-import com.ceo.trading_platform_backend.models.Order;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,7 +23,7 @@ public class Holding {
     private int ID;
 
     @CreatedDate 
-    private Date dateCreated;
+    private Instant dateCreated;
 
     @ManyToOne 
     private Instrument instrument;
@@ -38,11 +36,18 @@ public class Holding {
     
     public Holding() {}
 
-    public Holding(Date dateCreated, BigDecimal purchasedPrice, BigDecimal quantity, Instrument instrument, Order order) {
+    public Holding(
+        Instant dateCreated, 
+        BigDecimal purchasedPrice, 
+        BigDecimal quantity, 
+        Instrument instrument, 
+        Order order
+    ) {
         this.dateCreated = dateCreated;
         this.purchasedPrice = purchasedPrice;
         this.quantity = quantity;
         this.instrument = instrument;
+        this.order = order;
     }
 
     public Instrument getInstrument() {
@@ -51,7 +56,7 @@ public class Holding {
     public BigDecimal getQuantity() {
         return this.quantity;
     }
-    public Date getDateCreated() {
+    public Instant getDateCreated() {
         return dateCreated;
     }
     public Order getOrder() {

@@ -2,9 +2,9 @@ package com.ceo.trading_platform_backend.services;
 
 import org.springframework.stereotype.Service;
 
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.repositories.InstrumentRepository;
-import com.ceo.trading_platform_backend.uml_objects.Enums.InstrumentType;
 
 import jakarta.transaction.Transactional;
 

@@ -1,6 +1,9 @@
 package com.ceo.trading_platform_backend.controllers;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +17,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
 import com.ceo.trading_platform_backend.dto.OrderResponseDTO;
+import com.ceo.trading_platform_backend.enums.InstrumentType;
+import com.ceo.trading_platform_backend.enums.OrderStatus;
+import com.ceo.trading_platform_backend.enums.Side;
+import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
+import com.ceo.trading_platform_backend.services.InstrumentService;
 import com.ceo.trading_platform_backend.services.OrderService;
+import com.ceo.trading_platform_backend.services.OrderService;
+import com.ceo.trading_platform_backend.models.Order;
 
 import jakarta.validation.Valid;
 
@@ -23,31 +33,59 @@ import jakarta.validation.Valid;
 public class OrderController {
 
     private final OrderService orderService;
-    public OrderController(OrderService orderService) {
+    private final InstrumentService instrumentService;
+
+
+    public OrderController(OrderService orderService, InstrumentService instrumentService) {
         this.orderService = orderService;
+        this.instrumentService = instrumentService;
     }
 
     //get all orders 
     @GetMapping
     public List <OrderResponseDTO> getAllOrders() {
-        return orderService.getAllOrders();
+        List<Order> allOrders = orderService.getAllOrders();
+        List<OrderResponseDTO> allResponses = new ArrayList<OrderResponseDTO>();
+        for (Order order : allOrders) {
+            allResponses.add(createOrderResponse(order));
+        }
+        return allResponses;
     }
     
     //get orders absed off client id
-    @GetMapping
-    public List <OrderResponseDTO> getClientOrders(@RequestParam Long clientID) { 
-        return orderService.getClientOrders(clientID);
+    @GetMapping("/by_client/{clientID}")
+    public List <OrderResponseDTO> getClientOrders(@PathVariable Integer clientID) { 
+        List<Order> allOrders = orderService.getClientOrders(clientID);
+        List<OrderResponseDTO> allResponses = new ArrayList<OrderResponseDTO>();
+        for (Order order : allOrders) {
+            allResponses.add(createOrderResponse(order));
+        }
+        return allResponses;
     }
 
     @GetMapping("/{orderID}")
-    public OrderResponseDTO getOrder(@PathVariable Long orderID) {
-        return orderService.getOrder(orderID);
-    }
-
-    @PostMapping 
-    public ResponseEntity<OrderResponseDTO> createOrder(@Valid @RequestBody OrderRequestDTO request) {
-        OrderResponseDTO response = orderService.createOrder(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public OrderResponseDTO getOrder(@PathVariable Integer orderID) {
+        Optional<Order> order = orderService.getOrderById(orderID);
+        OrderResponseDTO response = createOrderResponse(order.orElseThrow(() -> new ResourceNotFoundException("order id " + orderID + " not foudn in DB")));
+        return response;
     }
     
+    public OrderResponseDTO createOrderResponse(Order order) {
+        Integer orderId = order.getOrderId();
+        Integer clientId = order.getClientId();
+        Integer portfolioId = order.getPortfolioId();
+        String instrumentSymbol = instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol();
+        String instrumentFullName = instrumentService.getInstrumentById(order.getInstrumentId()).getFullName();
+        InstrumentType instrumentType = instrumentService.getInstrumentById(order.getInstrumentId()).getType();
+        String createdDate = order.getCreatedDate().toString();
+        BigDecimal quantity = order.getQuantity();
+        BigDecimal quotedPrice = order.getQuote();
+        Side side = order.getSide();
+        BigDecimal increaseThreshold = order.getIncreaseThreshold();
+        String resolvedDate = ""; // not resolved yet?
+        OrderStatus currentStatus = order.getCurrentOrderStatus().getStatus();
+        OrderResponseDTO response = new OrderResponseDTO(orderId, clientId, portfolioId, instrumentSymbol, instrumentType, instrumentFullName, quantity, quotedPrice, side, increaseThreshold, createdDate, resolvedDate, currentStatus); 
+        
+        return response;
+    }
 }

@@ -1,9 +1,15 @@
 package com.ceo.trading_platform_backend.models;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
-import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
+import com.ceo.trading_platform_backend.enums.OrderStatus;
+import com.ceo.trading_platform_backend.enums.Side;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,6 +17,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -32,8 +40,8 @@ public class Order {
     @Column(name = "portfolio_id")
     private Integer portfolioId;
 
-    @Column(name = "user_id")
-    private Integer userId;
+    @Column(name = "client_id")
+    private Integer clientId;
 
     @Column(name = "holding_id")
     private Integer holdingId;
@@ -47,19 +55,37 @@ public class Order {
     @Column(name = "increase_threshold")
     private BigDecimal increaseThreshold;
 
+    @Column(name = "quantity")
+    private BigDecimal quantity;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "order_id")
+    List<OrderStatusChange> orderHistory = new ArrayList<>();
+
     protected Order() {
     }
 
-    public Order(Integer instrumentId, Side side, Integer portfolioId, Integer userId, Integer holdingId,
-            BigDecimal quote, BigDecimal finalPrice, BigDecimal increaseThreshold) {
+    public Order(Integer instrumentId, Side side, Integer portfolioId, Integer clientId, /*Integer holdingId,*/
+            BigDecimal quote/* , BigDecimal finalPrice */, BigDecimal increaseThreshold, BigDecimal quantity) {
         this.instrumentId = instrumentId;
         this.side = side;
         this.portfolioId = portfolioId;
-        this.userId = userId;
-        this.holdingId = holdingId;
+        this.clientId = clientId;
+        // this.holdingId = holdingId;
         this.quote = quote;
-        this.finalPrice = finalPrice;
+        // this.finalPrice = finalPrice;
         this.increaseThreshold = increaseThreshold;
+        this.quantity = quantity;
+        LocalDateTime createdDate = LocalDateTime.now(); //not sure if this is correct place ot get date
+        this.orderHistory.add(new OrderStatusChange(
+            OrderStatus.PENDING,
+            "Order Created",
+            createdDate
+        ));
+    }
+
+    public void addOrderStatusChange(OrderStatusChange orderStatusChange) {
+        orderHistory.add(orderStatusChange);
     }
 
     public Integer getOrderId() {
@@ -90,12 +116,12 @@ public class Order {
         this.portfolioId = portfolioId;
     }
 
-    public Integer getUserId() {
-        return userId;
+    public Integer getClientId() {
+        return clientId;
     }
 
-    public void setUserId(Integer userId) {
-        this.userId = userId;
+    public void setClientId(Integer clientId) {
+        this.clientId = clientId;
     }
 
     public Integer getHoldingId() {
@@ -129,4 +155,17 @@ public class Order {
     public void setIncreaseThreshold(BigDecimal increaseThreshold) {
         this.increaseThreshold = increaseThreshold;
     }
+
+    public LocalDateTime getCreatedDate() {
+        return this.orderHistory.getFirst().getDate();
+    }
+
+    public BigDecimal getQuantity() {
+        return quantity;
+    }
+
+    public OrderStatusChange getCurrentOrderStatus() {
+        return orderHistory.getLast();
+    }
+
 }
