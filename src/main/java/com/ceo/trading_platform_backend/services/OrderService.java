@@ -13,14 +13,14 @@ import java.time.LocalTime;
 
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Order;
-import com.ceo.trading_platform_backend.uml_objects.OrderStatusChange;
-import com.ceo.trading_platform_backend.uml_objects.Enums.OrderStatus;
-import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
+import com.ceo.trading_platform_backend.models.OrderStatusChange;
 
 import jakarta.annotation.Resource;
 
 import com.ceo.trading_platform_backend.repositories.OrderRepository; // waiting for implementation
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
+import com.ceo.trading_platform_backend.enums.OrderStatus;
+import com.ceo.trading_platform_backend.enums.Side;
 
 @Service
 public class OrderService {

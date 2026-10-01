@@ -17,12 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
 import com.ceo.trading_platform_backend.dto.OrderResponseDTO;
+import com.ceo.trading_platform_backend.enums.InstrumentType;
+import com.ceo.trading_platform_backend.enums.OrderStatus;
+import com.ceo.trading_platform_backend.enums.Side;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.services.InstrumentService;
 import com.ceo.trading_platform_backend.services.OrderService;
-import com.ceo.trading_platform_backend.uml_objects.Enums.InstrumentType;
-import com.ceo.trading_platform_backend.uml_objects.Enums.OrderStatus;
-import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
 import com.ceo.trading_platform_backend.services.OrderService;
 import com.ceo.trading_platform_backend.models.Order;
 

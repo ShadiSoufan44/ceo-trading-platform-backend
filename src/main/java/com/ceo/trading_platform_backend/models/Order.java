@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import com.ceo.trading_platform_backend.uml_objects.OrderStatusChange;
-import com.ceo.trading_platform_backend.uml_objects.Enums.OrderStatus;
-import com.ceo.trading_platform_backend.uml_objects.Enums.Side;
+import com.ceo.trading_platform_backend.enums.OrderStatus;
+import com.ceo.trading_platform_backend.enums.Side;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,6 +17,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -56,10 +58,9 @@ public class Order {
     @Column(name = "quantity")
     private BigDecimal quantity;
 
-    // not a column in table
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "order_id")
     List<OrderStatusChange> orderHistory = new ArrayList<>();
-    
-
 
     protected Order() {
     }
