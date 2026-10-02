@@ -71,6 +71,15 @@ public class OrderService {
         return order;
     }
 
+    public Order submit(OrderRequestDTO orderRequest) {
+        Order order = createOrder(orderRequest);
+        Order validatedOrder = validate(order);
+        if (validatedOrder.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
+            return execute(order);
+        } 
+        return order;
+    }
+
     // these methods get called from kafka pipeline
 
     // validate info liek instrument tradable and has sufficient holdings
