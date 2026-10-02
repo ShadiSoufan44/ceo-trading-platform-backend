@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 
 import com.ceo.trading_platform_backend.uml_objects.Report;
@@ -15,7 +14,6 @@ import com.ceo.trading_platform_backend.uml_objects.Report;
  * Persona: Priya - Reports monthly on trading volumes and client activity,
  * needs reliable historical data, queries cannot compete with live trading.
  */
-@Entity 
 @DiscriminatorValue("ANALYST")
 public class Analyst extends User {
 

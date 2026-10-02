@@ -5,7 +5,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
 
 import java.util.HashSet;
 
@@ -14,7 +13,6 @@ import java.util.HashSet;
  * Persona: Joanna - Trades a personal portfolio, wants quick execution (< 1 min),
  * real-time position visibility, no jargon or complex workflows.
  */
-@Entity
 @DiscriminatorValue("CLIENT")
 public class Client extends User {
     
