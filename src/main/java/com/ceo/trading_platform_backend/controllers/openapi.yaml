@@ -1,0 +1,278 @@
+openapi: 3.0.0
+info:
+  title: Order Controller API
+  description: API for managing trading orders in the CEO Trading Platform
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8081
+    description: Development server
+  - url: https://api.example.com
+    description: Production server
+
+paths:
+  /order:
+    get:
+      summary: Get all orders
+      description: Retrieves a list of all orders in the system
+      operationId: getAllOrders
+      tags:
+        - Orders
+      responses:
+        '200':
+          description: Successfully retrieved all orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderResponseDTO'
+        '500':
+          description: Internal server error
+
+  /order/{orderID}:
+    get:
+      summary: Get order by ID
+      description: Retrieves a specific order by its ID
+      operationId: getOrder
+      tags:
+        - Orders
+      parameters:
+        - name: orderID
+          in: path
+          required: true
+          description: The unique identifier of the order
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully retrieved the order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponseDTO'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "order id 999 not found in DB"
+        '500':
+          description: Internal server error
+
+  /order/by_client/{clientID}:
+    get:
+      summary: Get orders by client ID
+      description: Retrieves all orders for a specific client
+      operationId: getClientOrders
+      tags:
+        - Orders
+      parameters:
+        - name: clientID
+          in: path
+          required: true
+          description: The unique identifier of the client
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully retrieved client orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderResponseDTO'
+        '500':
+          description: Internal server error
+
+  /order/new:
+    post:
+      summary: Submit a new order
+      description: Creates and submits a new trading order
+      operationId: submitOrder
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        description: Order details for the new order
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequestDTO'
+      responses:
+        '201':
+          description: Order successfully created and submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponseDTO'
+        '400':
+          description: Invalid request body or validation error
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    OrderRequestDTO:
+      type: object
+      description: Request object for creating a new order
+      required:
+        - clientId
+        - clientName
+        - portfolioId
+        - instrumentSymbol
+        - quantity
+        - quotedPrice
+        - side
+        - increaseThreshold
+      properties:
+        clientId:
+          type: string
+          format: uuid
+          description: The unique identifier of the client
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        clientName:
+          type: string
+          description: The name of the client
+          example: "John Doe"
+        portfolioId:
+          type: string
+          format: uuid
+          description: The unique identifier of the portfolio
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        instrumentSymbol:
+          type: string
+          description: The symbol of the instrument being traded (e.g., AAPL, GOOG)
+          example: "AAPL"
+        quantity:
+          type: number
+          format: decimal
+          description: The quantity of the instrument to trade
+          example: 100.00
+        quotedPrice:
+          type: number
+          format: decimal
+          description: The quoted price per unit of the instrument
+          example: 150.50
+        side:
+          $ref: '#/components/schemas/Side'
+        increaseThreshold:
+          type: number
+          format: decimal
+          description: The threshold value for price increase triggers
+          example: 5.00
+
+    OrderResponseDTO:
+      type: object
+      description: Response object containing order details
+      required:
+        - orderId
+        - clientId
+        - portfolioId
+        - instrumentSymbol
+        - instrumentType
+        - instrumentFullName
+        - quantity
+        - quotedPrice
+        - side
+        - increaseThreshold
+        - createdDate
+        - resolvedDate
+        - currentStatus
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: The unique identifier of the order
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        clientId:
+          type: string
+          format: uuid
+          description: The unique identifier of the client
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        portfolioId:
+          type: string
+          format: uuid
+          description: The unique identifier of the portfolio
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        instrumentSymbol:
+          type: string
+          description: The symbol of the instrument being traded
+          example: "AAPL"
+        instrumentType:
+          $ref: '#/components/schemas/InstrumentType'
+        instrumentFullName:
+          type: string
+          description: The full name of the instrument
+          example: "Apple Inc."
+        quantity:
+          type: number
+          format: decimal
+          description: The quantity of the instrument
+          example: 100.00
+        quotedPrice:
+          type: number
+          format: decimal
+          description: The quoted price per unit
+          example: 150.50
+        side:
+          $ref: '#/components/schemas/Side'
+        increaseThreshold:
+          type: number
+          format: decimal
+          description: The threshold value for price increase triggers
+          example: 5.00
+        createdDate:
+          type: string
+          format: date-time
+          description: The timestamp when the order was created
+          example: "2024-01-15T10:30:00"
+        resolvedDate:
+          type: string
+          format: date-time
+          description: The timestamp when the order was resolved (empty if not resolved)
+          example: ""
+        currentStatus:
+          $ref: '#/components/schemas/OrderStatus'
+
+    Side:
+      type: string
+      description: The side of the order (BUY or SELL)
+      enum:
+        - BUY
+        - SELL
+      example: BUY
+
+    OrderStatus:
+      type: string
+      description: The current status of the order
+      enum:
+        - PENDING
+        - ACCEPTED
+        - REJECTED
+        - FILLED
+        - PARTIALLY_FILLED
+        - CANCELLED
+      example: PENDING
+
+    InstrumentType:
+      type: string
+      description: The type of financial instrument
+      enum:
+        - EQUITY
+        - CASH
+        - CRYPTO
+      example: EQUITY
+
+tags:
+  - name: Orders
+    description: Order management operations

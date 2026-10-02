@@ -3,6 +3,7 @@ package com.ceo.trading_platform_backend.services;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.PortfolioType;
+import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
@@ -106,13 +108,13 @@ public class PortfolioServiceTests {
         }
 
         @Test
-        @DisplayName("Should return null when portfolio ID doesn't exist")
-        void shouldReturnNullWhenNotExists() {
+        @DisplayName("Should throw ResourceNotFoundException when portfolio ID doesn't exist")
+        void shouldThrowExceptionWhenNotExists() {
             when(portfolioRepository.findById(uuid5)).thenReturn(Optional.empty());
 
-            Portfolio result = portfolioService.getPortfolioById(uuid5);
-
-            assertThat(result).isNull();
+            assertThatThrownBy(() -> portfolioService.getPortfolioById(uuid5))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Portfolio not found with id");
             verify(portfolioRepository).findById(uuid5);
         }
     }
@@ -121,13 +123,13 @@ public class PortfolioServiceTests {
     @DisplayName("Test getBuyingPowerByPortfolioId()")
     class GetBuyingPowerByPortfolioIdTests {
         @Test
-        @DisplayName("Should return null when portfolio ID doesn't exist")
-        void shouldReturnNullWhenPortfolioNotExists() {
+        @DisplayName("Should throw ResourceNotFoundException when portfolio ID doesn't exist")
+        void shouldThrowExceptionWhenPortfolioNotExists() {
             when(portfolioRepository.findById(uuid5)).thenReturn(Optional.empty());
 
-            BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(uuid5);
-
-            assertThat(result).isNull();
+            assertThatThrownBy(() -> portfolioService.getBuyingPowerByPortfolioId(uuid5))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Portfolio not found with id");
         }
 
         @Test
@@ -178,13 +180,13 @@ public class PortfolioServiceTests {
     @DisplayName("Test getHoldingsByPortfolioId()")
     class GetHoldingsByPortfolioIdTests {
         @Test
-        @DisplayName("Should return null when portfolio ID doesn't exist")
-        void shouldReturnNullWhenPortfolioNotExists() {
+        @DisplayName("Should throw ResourceNotFoundException when portfolio ID doesn't exist")
+        void shouldThrowExceptionWhenPortfolioNotExists() {
             when(portfolioRepository.findById(uuid5)).thenReturn(Optional.empty());
 
-            List<Holding> result = portfolioService.getHoldingsByPortfolioId(uuid5);
-
-            assertThat(result).isNull();
+            assertThatThrownBy(() -> portfolioService.getHoldingsByPortfolioId(uuid5))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Portfolio not found with id");
         }
 
         @Test

@@ -4,7 +4,10 @@ import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 
 import java.util.HashSet;
 
@@ -16,6 +19,8 @@ import java.util.HashSet;
 @DiscriminatorValue("CLIENT")
 public class Client extends User {
     
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "client_id")
     private Set<Portfolio> portfolios;
 
     public Client() {

@@ -51,7 +51,8 @@ public class PortfolioService {
     }
 
     public Portfolio getPortfolioById(UUID portfolioId) {
-        return repository.findById(portfolioId).orElse(null);
+        Portfolio portfolio = repository.getReferenceById(portfolioId);
+        return portfolio;
     }
 
     // TODO: Move this to ClientService.java
@@ -64,13 +65,11 @@ public class PortfolioService {
     
     public BigDecimal getBuyingPowerByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
-        if (portfolio == null) return null;
         return getPortfolioBuyingPower(portfolio);
     }
 
     public BigDecimal getTotalValueByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
-        if (portfolio == null) return null;
         return getPortfolioTotalValue(portfolio);
     }
 

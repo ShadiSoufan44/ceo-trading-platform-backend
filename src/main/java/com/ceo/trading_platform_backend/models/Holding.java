@@ -11,6 +11,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -24,15 +25,21 @@ public class Holding {
     private UUID ID;
 
     @CreatedDate 
+    @Column(name = "order_date")
     private Instant dateCreated;
 
     @ManyToOne 
+    @JoinColumn(name = "instrument_id")
     private Instrument instrument;
 
     @OneToOne 
+    @JoinColumn(name = "order_id")
     private Order order;
 
+    @Column(name = "purchased_price")
     private BigDecimal purchasedPrice;
+
+    @Column(name = "quantity")
     private BigDecimal quantity;
     
     public Holding() {}

@@ -53,7 +53,7 @@ public class OrderService {
         Side side = orderRequest.side();
         BigDecimal increaseThreshold = orderRequest.increaseThreshold();
         Order order = new Order(instrumentId, side, portfolioId, clientId, quotedPrice, increaseThreshold, quantity);
-        this.repository.save(order);
+        order = this.repository.save(order);
         return order;
     }
 
@@ -76,9 +76,9 @@ public class OrderService {
         Order order = createOrder(orderRequest);
         Order validatedOrder = validate(order);
         if (validatedOrder.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
-            return execute(order);
+            return execute(validatedOrder);
         } 
-        return order;
+        return repository.save(validatedOrder);
     }
 
     // these methods get called from kafka pipeline
@@ -111,6 +111,7 @@ public class OrderService {
         if (outOfHours(order)) {
             Instant today = Instant.now();
             OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+            System.out.println(order.getCreatedDate());
             order.addOrderStatusChange(pendingOrderStatus);
             return order; // early return, don't execute
         }
@@ -140,19 +141,19 @@ public class OrderService {
     // Check if in hours
     private boolean outOfHours(Order order) {
         LocalTime openTime = LocalTime.of(9, 30, 0); // shoudl these be find
-        LocalTime closeTime = LocalTime.of(16, 0, 0);
+        LocalTime closeTime = LocalTime.of(17, 0, 0);
         Instant submittedInstant = order.getCreatedDate();
         ZoneId zone = ZoneId.of("America/New_York");
         LocalDateTime submittedDateTime = LocalDateTime.ofInstant(submittedInstant, zone);
         LocalTime submittedTime = submittedDateTime.toLocalTime();
         DayOfWeek submittedDay = submittedDateTime.toLocalDate().getDayOfWeek();
         if (submittedDay == DayOfWeek.SATURDAY || submittedDay == DayOfWeek.SUNDAY) {
-            return false;
+            return true;
         }
         if (submittedTime.isBefore(openTime) || submittedTime.isAfter(closeTime)) { // submitted time shoudl be in request dto
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
     // Buy Order

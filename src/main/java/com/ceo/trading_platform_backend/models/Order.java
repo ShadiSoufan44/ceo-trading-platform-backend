@@ -3,7 +3,6 @@ package com.ceo.trading_platform_backend.models;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,14 +43,8 @@ public class Order {
     @Column(name = "client_id")
     private UUID clientId;
 
-    @Column(name = "holding_id")
-    private UUID holdingId;
-
     @Column(name = "quote")
     private BigDecimal quote;
-
-    @Column(name = "final_price")
-    private BigDecimal finalPrice;
 
     @Column(name = "increase_threshold")
     private BigDecimal increaseThreshold;
@@ -66,23 +59,21 @@ public class Order {
     protected Order() {
     }
 
-    public Order(UUID instrumentId, Side side, UUID portfolioId, UUID clientId, /*Integer holdingId,*/
-            BigDecimal quote/* , BigDecimal finalPrice */, BigDecimal increaseThreshold, BigDecimal quantity) {
+    public Order(UUID instrumentId, Side side, UUID portfolioId, UUID clientId,
+            BigDecimal quote, BigDecimal increaseThreshold, BigDecimal quantity) {
         this.instrumentId = instrumentId;
         this.side = side;
         this.portfolioId = portfolioId;
         this.clientId = clientId;
-        // this.holdingId = holdingId;
         this.quote = quote;
-        // this.finalPrice = finalPrice;
         this.increaseThreshold = increaseThreshold;
         this.quantity = quantity;
         Instant createdDate = Instant.now();
-        this.orderHistory.add(new OrderStatusChange(
-            OrderStatus.PENDING,
-            "Order Created",
-            createdDate
-        ));
+        // this.orderHistory.add(new OrderStatusChange(
+        //     OrderStatus.PENDING,
+        //     "Order Created",
+        //     createdDate
+        // ));
     }
 
     public void addOrderStatusChange(OrderStatusChange orderStatusChange) {
@@ -125,28 +116,12 @@ public class Order {
         this.clientId = clientId;
     }
 
-    public UUID getHoldingId() {
-        return holdingId;
-    }
-
-    public void setHoldingId(UUID holdingId) {
-        this.holdingId = holdingId;
-    }
-
     public BigDecimal getQuote() {
         return quote;
     }
 
     public void setQuote(BigDecimal quote) {
         this.quote = quote;
-    }
-
-    public BigDecimal getFinalPrice() {
-        return finalPrice;
-    }
-
-    public void setFinalPrice(BigDecimal finalPrice) {
-        this.finalPrice = finalPrice;
     }
 
     public BigDecimal getIncreaseThreshold() {
