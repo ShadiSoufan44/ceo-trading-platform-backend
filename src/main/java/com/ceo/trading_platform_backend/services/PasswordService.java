@@ -4,6 +4,9 @@ import com.ceo.trading_platform_backend.dto.ChangePasswordRequest;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.models.User;
 import com.ceo.trading_platform_backend.repositories.UserRepository;
+
+import java.util.UUID;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +23,7 @@ public class PasswordService {
     }
 
     @Transactional
-    public void changePassword(Integer userId, ChangePasswordRequest request) {
+    public void changePassword(UUID userId, ChangePasswordRequest request) {
         // TODO: Implement password change functionality
         // 1. Find user by userId
         // 2. Verify currentPassword matches user's stored password

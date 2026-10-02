@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -54,7 +55,7 @@ public class OrderController {
     
     //get orders absed off client id
     @GetMapping("/by_client/{clientID}")
-    public List <OrderResponseDTO> getClientOrders(@PathVariable Integer clientID) { 
+    public List <OrderResponseDTO> getClientOrders(@PathVariable UUID clientID) { 
         List<Order> allOrders = orderService.getClientOrders(clientID);
         List<OrderResponseDTO> allResponses = new ArrayList<OrderResponseDTO>();
         for (Order order : allOrders) {
@@ -64,7 +65,7 @@ public class OrderController {
     }
 
     @GetMapping("/{orderID}")
-    public OrderResponseDTO getOrder(@PathVariable Integer orderID) {
+    public OrderResponseDTO getOrder(@PathVariable UUID orderID) {
         Optional<Order> order = orderService.getOrderById(orderID);
         OrderResponseDTO response = createOrderResponse(order.orElseThrow(() -> new ResourceNotFoundException("order id " + orderID + " not foudn in DB")));
         return response;
@@ -78,9 +79,9 @@ public class OrderController {
     }
     
     public OrderResponseDTO createOrderResponse(Order order) {
-        Integer orderId = order.getOrderId();
-        Integer clientId = order.getClientId();
-        Integer portfolioId = order.getPortfolioId();
+        UUID orderId = order.getOrderId();
+        UUID clientId = order.getClientId();
+        UUID portfolioId = order.getPortfolioId();
         String instrumentSymbol = instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol();
         String instrumentFullName = instrumentService.getInstrumentById(order.getInstrumentId()).getFullName();
         InstrumentType instrumentType = instrumentService.getInstrumentById(order.getInstrumentId()).getType();

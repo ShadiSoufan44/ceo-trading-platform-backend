@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,18 +39,25 @@ public class PortfolioServiceTests {
     private Instrument usdInstrument;
     private Instrument stockInstrument;
 
+    private final UUID uuid1 = UUID.randomUUID();
+    private final UUID uuid2 = UUID.randomUUID();
+    private final UUID uuid3 = UUID.randomUUID();
+    private final UUID uuid4 = UUID.randomUUID();
+    private final UUID uuid5 = UUID.randomUUID();
+
+
     @BeforeEach 
     void setup() {
         usdInstrument = new Instrument("USD", InstrumentType.CASH, "United States Dollar");
         stockInstrument = new Instrument("AAPL", InstrumentType.EQUITY, "Apple Inc.");
     }
 
-    private Portfolio createTestPortfolio(int id, PortfolioType type) {
+    private Portfolio createTestPortfolio(UUID id, PortfolioType type) {
         Portfolio portfolio = new Portfolio(type);
         return portfolio;
     }
 
-    private Order createTestOrder(int orderId) {
+    private Order createTestOrder(UUID orderId) {
         Order order = new Order(
             null, 
             null, 
@@ -68,7 +76,7 @@ public class PortfolioServiceTests {
             BigDecimal.ONE,
             quantity,
             usdInstrument,
-            createTestOrder(0)
+            createTestOrder(uuid1)
         );
     }
 
@@ -78,7 +86,7 @@ public class PortfolioServiceTests {
             price,
             quantity,
             stockInstrument,
-            createTestOrder(1)
+            createTestOrder(uuid2)
         );
     }
 
@@ -88,24 +96,24 @@ public class PortfolioServiceTests {
         @Test
         @DisplayName("Should return correct portfolio when it exists")
         void shouldReturnPortfolioWhenExists() {
-            Portfolio expected = createTestPortfolio(1, PortfolioType.BROKERAGE);
-            when(portfolioRepository.findById(1)).thenReturn(Optional.of(expected));
+            Portfolio expected = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(expected));
 
-            Portfolio result = portfolioService.getPortfolioById(1);
+            Portfolio result = portfolioService.getPortfolioById(uuid1);
 
             assertThat(result).isNotNull().isEqualTo(expected);
-            verify(portfolioRepository).findById(1);
+            verify(portfolioRepository).findById(uuid1);
         }
 
         @Test
         @DisplayName("Should return null when portfolio ID doesn't exist")
         void shouldReturnNullWhenNotExists() {
-            when(portfolioRepository.findById(999)).thenReturn(Optional.empty());
+            when(portfolioRepository.findById(uuid5)).thenReturn(Optional.empty());
 
-            Portfolio result = portfolioService.getPortfolioById(999);
+            Portfolio result = portfolioService.getPortfolioById(uuid5);
 
             assertThat(result).isNull();
-            verify(portfolioRepository).findById(999);
+            verify(portfolioRepository).findById(uuid5);
         }
     }
 
@@ -115,9 +123,9 @@ public class PortfolioServiceTests {
         @Test
         @DisplayName("Should return null when portfolio ID doesn't exist")
         void shouldReturnNullWhenPortfolioNotExists() {
-            when(portfolioRepository.findById(999)).thenReturn(Optional.empty());
+            when(portfolioRepository.findById(uuid5)).thenReturn(Optional.empty());
 
-            BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(999);
+            BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(uuid5);
 
             assertThat(result).isNull();
         }
@@ -125,13 +133,13 @@ public class PortfolioServiceTests {
         @Test
         @DisplayName("Should return 0 when portfolio has no cash holdings")
         void shouldReturnZeroWhenNoCashHoldings() {
-            Portfolio portfolio = createTestPortfolio(1, PortfolioType.BROKERAGE);
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
             portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150")));
             
-            when(portfolioRepository.findById(1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
 
-            BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(1);
+            BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(uuid1);
 
             assertThat(result).isEqualTo(BigDecimal.ZERO);
         }
@@ -139,13 +147,13 @@ public class PortfolioServiceTests {
         @Test
         @DisplayName("Should return correct value with 1 cash holding")
         void shouldReturnCorrectValueWithOneCashHolding() {
-            Portfolio portfolio = createTestPortfolio(1, PortfolioType.BROKERAGE);
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
             portfolio.addHolding(createCashHolding(new BigDecimal("5000")));
             
-            when(portfolioRepository.findById(1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
 
-            BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(1);
+            BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(uuid1);
 
             assertThat(result).isEqualTo(new BigDecimal("5000"));
         }
@@ -153,14 +161,14 @@ public class PortfolioServiceTests {
         @Test
         @DisplayName("Should return correct value with multiple cash holdings")
         void shouldReturnCorrectValueWithMultipleCashHoldings() {
-            Portfolio portfolio = createTestPortfolio(1, PortfolioType.BROKERAGE);
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
             portfolio.addHolding(createCashHolding(new BigDecimal("3000")));
             portfolio.addHolding(createCashHolding(new BigDecimal("2000")));
             
-            when(portfolioRepository.findById(1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
 
-            BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(1);
+            BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(uuid1);
 
             assertThat(result).isEqualTo(new BigDecimal("5000"));
         }
@@ -172,9 +180,9 @@ public class PortfolioServiceTests {
         @Test
         @DisplayName("Should return null when portfolio ID doesn't exist")
         void shouldReturnNullWhenPortfolioNotExists() {
-            when(portfolioRepository.findById(999)).thenReturn(Optional.empty());
+            when(portfolioRepository.findById(uuid5)).thenReturn(Optional.empty());
 
-            List<Holding> result = portfolioService.getHoldingsByPortfolioId(999);
+            List<Holding> result = portfolioService.getHoldingsByPortfolioId(uuid5);
 
             assertThat(result).isNull();
         }
@@ -182,12 +190,12 @@ public class PortfolioServiceTests {
         @Test
         @DisplayName("Should return empty list when portfolio has no holdings")
         void shouldReturnEmptyListWhenNoHoldings() {
-            Portfolio portfolio = createTestPortfolio(1, PortfolioType.BROKERAGE);
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
             
-            when(portfolioRepository.findById(1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
 
-            List<Holding> result = portfolioService.getHoldingsByPortfolioId(1);
+            List<Holding> result = portfolioService.getHoldingsByPortfolioId(uuid1);
 
             assertThat(result).isNotNull().isEmpty();
         }
@@ -195,13 +203,13 @@ public class PortfolioServiceTests {
         @Test
         @DisplayName("Should return list with 1 holding")
         void shouldReturnListWithOneHolding() {
-            Portfolio portfolio = createTestPortfolio(1, PortfolioType.BROKERAGE);
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
             portfolio.addHolding(createCashHolding(new BigDecimal("1000")));
             
-            when(portfolioRepository.findById(1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
 
-            List<Holding> result = portfolioService.getHoldingsByPortfolioId(1);
+            List<Holding> result = portfolioService.getHoldingsByPortfolioId(uuid1);
 
             assertThat(result)
                 .isNotNull()
@@ -212,15 +220,15 @@ public class PortfolioServiceTests {
         @Test
         @DisplayName("Should return list with multiple holdings")
         void shouldReturnListWithMultipleHoldings() {
-            Portfolio portfolio = createTestPortfolio(1, PortfolioType.BROKERAGE);
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
             portfolio.addHolding(createCashHolding(new BigDecimal("2000")));
             portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150")));
             portfolio.addHolding(createCashHolding(new BigDecimal("1000")));
             
-            when(portfolioRepository.findById(1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
 
-            List<Holding> result = portfolioService.getHoldingsByPortfolioId(1);
+            List<Holding> result = portfolioService.getHoldingsByPortfolioId(uuid1);
 
             assertThat(result)
                 .isNotNull()

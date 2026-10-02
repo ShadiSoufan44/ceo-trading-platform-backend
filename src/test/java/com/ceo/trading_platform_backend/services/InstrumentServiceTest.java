@@ -3,6 +3,8 @@ package com.ceo.trading_platform_backend.services;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -34,7 +36,7 @@ public class InstrumentServiceTest {
     @Test
     public void testGetInstrumentById() {
         // Arrange
-        int instrumentId = 1;
+        UUID instrumentId = UUID.randomUUID();
         Instrument expectedInstrument = new Instrument("AAPL", InstrumentType.EQUITY, "Apple Inc.");
         when(mockRepository.getReferenceById(instrumentId)).thenReturn(expectedInstrument);
         
