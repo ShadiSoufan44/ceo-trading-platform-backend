@@ -3,6 +3,7 @@ package com.ceo.trading_platform_backend.services;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -49,7 +50,7 @@ public class PortfolioService {
         return value;
     }
 
-    public Portfolio getPortfolioById(int portfolioId) {
+    public Portfolio getPortfolioById(UUID portfolioId) {
         return repository.findById(portfolioId).orElse(null);
     }
 
@@ -61,19 +62,19 @@ public class PortfolioService {
     //     return portfolios;
     // }
     
-    public BigDecimal getBuyingPowerByPortfolioId(int portfolioId) {
+    public BigDecimal getBuyingPowerByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         if (portfolio == null) return null;
         return getPortfolioBuyingPower(portfolio);
     }
 
-    public BigDecimal getTotalValueByPortfolioId(int portfolioId) {
+    public BigDecimal getTotalValueByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         if (portfolio == null) return null;
         return getPortfolioTotalValue(portfolio);
     }
 
-    public List<Holding> getHoldingsByPortfolioId(int portfolioId) {
+    public List<Holding> getHoldingsByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         if (portfolio == null) return null;
         return portfolio.getHoldings();

@@ -2,12 +2,13 @@ package com.ceo.trading_platform_backend.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 public record HoldingResponse (
-    int holdingId,
+    UUID holdingId,
     Instant dateCreated,
-    int instrumentId,
-    int orderId,
+    UUID instrumentId,
+    UUID orderId,
     BigDecimal purchasedPrice,
     BigDecimal quantity
 ) {

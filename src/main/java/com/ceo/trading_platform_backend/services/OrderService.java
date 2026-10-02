@@ -3,6 +3,7 @@ package com.ceo.trading_platform_backend.services;
 // import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -44,9 +45,9 @@ public class OrderService {
 
     // TODO move to ordercontroller and orderservice only gets order objects?
     public Order createOrder(OrderRequestDTO orderRequest) {
-        int clientId = orderRequest.clientId();
-        int portfolioId = portfolioService.getPortfolioById(orderRequest.portfolioId()).getPortfolioId();
-        Integer instrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.instrumentSymbol()).getID(); // instrument servcie asks external api for instrument info
+        UUID clientId = orderRequest.clientId();
+        UUID portfolioId = portfolioService.getPortfolioById(orderRequest.portfolioId()).getPortfolioId();
+        UUID instrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.instrumentSymbol()).getID(); // instrument servcie asks external api for instrument info
         BigDecimal quantity = orderRequest.quantity();
         BigDecimal quotedPrice = orderRequest.quotedPrice();
         Side side = orderRequest.side();
@@ -61,12 +62,12 @@ public class OrderService {
         return allOrders;
     }
 
-    public List<Order> getClientOrders(int clientId) {
+    public List<Order> getClientOrders(UUID clientId) {
         List<Order> orders = this.repository.findByClientId(clientId);
         return orders;
     }
 
-    public Optional<Order> getOrderById(int orderId) {
+    public Optional<Order> getOrderById(UUID orderId) {
         Optional<Order> order = this.repository.findById(orderId); // shoudl throw error if not found?
         return order;
     }
@@ -122,7 +123,7 @@ public class OrderService {
     }
 
     // get all orders of a portfolio
-    public List<Order> getOrdersByPortfolioId(int ID) { // currently int but shoudl not be...
+    public List<Order> getOrdersByPortfolioId(UUID ID) { // currently int but shoudl not be...
         List<Order> orders = this.repository.findByPortfolioId(ID);
         return orders;
     } 

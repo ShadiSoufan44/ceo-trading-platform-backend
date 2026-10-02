@@ -1,6 +1,7 @@
 package com.ceo.trading_platform_backend.models;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import com.ceo.trading_platform_backend.enums.PortfolioType;
 
@@ -18,9 +19,9 @@ import jakarta.persistence.Table;
 @Table(name = "portfolio")
 public class Portfolio {
     
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "portfolio_id")
-    private int portfolioId;
+    private UUID portfolioId;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "portfolio_id")
@@ -43,7 +44,7 @@ public class Portfolio {
        this.holdings.add(holding);
     }
 
-    public int getPortfolioId() {
+    public UUID getPortfolioId() {
         return portfolioId;
     }
 }

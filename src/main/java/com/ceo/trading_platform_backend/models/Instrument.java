@@ -1,5 +1,7 @@
 package com.ceo.trading_platform_backend.models;
 
+import java.util.UUID;
+
 import com.ceo.trading_platform_backend.enums.InstrumentType;
 
 import jakarta.persistence.Column;
@@ -13,18 +15,18 @@ import jakarta.persistence.Table;
 @Table(name = "instrument")
 public class Instrument {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "instrument_id")
-    int ID;
+    private UUID ID;
 
     @Column(name = "symbol")
-    String symbol;
+    private String symbol;
 
     @Column(name = "instrument_type")
-    InstrumentType type;
+    private InstrumentType type;
 
     @Column(name = "full_name")
-    String fullName;
+    private String fullName;
 
 
     public Instrument(String symbol, InstrumentType type, String fullName) {
@@ -42,7 +44,7 @@ public class Instrument {
     public String getFullName() {
         return fullName;
     }
-    public int getID() {
+    public UUID getID() {
         return ID;
     }
 }

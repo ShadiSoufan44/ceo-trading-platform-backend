@@ -12,6 +12,7 @@ import com.ceo.trading_platform_backend.services.PortfolioService;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,7 +49,7 @@ public class PortfolioController {
 
     @GetMapping("/{portfolioId}/buying_power")
     public ResponseEntity<BigDecimal> getBuyingPowerByPortfolioId(
-        @PathVariable int portfolioId
+        @PathVariable UUID portfolioId
     ) {
         BigDecimal response = service.getBuyingPowerByPortfolioId(portfolioId);
         if (response == null) {
@@ -59,7 +60,7 @@ public class PortfolioController {
 
     @GetMapping("/{portfolioId}/total_value")
     public ResponseEntity<BigDecimal> getTotalValueByPortfolioId(
-        @PathVariable int portfolioId
+        @PathVariable UUID portfolioId
     ) {
         BigDecimal response = service.getTotalValueByPortfolioId(portfolioId);
         if (response == null) {
@@ -71,7 +72,7 @@ public class PortfolioController {
 
     @GetMapping("/{portfolioId}/holdings")
     public ResponseEntity<List<HoldingResponse>> getHoldingsByPortfolioId(
-        @PathVariable int portfolioId
+        @PathVariable UUID portfolioId
     ) {
         List<Holding> holdings = service.getHoldingsByPortfolioId(portfolioId);
         if (holdings == null) {
@@ -85,7 +86,7 @@ public class PortfolioController {
     }
     
     @GetMapping("/{portfolioId}")
-    public ResponseEntity<PortfolioResponse> getPortfolioById(@PathVariable int portfolioId) {
+    public ResponseEntity<PortfolioResponse> getPortfolioById(@PathVariable UUID portfolioId) {
         Portfolio portfolio = service.getPortfolioById(portfolioId);
         if (portfolio == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -97,7 +98,7 @@ public class PortfolioController {
     private PortfolioResponse createPortfolioResponse(Portfolio portfolio) {
         if (portfolio == null) return null;
 
-        List<Integer> holdingIds = new ArrayList<>();
+        List<UUID> holdingIds = new ArrayList<>();
 
         for (Holding holding : portfolio.getHoldings()) {
             holdingIds.add(holding.getID());

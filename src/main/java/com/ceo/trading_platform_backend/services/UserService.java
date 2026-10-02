@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Service
 public class UserService {
@@ -48,7 +49,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserResponse getUser(Integer userId) {
+    public UserResponse getUser(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
         return toResponse(user);
@@ -61,14 +62,14 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteUser(Integer userId) {
+    public void deleteUser(UUID userId) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User not found: " + userId);
         }
         userRepository.deleteById(userId);
     }
 
-    public boolean isOwnProfile(Integer userId) {
+    public boolean isOwnProfile(UUID userId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             return false;

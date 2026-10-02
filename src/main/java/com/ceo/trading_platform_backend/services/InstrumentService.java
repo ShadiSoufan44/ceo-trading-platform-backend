@@ -1,5 +1,7 @@
 package com.ceo.trading_platform_backend.services;
 
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 
 import com.ceo.trading_platform_backend.enums.InstrumentType;
@@ -22,7 +24,7 @@ public class InstrumentService {
     }
 
     @Transactional 
-    public Instrument getInstrumentById(int instrumentId) {
+    public Instrument getInstrumentById(UUID instrumentId) {
         return repository.getReferenceById(instrumentId);
     }
 
