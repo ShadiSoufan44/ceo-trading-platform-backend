@@ -1,19 +1,24 @@
-package com.ceo.trading_platform_backend.uml_objects;
+package com.ceo.trading_platform_backend.models;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.DiscriminatorType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
 
-@Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "role", discriminatorType = DiscriminatorType.STRING, length = 50)
 @Table(name = "user_account")
-public class User {
+public abstract class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,10 +37,6 @@ public class User {
     @Column(name = "join_date", nullable = false)
     private OffsetDateTime joinDate;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false, length = 50)
-    private Role role;
-
     protected User() {
     }
 
@@ -44,7 +45,6 @@ public class User {
         this.email = email;
         this.password = password;
         this.joinDate = joinDate;
-        this.role = Role.fromString(role);
     }
 
     public Integer getUserId() {
@@ -73,13 +73,5 @@ public class User {
 
     public void setJoinDate(OffsetDateTime joinDate) {
         this.joinDate = joinDate;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
     }
 }

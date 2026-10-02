@@ -2,7 +2,7 @@ package com.ceo.trading_platform_backend.services;
 
 import com.ceo.trading_platform_backend.dto.ChangePasswordRequest;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
-import com.ceo.trading_platform_backend.uml_objects.User;
+import com.ceo.trading_platform_backend.models.User;
 import com.ceo.trading_platform_backend.repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
