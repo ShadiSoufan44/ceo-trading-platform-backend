@@ -1,6 +1,6 @@
 package com.ceo.trading_platform_backend.models;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import com.ceo.trading_platform_backend.enums.OrderStatus;
 
@@ -24,9 +24,9 @@ public class OrderStatusChange {
     String message;
 
     @Column(name = "change_date")
-    LocalDateTime date;
+    Instant date;
 
-    public OrderStatusChange(OrderStatus status, String message, LocalDateTime date) {
+    public OrderStatusChange(OrderStatus status, String message, Instant date) {
         this.status = status;
         this.message = message;
         this.date = date;
@@ -36,7 +36,7 @@ public class OrderStatusChange {
         return this.status;
     }
 
-    public LocalDateTime getDate() {
+    public Instant getDate() {
         return this.date;
     }
 }
