@@ -6,14 +6,11 @@ import com.ceo.trading_platform_backend.dto.UserResponse;
 import com.ceo.trading_platform_backend.services.PasswordService;
 import com.ceo.trading_platform_backend.services.UserService;
 import jakarta.validation.Valid;
-<<<<<<< HEAD
 
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-=======
->>>>>>> main
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
