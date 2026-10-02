@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.enums.Side;
@@ -26,25 +27,25 @@ import jakarta.persistence.Table;
 public class Order {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "order_id")
-    private Integer orderId;
+    private UUID orderId;
 
-    @Column(name = "instr_id")
-    private Integer instrumentId;
+    @Column(name = "instrument_id")
+    private UUID instrumentId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "side")
     private Side side;
 
     @Column(name = "portfolio_id")
-    private Integer portfolioId;
+    private UUID portfolioId;
 
     @Column(name = "client_id")
-    private Integer clientId;
+    private UUID clientId;
 
     @Column(name = "holding_id")
-    private Integer holdingId;
+    private UUID holdingId;
 
     @Column(name = "quote")
     private BigDecimal quote;
@@ -65,7 +66,7 @@ public class Order {
     protected Order() {
     }
 
-    public Order(Integer instrumentId, Side side, Integer portfolioId, Integer clientId, /*Integer holdingId,*/
+    public Order(UUID instrumentId, Side side, UUID portfolioId, UUID clientId, /*Integer holdingId,*/
             BigDecimal quote/* , BigDecimal finalPrice */, BigDecimal increaseThreshold, BigDecimal quantity) {
         this.instrumentId = instrumentId;
         this.side = side;
@@ -88,15 +89,15 @@ public class Order {
         orderHistory.add(orderStatusChange);
     }
 
-    public Integer getOrderId() {
+    public UUID getOrderId() {
         return orderId;
     }
 
-    public Integer getInstrumentId() {
+    public UUID getInstrumentId() {
         return instrumentId;
     }
 
-    public void setInstrumentId(Integer instrumentId) {
+    public void setInstrumentId(UUID instrumentId) {
         this.instrumentId = instrumentId;
     }
 
@@ -108,27 +109,27 @@ public class Order {
         this.side = side;
     }
 
-    public Integer getPortfolioId() {
+    public UUID getPortfolioId() {
         return portfolioId;
     }
 
-    public void setPortfolioId(Integer portfolioId) {
+    public void setPortfolioId(UUID portfolioId) {
         this.portfolioId = portfolioId;
     }
 
-    public Integer getClientId() {
+    public UUID getClientId() {
         return clientId;
     }
 
-    public void setClientId(Integer clientId) {
+    public void setClientId(UUID clientId) {
         this.clientId = clientId;
     }
 
-    public Integer getHoldingId() {
+    public UUID getHoldingId() {
         return holdingId;
     }
 
-    public void setHoldingId(Integer holdingId) {
+    public void setHoldingId(UUID holdingId) {
         this.holdingId = holdingId;
     }
 

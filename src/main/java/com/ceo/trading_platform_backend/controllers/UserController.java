@@ -9,6 +9,9 @@ import com.ceo.trading_platform_backend.services.AuthenticationService;
 import com.ceo.trading_platform_backend.services.PasswordService;
 import com.ceo.trading_platform_backend.services.UserService;
 import jakarta.validation.Valid;
+
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -59,14 +62,14 @@ public class UserController {
 
     @GetMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN') or @userService.isOwnProfile(#userId)")
-    public ResponseEntity<UserResponse> getUser(@PathVariable Integer userId) {
+    public ResponseEntity<UserResponse> getUser(@PathVariable UUID userId) {
         return ResponseEntity.ok(userService.getUser(userId));
     }
 
     @PostMapping("/{userId}/change-password")
     @PreAuthorize("hasRole('ADMIN') or @userService.isOwnProfile(#userId)")
     public ResponseEntity<Void> changePassword(
-            @PathVariable Integer userId,
+            @PathVariable UUID userId,
             @Valid @RequestBody ChangePasswordRequest request) {
         passwordService.changePassword(userId, request);
         return ResponseEntity.ok().build();

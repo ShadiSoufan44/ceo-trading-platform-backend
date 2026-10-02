@@ -2,6 +2,7 @@ package com.ceo.trading_platform_backend.models;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 import org.springframework.data.annotation.CreatedDate;
 
@@ -18,9 +19,9 @@ import jakarta.persistence.Table;
 @Table (name="holding")
 public class Holding {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "holding_id")
-    private int ID;
+    private UUID ID;
 
     @CreatedDate 
     private Instant dateCreated;
@@ -65,7 +66,7 @@ public class Holding {
     public BigDecimal getPurchasedPrice() {
         return purchasedPrice;
     }  
-    public int getID() {
+    public UUID getID() {
         return ID;
     }
 

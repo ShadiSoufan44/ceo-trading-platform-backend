@@ -1,9 +1,10 @@
 package com.ceo.trading_platform_backend.dto;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 public record UserResponse(
-        Integer userId,
+        UUID userId,
         String fullName,
         String email,
         OffsetDateTime joinDate,

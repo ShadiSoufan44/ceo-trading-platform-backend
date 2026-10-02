@@ -1,6 +1,7 @@
 package com.ceo.trading_platform_backend.models;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import com.ceo.trading_platform_backend.enums.OrderStatus;
 
@@ -13,18 +14,18 @@ import jakarta.persistence.Id;
 @Entity 
 public class OrderStatusChange {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "order_status_change_id")
-    Integer orderStatusChangeId;
+    private UUID orderStatusChangeId;
 
     @Column(name = "status")
-    OrderStatus status;
+    private OrderStatus status;
 
     @Column(name = "message")
-    String message;
+    private String message;
 
     @Column(name = "change_date")
-    LocalDateTime date;
+    private LocalDateTime date;
 
     public OrderStatusChange(OrderStatus status, String message, LocalDateTime date) {
         this.status = status;

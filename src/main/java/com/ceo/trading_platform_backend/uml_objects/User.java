@@ -10,15 +10,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "user_account")
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "user_id")
-    private Integer userId;
+    private UUID userId;
 
     @Column(name = "full_name", nullable = false, length = 255)
     private String fullName;
@@ -47,7 +48,7 @@ public class User {
         this.role = Role.fromString(role);
     }
 
-    public Integer getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 
