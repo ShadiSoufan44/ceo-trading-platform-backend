@@ -4,7 +4,10 @@ import com.ceo.trading_platform_backend.dto.CreateUserRequest;
 import com.ceo.trading_platform_backend.dto.UserResponse;
 import com.ceo.trading_platform_backend.exception.DuplicateResourceException;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
-import com.ceo.trading_platform_backend.uml_objects.User;
+import com.ceo.trading_platform_backend.models.User;
+import com.ceo.trading_platform_backend.models.Client;
+import com.ceo.trading_platform_backend.models.Analyst;
+import com.ceo.trading_platform_backend.models.Administrator;
 import com.ceo.trading_platform_backend.repositories.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,15 +37,15 @@ public class UserService {
             throw new DuplicateResourceException("Email already registered: " + request.email());
         }
 
-        User user = new User(
+        // All signup default to CLIENT role
+        Client client = new Client(
                 request.fullName(),
                 request.email(),
                 passwordEncoder.encode(request.password()),
-                OffsetDateTime.now(),
-                "CLIENT"  // Default role for public signup
+                OffsetDateTime.now()
         );
 
-        return toResponse(userRepository.save(user));
+        return toResponse(userRepository.save(client));
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +91,18 @@ public class UserService {
                 user.getFullName(),
                 user.getEmail(),
                 user.getJoinDate(),
-                user.getRole().name()
+                getRoleFromUser(user)
         );
+    }
+
+    private String getRoleFromUser(User user) {
+        if (user instanceof Client) {
+            return "CLIENT";
+        } else if (user instanceof Analyst) {
+            return "ANALYST";
+        } else if (user instanceof Administrator) {
+            return "ADMIN";
+        }
+        return "CLIENT"; // Default fallback
     }
 }

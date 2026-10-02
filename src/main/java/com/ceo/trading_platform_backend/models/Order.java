@@ -1,7 +1,7 @@
 package com.ceo.trading_platform_backend.models;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -77,7 +77,7 @@ public class Order {
         // this.finalPrice = finalPrice;
         this.increaseThreshold = increaseThreshold;
         this.quantity = quantity;
-        LocalDateTime createdDate = LocalDateTime.now(); //not sure if this is correct place ot get date
+        Instant createdDate = Instant.now();
         this.orderHistory.add(new OrderStatusChange(
             OrderStatus.PENDING,
             "Order Created",
@@ -157,7 +157,7 @@ public class Order {
         this.increaseThreshold = increaseThreshold;
     }
 
-    public LocalDateTime getCreatedDate() {
+    public Instant getCreatedDate() {
         return this.orderHistory.getFirst().getDate();
     }
 

@@ -1,20 +1,38 @@
-package com.ceo.trading_platform_backend.uml_objects;
+package com.ceo.trading_platform_backend.models;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
+
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+import jakarta.persistence.OneToMany;
+
+import com.ceo.trading_platform_backend.uml_objects.AuditLog;
 
 /**
- * Represents an Administrator/Ops user - responsible for trade accountability.
- * Persona: David - Head of trading operations, needs complete audit trail,
- * can answer any dispute about what happened and when without engineering.
+ * Represents an Administrator/Ops user 
  */
+@Entity 
+@DiscriminatorValue("ADMIN")
 public class Administrator extends User {
 
+    @OneToMany private Set<AuditLog> auditLogs = new HashSet<>();
+    
     public Administrator() {
         super();
     }
 
     public Administrator(String fullName, String email, String password, OffsetDateTime joinDate) {
         super(fullName, email, password, joinDate, "ADMIN");
+    }
+
+    public Set<AuditLog> getAuditLogs() {
+        return this.auditLogs;
+    }
+
+    public void setAuditLogs(Set<AuditLog> auditLogs) {
+        this.auditLogs = auditLogs;
     }
 
     // TODO: Administrator-specific capabilities

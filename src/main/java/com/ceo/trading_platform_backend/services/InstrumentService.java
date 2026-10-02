@@ -13,14 +13,14 @@ import jakarta.transaction.Transactional;
 @Service  
 public class InstrumentService {    
     private InstrumentRepository repository;
-    // FIXME private MarketService marketService;
+    private MarketService marketService;
     
     public InstrumentService(
-        InstrumentRepository instrumentRepository
-        // , MarketService marketService;
+        InstrumentRepository instrumentRepository,
+        MarketService marketService
     ) {
         this.repository = instrumentRepository;
-        // this.marketService = marketService;
+        this.marketService = marketService;
     }
 
     @Transactional 
@@ -48,18 +48,22 @@ public class InstrumentService {
     public Instrument getOrInsertInstrumentBySymbol(String symbol) {
         Instrument instrument = getInstrumentBySymbol(symbol);
         if (instrument == null) {
-            String name; InstrumentType type;
-            if (symbol == "USD") {
-                // TODO: change to not be magic strings
-                name = "United States Dollar";
-                type = InstrumentType.CASH;
-            } else {
-                // TODO: Replace this with marketservice call!!
-                name = "Test Instrument Name";
-                type = InstrumentType.EQUITY;
-            }
-            instrument = insertInstrumentByFields(symbol, type, name);
+            // Fetch real instrument metadata from market service
+            var metadata = marketService.getSymbolMetadata(symbol);
+            InstrumentType type = parseInstrumentType(metadata.type());
+            instrument = insertInstrumentByFields(symbol, type, metadata.name());
         }
         return instrument;
-    }    
+    }
+    
+    private InstrumentType parseInstrumentType(String typeString) {
+        if (typeString == null) {
+            return InstrumentType.EQUITY; // default
+        }
+        try {
+            return InstrumentType.valueOf(typeString.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return InstrumentType.EQUITY; // fallback default
+        }
+    }   
 }
