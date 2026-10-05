@@ -6,6 +6,8 @@ import com.ceo.trading_platform_backend.enums.InstrumentType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -22,12 +24,14 @@ public class Instrument {
     @Column(name = "symbol")
     private String symbol;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "instrument_type")
     private InstrumentType type;
 
     @Column(name = "full_name")
     private String fullName;
 
+    public Instrument() {}
 
     public Instrument(String symbol, InstrumentType type, String fullName) {
         this.symbol = symbol;

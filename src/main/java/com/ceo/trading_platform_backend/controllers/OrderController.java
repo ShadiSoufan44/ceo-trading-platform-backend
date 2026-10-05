@@ -70,6 +70,13 @@ public class OrderController {
         OrderResponseDTO response = createOrderResponse(order.orElseThrow(() -> new ResourceNotFoundException("order id " + orderID + " not foudn in DB")));
         return response;
     }
+
+    @PostMapping("/new")
+    public ResponseEntity<OrderResponseDTO> submitOrder(@Valid @RequestBody OrderRequestDTO request) {
+        Order order = orderService.submit(request);
+        OrderResponseDTO response = createOrderResponse(order);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
     
     public OrderResponseDTO createOrderResponse(Order order) {
         UUID orderId = order.getOrderId();

@@ -3,11 +3,11 @@ package com.ceo.trading_platform_backend.services;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.PortfolioType;
+import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
@@ -70,23 +71,25 @@ public class PortfolioServiceTests {
         return order;
     }
 
-    private Holding createCashHolding(BigDecimal quantity) {
+    private Holding createCashHolding(BigDecimal quantity, Portfolio portfolio) {
         return new Holding(
             Instant.now(),
             BigDecimal.ONE,
             quantity,
             usdInstrument,
-            createTestOrder(uuid1)
+            createTestOrder(uuid1),
+            portfolio
         );
     }
 
-    private Holding createStockHolding(BigDecimal quantity, BigDecimal price) {
+    private Holding createStockHolding(BigDecimal quantity, BigDecimal price, Portfolio portfolio) {
         return new Holding(
             Instant.now(),
             price,
             quantity,
             stockInstrument,
-            createTestOrder(uuid2)
+            createTestOrder(uuid2),
+            portfolio
         );
     }
 
@@ -97,23 +100,23 @@ public class PortfolioServiceTests {
         @DisplayName("Should return correct portfolio when it exists")
         void shouldReturnPortfolioWhenExists() {
             Portfolio expected = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
-            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(expected));
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(expected);
 
             Portfolio result = portfolioService.getPortfolioById(uuid1);
 
             assertThat(result).isNotNull().isEqualTo(expected);
-            verify(portfolioRepository).findById(uuid1);
+            verify(portfolioRepository).getReferenceById(uuid1);
         }
 
         @Test
-        @DisplayName("Should return null when portfolio ID doesn't exist")
-        void shouldReturnNullWhenNotExists() {
-            when(portfolioRepository.findById(uuid5)).thenReturn(Optional.empty());
+        @DisplayName("Should throw ResourceNotFoundException when portfolio ID doesn't exist")
+        void shouldThrowExceptionWhenNotExists() {
+            when(portfolioRepository.getReferenceById(uuid5)).thenThrow();
 
-            Portfolio result = portfolioService.getPortfolioById(uuid5);
-
-            assertThat(result).isNull();
-            verify(portfolioRepository).findById(uuid5);
+            assertThatThrownBy(() -> portfolioService.getPortfolioById(uuid5))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Portfolio not found with id");
+            verify(portfolioRepository).getReferenceById(uuid5);
         }
     }
 
@@ -121,13 +124,13 @@ public class PortfolioServiceTests {
     @DisplayName("Test getBuyingPowerByPortfolioId()")
     class GetBuyingPowerByPortfolioIdTests {
         @Test
-        @DisplayName("Should return null when portfolio ID doesn't exist")
-        void shouldReturnNullWhenPortfolioNotExists() {
-            when(portfolioRepository.findById(uuid5)).thenReturn(Optional.empty());
+        @DisplayName("Should throw ResourceNotFoundException when portfolio ID doesn't exist")
+        void shouldThrowExceptionWhenPortfolioNotExists() {
+            when(portfolioRepository.getReferenceById(uuid5)).thenThrow();
 
-            BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(uuid5);
-
-            assertThat(result).isNull();
+            assertThatThrownBy(() -> portfolioService.getBuyingPowerByPortfolioId(uuid5))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Portfolio not found with id");
         }
 
         @Test
@@ -135,9 +138,9 @@ public class PortfolioServiceTests {
         void shouldReturnZeroWhenNoCashHoldings() {
             Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
-            portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150")));
+            portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
             
-            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
 
             BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(uuid1);
 
@@ -149,9 +152,9 @@ public class PortfolioServiceTests {
         void shouldReturnCorrectValueWithOneCashHolding() {
             Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
-            portfolio.addHolding(createCashHolding(new BigDecimal("5000")));
+            portfolio.addHolding(createCashHolding(new BigDecimal("5000"), portfolio));
             
-            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
 
             BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(uuid1);
 
@@ -163,10 +166,10 @@ public class PortfolioServiceTests {
         void shouldReturnCorrectValueWithMultipleCashHoldings() {
             Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
-            portfolio.addHolding(createCashHolding(new BigDecimal("3000")));
-            portfolio.addHolding(createCashHolding(new BigDecimal("2000")));
+            portfolio.addHolding(createCashHolding(new BigDecimal("3000"), portfolio));
+            portfolio.addHolding(createCashHolding(new BigDecimal("2000"), portfolio));
             
-            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
 
             BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(uuid1);
 
@@ -178,13 +181,13 @@ public class PortfolioServiceTests {
     @DisplayName("Test getHoldingsByPortfolioId()")
     class GetHoldingsByPortfolioIdTests {
         @Test
-        @DisplayName("Should return null when portfolio ID doesn't exist")
-        void shouldReturnNullWhenPortfolioNotExists() {
-            when(portfolioRepository.findById(uuid5)).thenReturn(Optional.empty());
+        @DisplayName("Should throw ResourceNotFoundException when portfolio ID doesn't exist")
+        void shouldThrowExceptionWhenPortfolioNotExists() {
+            when(portfolioRepository.getReferenceById(uuid5)).thenThrow();
 
-            List<Holding> result = portfolioService.getHoldingsByPortfolioId(uuid5);
-
-            assertThat(result).isNull();
+            assertThatThrownBy(() -> portfolioService.getHoldingsByPortfolioId(uuid5))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Portfolio not found with id");
         }
 
         @Test
@@ -193,7 +196,7 @@ public class PortfolioServiceTests {
             Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
             
-            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
 
             List<Holding> result = portfolioService.getHoldingsByPortfolioId(uuid1);
 
@@ -205,9 +208,9 @@ public class PortfolioServiceTests {
         void shouldReturnListWithOneHolding() {
             Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
-            portfolio.addHolding(createCashHolding(new BigDecimal("1000")));
+            portfolio.addHolding(createCashHolding(new BigDecimal("1000"), portfolio));
             
-            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
 
             List<Holding> result = portfolioService.getHoldingsByPortfolioId(uuid1);
 
@@ -222,11 +225,11 @@ public class PortfolioServiceTests {
         void shouldReturnListWithMultipleHoldings() {
             Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
             portfolio.getHoldings().clear();
-            portfolio.addHolding(createCashHolding(new BigDecimal("2000")));
-            portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150")));
-            portfolio.addHolding(createCashHolding(new BigDecimal("1000")));
+            portfolio.addHolding(createCashHolding(new BigDecimal("2000"), portfolio));
+            portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
+            portfolio.addHolding(createCashHolding(new BigDecimal("1000"), portfolio));
             
-            when(portfolioRepository.findById(uuid1)).thenReturn(Optional.of(portfolio));
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
 
             List<Holding> result = portfolioService.getHoldingsByPortfolioId(uuid1);
 

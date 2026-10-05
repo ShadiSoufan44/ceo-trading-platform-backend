@@ -19,8 +19,6 @@ import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.OrderStatusChange;
 
-import jakarta.annotation.Resource;
-
 import com.ceo.trading_platform_backend.repositories.OrderRepository; // waiting for implementation
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
 import com.ceo.trading_platform_backend.enums.OrderStatus;
@@ -35,6 +33,9 @@ public class OrderService {
     private final PortfolioService portfolioService;
     private final InstrumentService instrumentService;
     private final MarketService marketService;
+
+    private final LocalTime OPEN_TIME_LOCAL = LocalTime.of(9, 30, 0); // shoudl these be find
+    private final LocalTime CLOSE_TIME_LOCAL = LocalTime.of(16, 0, 0);
 
     public OrderService(OrderRepository repository, PortfolioService portfolioService, InstrumentService instrumentService, MarketService marketService) {
         this.repository = repository;
@@ -53,7 +54,7 @@ public class OrderService {
         Side side = orderRequest.side();
         BigDecimal increaseThreshold = orderRequest.increaseThreshold();
         Order order = new Order(instrumentId, side, portfolioId, clientId, quotedPrice, increaseThreshold, quantity);
-        this.repository.save(order);
+        order = this.repository.save(order);
         return order;
     }
 
@@ -70,6 +71,15 @@ public class OrderService {
     public Optional<Order> getOrderById(UUID orderId) {
         Optional<Order> order = this.repository.findById(orderId); // shoudl throw error if not found?
         return order;
+    }
+
+    public Order submit(OrderRequestDTO orderRequest) {
+        Order order = createOrder(orderRequest);
+        Order validatedOrder = validate(order);
+        if (validatedOrder.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
+            return execute(validatedOrder);
+        } 
+        return repository.save(validatedOrder);
     }
 
     // these methods get called from kafka pipeline
@@ -130,20 +140,18 @@ public class OrderService {
 
     // Check if in hours
     private boolean outOfHours(Order order) {
-        LocalTime openTime = LocalTime.of(9, 30, 0); // shoudl these be find
-        LocalTime closeTime = LocalTime.of(16, 0, 0);
         Instant submittedInstant = order.getCreatedDate();
         ZoneId zone = ZoneId.of("America/New_York");
         LocalDateTime submittedDateTime = LocalDateTime.ofInstant(submittedInstant, zone);
         LocalTime submittedTime = submittedDateTime.toLocalTime();
         DayOfWeek submittedDay = submittedDateTime.toLocalDate().getDayOfWeek();
         if (submittedDay == DayOfWeek.SATURDAY || submittedDay == DayOfWeek.SUNDAY) {
-            return false;
+            return true;
         }
-        if (submittedTime.isBefore(openTime) || submittedTime.isAfter(closeTime)) { // submitted time shoudl be in request dto
-            return false;
+        if (submittedTime.isBefore(OPEN_TIME_LOCAL) || submittedTime.isAfter(CLOSE_TIME_LOCAL)) { // submitted time shoudl be in request dto
+            return true;
         }
-        return true;
+        return false;
     }
 
     // Buy Order

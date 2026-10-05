@@ -8,6 +8,8 @@ import com.ceo.trading_platform_backend.enums.PortfolioType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -27,7 +29,11 @@ public class Portfolio {
     @JoinColumn(name = "portfolio_id")
     private List<Holding> holdings = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type")
     private PortfolioType type;
+
+    public Portfolio() {}
 
     public Portfolio(PortfolioType type) {
         this.type = type;
