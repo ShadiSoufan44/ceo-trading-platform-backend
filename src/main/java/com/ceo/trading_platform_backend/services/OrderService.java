@@ -115,6 +115,12 @@ public class OrderService {
             order.addOrderStatusChange(pendingOrderStatus);
             return order; // early return, don't execute
         }
+        if (!withinIncreaseThreshold(order, price)) {
+            Instant today = Instant.now();
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "price " + price + " increased past threshold since submitting "+ order.getQuote(), today);
+            order.addOrderStatusChange(rejectedOrderStatus);
+            return order;
+        }
         if (order.getSide() == Side.BUY) {
             if (!hasSufficientFundsBuy(order, price)) {
                 Instant today = Instant.now();
@@ -152,6 +158,17 @@ public class OrderService {
             return true;
         }
         return false;
+    }
+
+    // check if the price has increased too much since ordering
+    private boolean withinIncreaseThreshold(Order order, BigDecimal price) {
+        BigDecimal increaseThreshold = order.getIncreaseThreshold();
+        BigDecimal quotedPrice = order.getQuote();
+        BigDecimal toleratedPrice = quotedPrice.add(quotedPrice.multiply(increaseThreshold));
+        if (price.compareTo(toleratedPrice) > 0) {
+            return false;
+        }
+        return true;
     }
 
     // Buy Order
