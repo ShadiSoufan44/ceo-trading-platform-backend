@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import com.ceo.trading_platform_backend.enums.Side;
+import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
@@ -53,8 +54,13 @@ public class PortfolioService {
     }
 
     public Portfolio getPortfolioById(UUID portfolioId) {
-        Portfolio portfolio = repository.getReferenceById(portfolioId);
-        return portfolio;
+        try {
+            Portfolio portfolio = repository.getReferenceById(portfolioId);
+            return portfolio;
+        } catch (Exception e) {
+            throw new ResourceNotFoundException("Portfolio not found with id " + portfolioId);
+        }
+        
     }
 
     // TODO: Move this to ClientService.java
