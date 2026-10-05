@@ -34,7 +34,12 @@ public class PortfolioServiceTests {
     @Mock 
     private PortfolioRepository portfolioRepository;
 
-    @InjectMocks 
+    @Mock
+    private InstrumentService instrumentService;
+
+    @Mock
+    private MarketService marketService;
+
     private PortfolioService portfolioService;
 
     private Instrument usdInstrument;
@@ -51,6 +56,15 @@ public class PortfolioServiceTests {
     void setup() {
         usdInstrument = new Instrument("USD", InstrumentType.CASH, "United States Dollar");
         stockInstrument = new Instrument("AAPL", InstrumentType.EQUITY, "Apple Inc.");
+        
+        portfolioService = new PortfolioService(
+            portfolioRepository, 
+            instrumentService,
+            marketService
+        );
+        
+        // Default mock behavior: USD has price of 1
+        // when(marketService.getPrice("USD")).thenReturn(BigDecimal.ONE);
     }
 
     private Portfolio createTestPortfolio(UUID id, PortfolioType type) {
@@ -168,12 +182,13 @@ public class PortfolioServiceTests {
             portfolio.getHoldings().clear();
             portfolio.addHolding(createCashHolding(new BigDecimal("3000"), portfolio));
             portfolio.addHolding(createCashHolding(new BigDecimal("2000"), portfolio));
+            portfolio.addHolding(createCashHolding(new BigDecimal("-4000"), portfolio));
             
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
 
             BigDecimal result = portfolioService.getBuyingPowerByPortfolioId(uuid1);
 
-            assertThat(result).isEqualTo(new BigDecimal("5000"));
+            assertThat(result).isEqualTo(new BigDecimal("1000"));
         }
     }
 
@@ -237,6 +252,87 @@ public class PortfolioServiceTests {
                 .isNotNull()
                 .hasSize(3)
                 .allMatch(h -> h != null);
+        }
+    }
+
+    @Nested
+    @DisplayName("Test getTotalValueByPortfolioId()")
+    class GetTotalValueByPortfolioIdTests {
+        @Test
+        @DisplayName("Should throw ResourceNotFoundException when portfolio ID doesn't exist")
+        void shouldThrowExceptionWhenPortfolioNotExists() {
+            when(portfolioRepository.getReferenceById(uuid5)).thenThrow(new ResourceNotFoundException("Portfolio not found with id " + uuid5));
+
+            assertThatThrownBy(() -> portfolioService.getTotalValueByPortfolioId(uuid5))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Portfolio not found with id");
+        }
+
+        @Test
+        @DisplayName("Should return 0 when portfolio has no holdings")
+        void shouldReturnZeroWhenNoHoldings() {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.getHoldings().clear();
+            
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+
+            BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
+
+            assertThat(result).isEqualTo(BigDecimal.ZERO);
+        }
+
+        @Test
+        @DisplayName("Should return correct value when only cash holdings")
+        void shouldReturnCorrectValueWithOnlyCashHoldings() {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.getHoldings().clear();
+            portfolio.addHolding(createCashHolding(new BigDecimal("5000"), portfolio));
+            portfolio.addHolding(createCashHolding(new BigDecimal("3000"), portfolio));
+            
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+
+            BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
+
+            assertThat(result).isEqualTo(new BigDecimal("8000"));
+        }
+
+        @Test
+        @DisplayName("Should return correct value with cash and 1 non-cash holding")
+        void shouldReturnCorrectValueWithCashAndOneNonCashHolding() {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.getHoldings().clear();
+            portfolio.addHolding(createCashHolding(new BigDecimal("5000"), portfolio));
+            portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
+
+            when(marketService.getPrice(stockInstrument.getSymbol()))
+                .thenReturn(new BigDecimal("150"));
+            when(portfolioRepository.getReferenceById(uuid1))
+                .thenReturn(portfolio);
+
+            BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
+
+            // Total = 5000 + (1 * 10 * 150) = 6500
+            assertThat(result).isEqualTo(new BigDecimal("6500"));
+        }
+
+        @Test
+        @DisplayName("Should return correct value with cash and 2+ non-cash holdings")
+        void shouldReturnCorrectValueWithCashAndMultipleNonCashHoldings() {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.getHoldings().clear();
+            portfolio.addHolding(createCashHolding(new BigDecimal("5000"), portfolio));
+            portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
+            portfolio.addHolding(createStockHolding(new BigDecimal("5"), new BigDecimal("200"), portfolio));
+
+            when(marketService.getPrice(stockInstrument.getSymbol()))
+                .thenReturn(new BigDecimal("150"))
+                .thenReturn(new BigDecimal("200"));
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+
+            BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
+
+            // Total = 5000 + (1 * 10 * 150) + (1 * 5 * 200) = 7500
+            assertThat(result).isEqualTo(new BigDecimal("7500"));
         }
     }
 }

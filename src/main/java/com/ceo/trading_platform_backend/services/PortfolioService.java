@@ -21,21 +21,24 @@ import jakarta.transaction.Transactional;
 public class PortfolioService {
     private final PortfolioRepository repository;
     private final InstrumentService instrumentService;
-    // FIXME private final MarketService marketService;
+    private final MarketService marketService;
+
+    private final String CURRENCY_SYMBOL = "USD";
 
     public PortfolioService(
-        PortfolioRepository repository
-        , InstrumentService instrumentService
-        // FIXME , MarketService marketService
+        PortfolioRepository repository,
+        InstrumentService instrumentService,
+        MarketService marketService
     ) {
         this.repository = repository;
         this.instrumentService = instrumentService;
+        this.marketService = marketService;
     }
 
     private BigDecimal getPortfolioBuyingPower(Portfolio portfolio) {
         BigDecimal totalValue = new BigDecimal(0);
         for (Holding holding : portfolio.getHoldings()) {
-            if (holding.getInstrument().getSymbol().equals("USD")) {
+            if (holding.getInstrument().getSymbol().equals(CURRENCY_SYMBOL)) {
                 totalValue = totalValue.add(holding.getQuantity());
             }
         }
@@ -43,11 +46,15 @@ public class PortfolioService {
     }
 
     private BigDecimal getPortfolioTotalValue(Portfolio portfolio) {
-        BigDecimal value = getPortfolioBuyingPower(portfolio);
+        BigDecimal value = new BigDecimal(0);
 
         for (Holding holding : portfolio.getHoldings()) {
-            // FIXME: BigDecimal price = marketService.getPrice(holding.getInstrument());
-            BigDecimal price = new BigDecimal(1);  
+            BigDecimal price;
+            if (holding.getInstrument().getSymbol().equals(CURRENCY_SYMBOL)) {
+                price = new BigDecimal(1);
+            } else {
+                price = marketService.getPrice(holding.getInstrument().getSymbol());
+            }
             value = value.add(price.multiply(holding.getQuantity()));
         }
         return value;
@@ -60,7 +67,6 @@ public class PortfolioService {
         } catch (Exception e) {
             throw new ResourceNotFoundException("Portfolio not found with id " + portfolioId);
         }
-        
     }
 
     // TODO: Move this to ClientService.java
