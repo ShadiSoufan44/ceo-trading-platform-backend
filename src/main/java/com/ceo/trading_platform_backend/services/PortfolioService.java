@@ -109,7 +109,7 @@ public class PortfolioService {
 
         Holding cashHolding = new Holding(
             now,
-            new BigDecimal(0),
+            BigDecimal.ONE,
             totalCashQuantity,
             cashInstrument,
             order,
