@@ -75,6 +75,12 @@ public class OrderService {
 
     public Order submit(OrderRequestDTO orderRequest) {
         Order order = createOrder(orderRequest);
+        // set pending
+        Instant today = Instant.now();
+        OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.PENDING, "order submitted to be processed", today);
+        order.addOrderStatusChange(pendingOrderStatus);
+        repository.save(order);
+        
         Order validatedOrder = validate(order);
         if (validatedOrder.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
             return execute(validatedOrder);
