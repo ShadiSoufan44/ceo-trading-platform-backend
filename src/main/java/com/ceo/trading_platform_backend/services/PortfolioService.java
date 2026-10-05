@@ -14,6 +14,8 @@ import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 
+import jakarta.transaction.Transactional;
+
 @Service 
 public class PortfolioService {
     private final PortfolioRepository repository;
@@ -32,7 +34,7 @@ public class PortfolioService {
     private BigDecimal getPortfolioBuyingPower(Portfolio portfolio) {
         BigDecimal totalValue = new BigDecimal(0);
         for (Holding holding : portfolio.getHoldings()) {
-            if (holding.getInstrument().getSymbol() == "USD") {
+            if (holding.getInstrument().getSymbol().equals("USD")) {
                 totalValue = totalValue.add(holding.getQuantity());
             }
         }
@@ -79,6 +81,7 @@ public class PortfolioService {
         return portfolio.getHoldings();
     }
     
+    @Transactional 
     public void updateHoldingsFromOrder(Order order, BigDecimal instrumentPrice) {
         Portfolio portfolio = getPortfolioById(order.getPortfolioId());
         Side side = order.getSide();
@@ -103,7 +106,8 @@ public class PortfolioService {
             new BigDecimal(0),
             totalCashQuantity,
             cashInstrument,
-            order
+            order,
+            portfolio
         );
 
         Holding tradeHolding = new Holding(
@@ -111,9 +115,11 @@ public class PortfolioService {
             instrumentPrice,
             instrumentQuantity,
             tradeInstrument,
-            order
+            order,
+            portfolio
         );
 
+        portfolio = repository.save(portfolio);
         portfolio.addHolding(cashHolding);
         portfolio.addHolding(tradeHolding);
         repository.save(portfolio);

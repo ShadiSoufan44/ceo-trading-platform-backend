@@ -41,6 +41,10 @@ public class Holding {
 
     @Column(name = "quantity")
     private BigDecimal quantity;
+
+    @ManyToOne 
+    @JoinColumn(name = "portfolio_id")
+    private Portfolio portfolio;
     
     public Holding() {}
 
@@ -49,13 +53,15 @@ public class Holding {
         BigDecimal purchasedPrice, 
         BigDecimal quantity, 
         Instrument instrument, 
-        Order order
+        Order order,
+        Portfolio portfolio
     ) {
         this.dateCreated = dateCreated;
         this.purchasedPrice = purchasedPrice;
         this.quantity = quantity;
         this.instrument = instrument;
         this.order = order;
+        this.portfolio = portfolio;
     }
 
     public Instrument getInstrument() {
