@@ -23,3 +23,5 @@ Throw ResourceNotFoundException on ID that doesn't exist
 Get empty list on no holdings
 Get list with 1 holding on 1 holding
 Get list with 2+ holdings on 2+ holdings
+## updateHoldingsFromOrder()
+Throw ResourceNotFoundException on ID that doesn't exist
