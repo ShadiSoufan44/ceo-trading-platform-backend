@@ -80,7 +80,7 @@ public class OrderService {
         OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.PENDING, "order submitted to be processed", today);
         order.addOrderStatusChange(pendingOrderStatus);
         repository.save(order);
-        
+
         Order validatedOrder = validate(order);
         if (validatedOrder.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
             return execute(validatedOrder);
@@ -139,7 +139,7 @@ public class OrderService {
         portfolioService.updateHoldingsFromOrder(order, price);
         // update status - shoudl this happen based on portfolio service results above or is it just assumed thos will work?
         Instant today = Instant.now();
-        OrderStatusChange fulfilledOrderStatus = new OrderStatusChange(OrderStatus.FUFILLED, "order fulfilled", today);
+        OrderStatusChange fulfilledOrderStatus = new OrderStatusChange(OrderStatus.FULFILLED, "order fulfilled", today);
         order.addOrderStatusChange(fulfilledOrderStatus);
         return order;
     }
