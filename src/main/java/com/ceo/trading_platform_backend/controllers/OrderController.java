@@ -22,8 +22,8 @@ import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.enums.Side;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
+import com.ceo.trading_platform_backend.messaging.OrderProducers;
 import com.ceo.trading_platform_backend.services.InstrumentService;
-import com.ceo.trading_platform_backend.services.OrderService;
 import com.ceo.trading_platform_backend.services.OrderService;
 import com.ceo.trading_platform_backend.models.Order;
 
@@ -35,11 +35,13 @@ public class OrderController {
 
     private final OrderService orderService;
     private final InstrumentService instrumentService;
+    private final OrderProducers producers;
 
 
-    public OrderController(OrderService orderService, InstrumentService instrumentService) {
+    public OrderController(OrderService orderService, InstrumentService instrumentService, OrderProducers producers) {
         this.orderService = orderService;
         this.instrumentService = instrumentService;
+        this.producers = producers;
     }
 
     //get all orders 
@@ -73,7 +75,9 @@ public class OrderController {
 
     @PostMapping("/new")
     public ResponseEntity<OrderResponseDTO> submitOrder(@Valid @RequestBody OrderRequestDTO request) {
-        Order order = orderService.submit(request);
+        // Order order = orderService.submit(request);
+        Order order = orderService.createOrder(request);
+        producers.submit(order);
         OrderResponseDTO response = createOrderResponse(order);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
