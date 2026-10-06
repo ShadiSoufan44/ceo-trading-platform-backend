@@ -75,6 +75,12 @@ public class OrderService {
 
     public Order submit(OrderRequestDTO orderRequest) {
         Order order = createOrder(orderRequest);
+        // set pending
+        Instant today = Instant.now();
+        OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.PENDING, "order submitted to be processed", today);
+        order.addOrderStatusChange(pendingOrderStatus);
+        repository.save(order);
+
         Order validatedOrder = validate(order);
         if (validatedOrder.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
             return execute(validatedOrder);
@@ -115,6 +121,12 @@ public class OrderService {
             order.addOrderStatusChange(pendingOrderStatus);
             return order; // early return, don't execute
         }
+        if (!withinIncreaseThreshold(order, price)) {
+            Instant today = Instant.now();
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "price " + price + " increased past threshold since submitting "+ order.getQuote(), today);
+            order.addOrderStatusChange(rejectedOrderStatus);
+            return order;
+        }
         if (order.getSide() == Side.BUY) {
             if (!hasSufficientFundsBuy(order, price)) {
                 Instant today = Instant.now();
@@ -127,7 +139,7 @@ public class OrderService {
         portfolioService.updateHoldingsFromOrder(order, price);
         // update status - shoudl this happen based on portfolio service results above or is it just assumed thos will work?
         Instant today = Instant.now();
-        OrderStatusChange fulfilledOrderStatus = new OrderStatusChange(OrderStatus.FUFILLED, "order fulfilled", today);
+        OrderStatusChange fulfilledOrderStatus = new OrderStatusChange(OrderStatus.FULFILLED, "order fulfilled", today);
         order.addOrderStatusChange(fulfilledOrderStatus);
         return order;
     }
@@ -152,6 +164,17 @@ public class OrderService {
             return true;
         }
         return false;
+    }
+
+    // check if the price has increased too much since ordering
+    private boolean withinIncreaseThreshold(Order order, BigDecimal price) {
+        BigDecimal increaseThreshold = order.getIncreaseThreshold();
+        BigDecimal quotedPrice = order.getQuote();
+        BigDecimal toleratedPrice = quotedPrice.add(quotedPrice.multiply(increaseThreshold));
+        if (price.compareTo(toleratedPrice) > 0) {
+            return false;
+        }
+        return true;
     }
 
     // Buy Order
