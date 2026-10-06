@@ -15,7 +15,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -49,7 +48,7 @@ public class PortfolioServiceTests {
     private final UUID uuid1 = UUID.randomUUID();
     private final UUID uuid2 = UUID.randomUUID();
     private final UUID uuid3 = UUID.randomUUID();
-    private final UUID uuid4 = UUID.randomUUID();
+    // private final UUID uuid4 = UUID.randomUUID();
     private final UUID uuid5 = UUID.randomUUID();
 
 
