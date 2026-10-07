@@ -35,11 +35,11 @@ class ClientServiceTest {
     @Test
     void testGetPortfoliosCallsRepositoryAndReturnsResult() {
         // Arrange
-        Integer clientId = 1;
+        UUID clientId = UUID.randomUUID();
         Portfolio portfolio = new Portfolio();
         List<Portfolio> expectedList = List.of(portfolio);
         
-        when(portfolioRepository.findByClientId(clientId)).thenReturn(expectedList);
+        when(portfolioRepository.findByClientUserId(clientId)).thenReturn(expectedList);
 
         // Act
         List<Portfolio> result = clientService.getPortfolios(clientId);
@@ -48,6 +48,6 @@ class ClientServiceTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(portfolio, result.get(0));
-        verify(portfolioRepository).findByClientId(clientId);
+        verify(portfolioRepository).findByClientUserId(clientId);
     }
 }
