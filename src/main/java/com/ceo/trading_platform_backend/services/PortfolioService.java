@@ -68,8 +68,6 @@ public class PortfolioService {
             throw new ResourceNotFoundException("Portfolio not found with id " + portfolioId);
         }
     }
-
-  
     
     public BigDecimal getBuyingPowerByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
