@@ -17,7 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -42,7 +42,7 @@ public class UserService {
                 request.fullName(),
                 request.email(),
                 passwordEncoder.encode(request.password()),
-                OffsetDateTime.now()
+                Instant.now()
         );
 
         return toResponse(userRepository.save(client));
