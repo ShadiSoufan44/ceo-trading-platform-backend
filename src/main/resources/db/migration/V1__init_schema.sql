@@ -10,6 +10,15 @@ CREATE TABLE public.user_account (
   user_id uuid NOT NULL DEFAULT gen_random_uuid(),
   CONSTRAINT user_account_pkey PRIMARY KEY (user_id)
 );
+
+CREATE TABLE public.instrument (
+  symbol text,
+  full_name text,
+  instrument_type text,
+  instrument_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  CONSTRAINT instrument_pkey PRIMARY KEY (instrument_id)
+);
+
 CREATE TABLE public.portfolio (
   type text,
   portfolio_id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -17,7 +26,8 @@ CREATE TABLE public.portfolio (
   CONSTRAINT portfolio_pkey PRIMARY KEY (portfolio_id),
   CONSTRAINT portfolio_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.user_account(user_id)
 );
-CREATE TABLE public.order (
+
+CREATE TABLE public."order" (
   side text,
   quote numeric,
   increase_threshold numeric,
@@ -31,13 +41,7 @@ CREATE TABLE public.order (
   CONSTRAINT order_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_account(user_id),
   CONSTRAINT order_instrument_id_fkey FOREIGN KEY (instrument_id) REFERENCES public.instrument(instrument_id)
 );
-CREATE TABLE public.instrument (
-  symbol text,
-  full_name text,
-  instrument_type text,
-  instrument_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  CONSTRAINT instrument_pkey PRIMARY KEY (instrument_id)
-);
+
 CREATE TABLE public.holding (
   order_date timestamp with time zone,
   purchased_price numeric,
@@ -46,22 +50,10 @@ CREATE TABLE public.holding (
   order_id uuid DEFAULT gen_random_uuid(),
   portfolio_id uuid DEFAULT gen_random_uuid(),
   CONSTRAINT holding_pkey PRIMARY KEY (holding_id),
-  CONSTRAINT holding_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.order(order_id),
+  CONSTRAINT holding_order_id_fkey FOREIGN KEY (order_id) REFERENCES public."order"(order_id),
   CONSTRAINT holding_portfolio_id_fkey FOREIGN KEY (portfolio_id) REFERENCES public.portfolio(portfolio_id)
 );
-CREATE TABLE public.flyway_schema_history (
-  installed_rank integer NOT NULL,
-  version character varying,
-  description character varying NOT NULL,
-  type character varying NOT NULL,
-  script character varying NOT NULL,
-  checksum integer,
-  installed_by character varying NOT NULL,
-  installed_on timestamp without time zone NOT NULL DEFAULT now(),
-  execution_time integer NOT NULL,
-  success boolean NOT NULL,
-  CONSTRAINT flyway_schema_history_pkey PRIMARY KEY (installed_rank)
-);
+
 CREATE TABLE public.order_status_change (
   status text,
   message text,
@@ -69,5 +61,5 @@ CREATE TABLE public.order_status_change (
   order_status_change_id uuid NOT NULL DEFAULT gen_random_uuid(),
   order_id uuid DEFAULT gen_random_uuid(),
   CONSTRAINT order_status_change_pkey PRIMARY KEY (order_status_change_id),
-  CONSTRAINT order_status_change_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.order(order_id)
+  CONSTRAINT order_status_change_order_id_fkey FOREIGN KEY (order_id) REFERENCES public."order"(order_id)
 );

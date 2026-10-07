@@ -1,10 +1,10 @@
 package com.ceo.trading_platform_backend.models;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.enums.Side;
@@ -26,31 +26,25 @@ import jakarta.persistence.Table;
 public class Order {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "order_id")
-    private Integer orderId;
+    private UUID orderId;
 
-    @Column(name = "instr_id")
-    private Integer instrumentId;
+    @Column(name = "instrument_id")
+    private UUID instrumentId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "side")
     private Side side;
 
     @Column(name = "portfolio_id")
-    private Integer portfolioId;
+    private UUID portfolioId;
 
     @Column(name = "client_id")
-    private Integer clientId;
-
-    @Column(name = "holding_id")
-    private Integer holdingId;
+    private UUID clientId;
 
     @Column(name = "quote")
     private BigDecimal quote;
-
-    @Column(name = "final_price")
-    private BigDecimal finalPrice;
 
     @Column(name = "increase_threshold")
     private BigDecimal increaseThreshold;
@@ -65,38 +59,36 @@ public class Order {
     protected Order() {
     }
 
-    public Order(Integer instrumentId, Side side, Integer portfolioId, Integer clientId, /*Integer holdingId,*/
-            BigDecimal quote/* , BigDecimal finalPrice */, BigDecimal increaseThreshold, BigDecimal quantity) {
+    public Order(UUID instrumentId, Side side, UUID portfolioId, UUID clientId,
+            BigDecimal quote, BigDecimal increaseThreshold, BigDecimal quantity) {
         this.instrumentId = instrumentId;
         this.side = side;
         this.portfolioId = portfolioId;
         this.clientId = clientId;
-        // this.holdingId = holdingId;
         this.quote = quote;
-        // this.finalPrice = finalPrice;
         this.increaseThreshold = increaseThreshold;
         this.quantity = quantity;
-        LocalDateTime createdDate = LocalDateTime.now(); //not sure if this is correct place ot get date
-        this.orderHistory.add(new OrderStatusChange(
-            OrderStatus.PENDING,
-            "Order Created",
-            createdDate
-        ));
+        Instant createdDate = Instant.now();
+        // this.orderHistory.add(new OrderStatusChange(
+        //     OrderStatus.PENDING,
+        //     "Order Created",
+        //     createdDate
+        // ));
     }
 
     public void addOrderStatusChange(OrderStatusChange orderStatusChange) {
         orderHistory.add(orderStatusChange);
     }
 
-    public Integer getOrderId() {
+    public UUID getOrderId() {
         return orderId;
     }
 
-    public Integer getInstrumentId() {
+    public UUID getInstrumentId() {
         return instrumentId;
     }
 
-    public void setInstrumentId(Integer instrumentId) {
+    public void setInstrumentId(UUID instrumentId) {
         this.instrumentId = instrumentId;
     }
 
@@ -108,28 +100,20 @@ public class Order {
         this.side = side;
     }
 
-    public Integer getPortfolioId() {
+    public UUID getPortfolioId() {
         return portfolioId;
     }
 
-    public void setPortfolioId(Integer portfolioId) {
+    public void setPortfolioId(UUID portfolioId) {
         this.portfolioId = portfolioId;
     }
 
-    public Integer getClientId() {
+    public UUID getClientId() {
         return clientId;
     }
 
-    public void setClientId(Integer clientId) {
+    public void setClientId(UUID clientId) {
         this.clientId = clientId;
-    }
-
-    public Integer getHoldingId() {
-        return holdingId;
-    }
-
-    public void setHoldingId(Integer holdingId) {
-        this.holdingId = holdingId;
     }
 
     public BigDecimal getQuote() {
@@ -140,14 +124,6 @@ public class Order {
         this.quote = quote;
     }
 
-    public BigDecimal getFinalPrice() {
-        return finalPrice;
-    }
-
-    public void setFinalPrice(BigDecimal finalPrice) {
-        this.finalPrice = finalPrice;
-    }
-
     public BigDecimal getIncreaseThreshold() {
         return increaseThreshold;
     }
@@ -156,7 +132,7 @@ public class Order {
         this.increaseThreshold = increaseThreshold;
     }
 
-    public LocalDateTime getCreatedDate() {
+    public Instant getCreatedDate() {
         return this.orderHistory.getFirst().getDate();
     }
 

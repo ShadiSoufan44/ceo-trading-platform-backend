@@ -3,15 +3,19 @@ package com.ceo.trading_platform_backend.services;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
 import com.ceo.trading_platform_backend.enums.Side;
+import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
+
+import jakarta.transaction.Transactional;
 
 @Service 
 public class PortfolioService {
@@ -31,7 +35,7 @@ public class PortfolioService {
     private BigDecimal getPortfolioBuyingPower(Portfolio portfolio) {
         BigDecimal totalValue = new BigDecimal(0);
         for (Holding holding : portfolio.getHoldings()) {
-            if (holding.getInstrument().getSymbol() == "USD") {
+            if (holding.getInstrument().getSymbol().equals("USD")) {
                 totalValue = totalValue.add(holding.getQuantity());
             }
         }
@@ -49,8 +53,14 @@ public class PortfolioService {
         return value;
     }
 
-    public Portfolio getPortfolioById(int portfolioId) {
-        return repository.findById(portfolioId).orElse(null);
+    public Portfolio getPortfolioById(UUID portfolioId) {
+        try {
+            Portfolio portfolio = repository.getReferenceById(portfolioId);
+            return portfolio;
+        } catch (Exception e) {
+            throw new ResourceNotFoundException("Portfolio not found with id " + portfolioId);
+        }
+        
     }
 
     // TODO: Move this to ClientService.java
@@ -61,24 +71,23 @@ public class PortfolioService {
     //     return portfolios;
     // }
     
-    public BigDecimal getBuyingPowerByPortfolioId(int portfolioId) {
+    public BigDecimal getBuyingPowerByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
-        if (portfolio == null) return null;
         return getPortfolioBuyingPower(portfolio);
     }
 
-    public BigDecimal getTotalValueByPortfolioId(int portfolioId) {
+    public BigDecimal getTotalValueByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
-        if (portfolio == null) return null;
         return getPortfolioTotalValue(portfolio);
     }
 
-    public List<Holding> getHoldingsByPortfolioId(int portfolioId) {
+    public List<Holding> getHoldingsByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         if (portfolio == null) return null;
         return portfolio.getHoldings();
     }
     
+    @Transactional 
     public void updateHoldingsFromOrder(Order order, BigDecimal instrumentPrice) {
         Portfolio portfolio = getPortfolioById(order.getPortfolioId());
         Side side = order.getSide();
@@ -100,10 +109,11 @@ public class PortfolioService {
 
         Holding cashHolding = new Holding(
             now,
-            new BigDecimal(0),
+            BigDecimal.ONE,
             totalCashQuantity,
             cashInstrument,
-            order
+            order,
+            portfolio
         );
 
         Holding tradeHolding = new Holding(
@@ -111,9 +121,11 @@ public class PortfolioService {
             instrumentPrice,
             instrumentQuantity,
             tradeInstrument,
-            order
+            order,
+            portfolio
         );
 
+        portfolio = repository.save(portfolio);
         portfolio.addHolding(cashHolding);
         portfolio.addHolding(tradeHolding);
         repository.save(portfolio);

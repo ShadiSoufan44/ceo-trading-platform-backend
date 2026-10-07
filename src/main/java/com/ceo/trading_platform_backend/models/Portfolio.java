@@ -1,12 +1,15 @@
 package com.ceo.trading_platform_backend.models;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import com.ceo.trading_platform_backend.enums.PortfolioType;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -18,15 +21,19 @@ import jakarta.persistence.Table;
 @Table(name = "portfolio")
 public class Portfolio {
     
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "portfolio_id")
-    private int portfolioId;
+    private UUID portfolioId;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "portfolio_id")
     private List<Holding> holdings = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type")
     private PortfolioType type;
+
+    public Portfolio() {}
 
     public Portfolio(PortfolioType type) {
         this.type = type;
@@ -43,7 +50,7 @@ public class Portfolio {
        this.holdings.add(holding);
     }
 
-    public int getPortfolioId() {
+    public UUID getPortfolioId() {
         return portfolioId;
     }
 }

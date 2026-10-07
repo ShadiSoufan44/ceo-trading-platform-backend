@@ -1,13 +1,23 @@
-package com.ceo.trading_platform_backend.uml_objects;
+package com.ceo.trading_platform_backend.models;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
+
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.OneToMany;
+
+import com.ceo.trading_platform_backend.uml_objects.Report;
 
 /**
  * Represents an Analyst user - commercial analyst for reporting and insights.
  * Persona: Priya - Reports monthly on trading volumes and client activity,
  * needs reliable historical data, queries cannot compete with live trading.
  */
+@DiscriminatorValue("ANALYST")
 public class Analyst extends User {
+
+    @OneToMany private Set<Report> reports = new HashSet<>();
 
     public Analyst() {
         super();
@@ -15,6 +25,14 @@ public class Analyst extends User {
 
     public Analyst(String fullName, String email, String password, OffsetDateTime joinDate) {
         super(fullName, email, password, joinDate, "ANALYST");
+    }
+
+    public Set<Report> getReports() {
+        return this.reports;
+    }
+
+    public void setReports(Set<Report> reports) {
+        this.reports = reports;
     }
 
     // TODO: Analyst-specific capabilities

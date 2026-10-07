@@ -1,9 +1,13 @@
 package com.ceo.trading_platform_backend.models;
 
+import java.util.UUID;
+
 import com.ceo.trading_platform_backend.enums.InstrumentType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -13,19 +17,21 @@ import jakarta.persistence.Table;
 @Table(name = "instrument")
 public class Instrument {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "instrument_id")
-    int ID;
+    private UUID ID;
 
     @Column(name = "symbol")
-    String symbol;
+    private String symbol;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "instrument_type")
-    InstrumentType type;
+    private InstrumentType type;
 
     @Column(name = "full_name")
-    String fullName;
+    private String fullName;
 
+    public Instrument() {}
 
     public Instrument(String symbol, InstrumentType type, String fullName) {
         this.symbol = symbol;
@@ -42,7 +48,7 @@ public class Instrument {
     public String getFullName() {
         return fullName;
     }
-    public int getID() {
+    public UUID getID() {
         return ID;
     }
 }

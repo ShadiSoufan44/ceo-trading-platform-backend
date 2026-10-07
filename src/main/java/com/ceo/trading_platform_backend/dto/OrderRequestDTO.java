@@ -1,13 +1,14 @@
 package com.ceo.trading_platform_backend.dto;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import com.ceo.trading_platform_backend.enums.Side;
 
 public record OrderRequestDTO(
-    Integer clientId,
+    UUID clientId,
     String clientName,
-    Integer portfolioId,
+    UUID portfolioId,
     String instrumentSymbol,
     BigDecimal quantity,
     BigDecimal quotedPrice,
