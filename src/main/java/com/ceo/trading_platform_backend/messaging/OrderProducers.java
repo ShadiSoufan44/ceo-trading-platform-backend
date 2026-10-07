@@ -18,7 +18,7 @@ public class OrderProducers {
     private KafkaTemplate<String, UUID> kafka;
     private OrderRepository repository;
 
-    public OrderProducers() {}
+    // public OrderProducers() {}
 
     public OrderProducers(
         OrderRepository repository, 
