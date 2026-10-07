@@ -6,7 +6,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
+import com.ceo.trading_platform_backend.models.Holding;
+import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
+import com.ceo.trading_platform_backend.repositories.OrderRepository;
+import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 
 /**
  * ClientService handles client-specific business logic.
