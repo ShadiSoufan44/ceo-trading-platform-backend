@@ -69,13 +69,7 @@ public class PortfolioService {
         }
     }
 
-    // TODO: Move this to ClientService.java
-    // public List<Portfolio> getPortfoliosByClientId(int clientId) {
-    //     List<Portfolio> portfolios = repository.findByClientId(clientId);
-    //     if (portfolios == null) return null;
-    //     // if (portfolios.size() == 0) return null;
-    //     return portfolios;
-    // }
+  
     
     public BigDecimal getBuyingPowerByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
