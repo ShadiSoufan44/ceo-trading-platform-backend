@@ -5,11 +5,11 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ceo.trading_platform_backend.repositories.OrderRepository;
-import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
+import com.ceo.trading_platform_backend.repositories.OrderRepository;
+import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 
 /**
  * ClientService handles client-specific business logic.
@@ -72,7 +72,9 @@ public class ClientService {
      */
     @Transactional(readOnly = true)
     public List<Portfolio> getPortfolios(Integer clientId) {
-        return List.of();
+        List<Portfolio> portfolios = portfolioRepository.findByClientId(clientId);
+        if (portfolios == null) return null;
+        return portfolios;
     }
 
     /**
