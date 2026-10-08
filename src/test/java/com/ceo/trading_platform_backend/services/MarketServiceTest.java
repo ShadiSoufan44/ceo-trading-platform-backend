@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.Properties;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -116,7 +116,7 @@ public class MarketServiceTest {
             new BigDecimal("2.50"),
             new BigDecimal("1.69"),
             new BigDecimal("147.75"),
-            OffsetDateTime.now(),
+            Instant.now(),
             "OPEN"
         );
         

@@ -1,6 +1,6 @@
 package com.ceo.trading_platform_backend.models;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -23,7 +23,7 @@ public class Analyst extends User {
         super();
     }
 
-    public Analyst(String fullName, String email, String password, OffsetDateTime joinDate) {
+    public Analyst(String fullName, String email, String password, Instant joinDate) {
         super(fullName, email, password, joinDate, "ANALYST");
     }
 

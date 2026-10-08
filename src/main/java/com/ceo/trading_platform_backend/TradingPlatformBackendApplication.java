@@ -1,6 +1,6 @@
 package com.ceo.trading_platform_backend;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,7 +16,7 @@ public class TradingPlatformBackendApplication {
 			"Drake Maye", 
 			"drakemaye@not.real", 
 			"goat", 
-			OffsetDateTime.now()
+			Instant.now()
 		);
 		System.out.println(
 			String.format("User: %s; email %s", me.getFullName(),  me.getEmail())

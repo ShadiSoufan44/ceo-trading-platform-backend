@@ -11,7 +11,7 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.Table;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity 
@@ -35,12 +35,12 @@ public abstract class User {
     private String password;
 
     @Column(name = "join_date", nullable = false)
-    private OffsetDateTime joinDate;
+    private Instant joinDate;
 
     protected User() {
     }
 
-    public User(String fullName, String email, String password, OffsetDateTime joinDate, String role) {
+    public User(String fullName, String email, String password, Instant joinDate, String role) {
         this.fullName = fullName;
         this.email = email;
         this.password = password;
@@ -67,11 +67,11 @@ public abstract class User {
         this.email = email;
     }
 
-    public OffsetDateTime getJoinDate() {
+    public Instant getJoinDate() {
         return joinDate;
     }
 
-    public void setJoinDate(OffsetDateTime joinDate) {
+    public void setJoinDate(Instant joinDate) {
         this.joinDate = joinDate;
     }
 }
