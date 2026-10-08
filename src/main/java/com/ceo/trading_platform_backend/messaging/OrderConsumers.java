@@ -28,6 +28,7 @@ public class OrderConsumers {
     @KafkaListener(topics = "orders.unvalidated", groupId = "validators")
     @Transactional 
     public void validate(UUID orderId) {
+        System.out.println("UNVALIDATED: " + orderId);
         Order order = orderService.getOrderById(orderId).orElseThrow();
         orderService.validate(order);
         kafka.send("orders.unexecuted", Objects.requireNonNull(order.getOrderId())).join();
@@ -36,8 +37,15 @@ public class OrderConsumers {
     @KafkaListener(topics = "orders.unexecuted", groupId = "executors")
     @Transactional 
     public void execute(UUID orderId) {
+        System.out.println("UNEXECUTED: " + orderId);
         Order order = orderService.getOrderById(orderId).orElseThrow();
+        System.out.println("UNEXECUTED2: " + orderId);
         orderService.execute(order);
     }
 }
 
+
+
+
+//b1d23821-511c-47ab-a283-5ec10ef02614
+//b1d23821-511c-47ab-a283-5ec10ef02614
