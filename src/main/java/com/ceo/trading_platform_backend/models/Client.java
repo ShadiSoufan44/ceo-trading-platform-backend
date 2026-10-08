@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 
@@ -17,6 +18,7 @@ import java.util.HashSet;
  * real-time position visibility, no jargon or complex workflows.
  */
 @DiscriminatorValue("CLIENT")
+@Entity 
 public class Client extends User {
     
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)

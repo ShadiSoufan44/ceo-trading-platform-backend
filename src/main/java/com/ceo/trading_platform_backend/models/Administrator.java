@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 
 import com.ceo.trading_platform_backend.uml_objects.AuditLog;
@@ -13,6 +14,7 @@ import com.ceo.trading_platform_backend.uml_objects.AuditLog;
  * Represents an Administrator/Ops user 
  */
 @DiscriminatorValue("ADMIN")
+// @Entity 
 public class Administrator extends User {
 
     @OneToMany private Set<AuditLog> auditLogs = new HashSet<>();

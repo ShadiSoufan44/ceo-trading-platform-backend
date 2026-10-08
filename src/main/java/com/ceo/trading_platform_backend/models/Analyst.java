@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 
 import com.ceo.trading_platform_backend.uml_objects.Report;
@@ -15,6 +16,7 @@ import com.ceo.trading_platform_backend.uml_objects.Report;
  * needs reliable historical data, queries cannot compete with live trading.
  */
 @DiscriminatorValue("ANALYST")
+// @Entity 
 public class Analyst extends User {
 
     @OneToMany private Set<Report> reports = new HashSet<>();
