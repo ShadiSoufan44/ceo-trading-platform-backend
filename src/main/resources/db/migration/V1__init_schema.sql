@@ -33,12 +33,12 @@ CREATE TABLE public."order" (
   increase_threshold numeric,
   quantity numeric,
   portfolio_id uuid DEFAULT gen_random_uuid(),
-  user_id uuid DEFAULT gen_random_uuid(),
+  client_id uuid DEFAULT gen_random_uuid(),
   instrument_id uuid DEFAULT gen_random_uuid(),
   order_id uuid NOT NULL DEFAULT gen_random_uuid(),
   CONSTRAINT order_pkey PRIMARY KEY (order_id),
   CONSTRAINT order_portfolio_id_fkey FOREIGN KEY (portfolio_id) REFERENCES public.portfolio(portfolio_id),
-  CONSTRAINT order_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_account(user_id),
+  CONSTRAINT order_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.user_account(user_id),
   CONSTRAINT order_instrument_id_fkey FOREIGN KEY (instrument_id) REFERENCES public.instrument(instrument_id)
 );
 
@@ -49,6 +49,7 @@ CREATE TABLE public.holding (
   holding_id uuid NOT NULL DEFAULT gen_random_uuid(),
   order_id uuid DEFAULT gen_random_uuid(),
   portfolio_id uuid DEFAULT gen_random_uuid(),
+  instrument_id uuid DEFAULT gen_random_uuid(),
   CONSTRAINT holding_pkey PRIMARY KEY (holding_id),
   CONSTRAINT holding_order_id_fkey FOREIGN KEY (order_id) REFERENCES public."order"(order_id),
   CONSTRAINT holding_portfolio_id_fkey FOREIGN KEY (portfolio_id) REFERENCES public.portfolio(portfolio_id)
