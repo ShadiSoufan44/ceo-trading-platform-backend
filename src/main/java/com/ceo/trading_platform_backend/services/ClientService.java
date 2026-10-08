@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
@@ -19,12 +20,12 @@ import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 @Service
 public class ClientService {
     
-    private final OrderRepository orderRepository;
     private final PortfolioRepository portfolioRepository;
+    private final OrderRepository orderRepository;
 
-    public ClientService(OrderRepository orderRepository, PortfolioRepository portfolioRepository) {
-        this.orderRepository = orderRepository;
+    public ClientService(PortfolioRepository portfolioRepository, OrderRepository orderRepository) {
         this.portfolioRepository = portfolioRepository;
+        this.orderRepository = orderRepository;
     }
 
     /**
@@ -78,12 +79,4 @@ public class ClientService {
         return portfolios;
     }
 
-    /**
-     * Get current stock quote (price) from market API.
-     * Used by client to check current prices before placing orders.
-     */
-    @Transactional(readOnly = true)
-    public Object getStockQuote(String symbol) {
-        return null;
-    }
 }
