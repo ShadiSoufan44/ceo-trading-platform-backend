@@ -3,17 +3,17 @@
 -- Insert test users
 INSERT INTO public.user_account (user_id, full_name, email, password_hash, join_date, role)
 VALUES 
-    ('2c522b92-7151-4daa-92db-81a2253c772a', 'John Doe', 'johndoe@email.com', 'HASHED_PASSWORD', NOW(), 'CLIENT'),
+    ('2c522b92-7151-4daa-92db-81a2253c772a', 'John Doe', 'johndoe@email.com', 'HASHED_PASSWORD', NOW(), 'CLIENT');
 
 -- Insert portfolios
 INSERT INTO public.portfolio (portfolio_id, type, client_id)
 VALUES 
-    ('edda8da3-fab9-4b3c-b792-c833abe8e146', 'BROKERAGE', '2c522b92-7151-4daa-92db-81a2253c772a'),
+    ('edda8da3-fab9-4b3c-b792-c833abe8e146', 'BROKERAGE', '2c522b92-7151-4daa-92db-81a2253c772a');
 
 -- Insert instruments
 INSERT INTO public.instrument (instrument_id, symbol, full_name, instrument_type)
 VALUES 
-    ('327636f8-36d0-4052-80be-0c3e58ed6c41', 'USD', 'United States Dollar', 'CASH'),
+    ('327636f8-36d0-4052-80be-0c3e58ed6c41', 'USD', 'United States Dollar', 'CASH');
 
 -- Insert orders
 INSERT INTO public.order (order_id, client_id, instrument_id, portfolio_id, quantity, increase_threshold, side)
