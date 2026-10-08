@@ -73,25 +73,26 @@ public class OrderService {
         return order;
     }
 
-    public Order submit(OrderRequestDTO orderRequest) {
-        Order order = createOrder(orderRequest);
-        // set pending
-        Instant today = Instant.now();
-        OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.PENDING, "order submitted to be processed", today);
-        order.addOrderStatusChange(pendingOrderStatus);
-        repository.save(order);
+    // public Order submit(OrderRequestDTO orderRequest) {
+    //     Order order = createOrder(orderRequest);
+    //     // set pending
+    //     Instant today = Instant.now();
+    //     OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.PENDING, "order submitted to be processed", today);
+    //     order.addOrderStatusChange(pendingOrderStatus);
+    //     repository.save(order);
+        
 
-        Order validatedOrder = validate(order);
-        if (validatedOrder.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
-            return execute(validatedOrder);
-        } 
-        return repository.save(validatedOrder);
-    }
+    //     Order validatedOrder = validate(order);
+    //     if (validatedOrder.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
+    //         return execute(validatedOrder);
+    //     } 
+    //     return repository.save(validatedOrder);
+    // }
 
     // these methods get called from kafka pipeline
 
     // validate info liek instrument tradable and has sufficient holdings
-    private Order validate(Order order) {
+    public Order validate(Order order) {
         // TODO need to check time and put into different queues if doing after hours
         if (!instrumentIsTradeable(order)) {
             Instant today = Instant.now();
@@ -113,7 +114,7 @@ public class OrderService {
         return order; // go ahead to send to queue base don order status
     }
 
-    private Order execute(Order order) {
+    public Order execute(Order order) {
         BigDecimal price =  marketService.getPrice(instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol());
         if (outOfHours(order)) {
             Instant today = Instant.now();
