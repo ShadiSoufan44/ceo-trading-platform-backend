@@ -14,12 +14,7 @@ pipeline {
     }
 
     environment {
-        JAVA_HOME = tool 'JDK17'
-        MAVEN_HOME = tool 'Maven-3.8.1'
-        PATH = "${MAVEN_HOME}/bin:${JAVA_HOME}/bin:${PATH}"
-        SONAR_HOST_URL = credentials('sonar-host-url')
-        SONAR_LOGIN = credentials('sonar-login-token')
-        DOCKER_CREDENTIALS = credentials('docker-credentials')
+        PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     }
 
     stages {
@@ -61,14 +56,18 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 echo '========== Running SonarQube code quality analysis =========='
-                sh '''
-                    mvn sonar:sonar \
-                        -Dsonar.projectKey=ceo-trading-platform-backend \
-                        -Dsonar.sources=src/main/java \
-                        -Dsonar.tests=src/test/java \
-                        -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.login=${SONAR_LOGIN}
-                '''
+                script {
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        sh '''
+                            mvn sonar:sonar \
+                                -Dsonar.projectKey=ceo-trading-platform-backend \
+                                -Dsonar.sources=src/main/java \
+                                -Dsonar.tests=src/test/java \
+                                -Dsonar.host.url=http://sonarqube:9000 \
+                                -Dsonar.login=${SONAR_TOKEN}
+                        '''
+                    }
+                }
             }
         }
 
@@ -108,12 +107,14 @@ pipeline {
             steps {
                 echo '========== Pushing Docker image to registry =========='
                 script {
-                    sh '''
-                        echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin ${DOCKER_REGISTRY}
-                        docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-                        docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}
-                        docker logout ${DOCKER_REGISTRY}
-                    '''
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin ${DOCKER_REGISTRY}
+                            docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+                            docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}
+                            docker logout ${DOCKER_REGISTRY}
+                        '''
+                    }
                 }
             }
         }
@@ -151,42 +152,11 @@ pipeline {
     }
 
     post {
-        always {
-            echo '========== Pipeline finished =========='
-            cleanWs()
-        }
         success {
-            emailext(
-                subject: "Build SUCCESS: ${env.JOB_NAME} - #${env.BUILD_NUMBER}",
-                body: """
-                    Build successful!
-
-                    Job: ${env.JOB_NAME}
-                    Build Number: ${env.BUILD_NUMBER}
-                    Build URL: ${env.BUILD_URL}
-                    
-                    Docker Image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-                """,
-                to: '${DEFAULT_RECIPIENTS}',
-                mimeType: 'text/html'
-            )
+            echo '========== Pipeline finished successfully =========='
         }
         failure {
-            emailext(
-                subject: "Build FAILED: ${env.JOB_NAME} - #${env.BUILD_NUMBER}",
-                body: """
-                    Build failed!
-
-                    Job: ${env.JOB_NAME}
-                    Build Number: ${env.BUILD_NUMBER}
-                    Build URL: ${env.BUILD_URL}
-                    
-                    Check the logs for details.
-                """,
-                to: '${DEFAULT_RECIPIENTS}',
-                mimeType: 'text/html',
-                attachLog: true
-            )
+            echo '========== Pipeline failed =========='
         }
     }
 }
