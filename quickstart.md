@@ -4,5 +4,5 @@
 
 ## Setup steps
 - In Workspace 1 (Java), run `mvn clean package`. 
-- In Workspace 2 (Docker), run `docker-compose up`.
-- In Workspace 1 (Java), run `mvn spring-boot:run`.
+- In Workspace 2 (Docker), run `docker-compose up`. This runs Kafka. If your docker version is newer it might be `docker compose up`.
+- In Workspace 1 (Java), run `mvn spring-boot:run`. This runs the actual backend application, which connects to Kafka. 
