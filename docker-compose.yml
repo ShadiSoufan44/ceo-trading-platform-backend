@@ -1,15 +1,37 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: postgres
+    container_name: trading-platform-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: trading_platform
-      POSTGRES_USER: trading_platform
-      POSTGRES_PASSWORD: trading_platform
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "8085:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: trading-platform-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "8086:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   kafka:
     image: wurstmeister/kafka
@@ -41,3 +63,4 @@ services:
 
 volumes:
   pgdata:
+  pgadmin_data:
