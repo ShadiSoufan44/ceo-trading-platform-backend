@@ -3,8 +3,8 @@ package com.ceo.trading_platform_backend.services;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -219,7 +219,7 @@ public class MarketService {
 			BigDecimal change,
 			BigDecimal changePercent,
 			BigDecimal previousClose,
-			OffsetDateTime asOf,
+			Instant asOf,
 			String marketState) {
 	}
 
@@ -276,7 +276,7 @@ public class MarketService {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record ApiMeta(
-			OffsetDateTime asOf,
+			Instant asOf,
 			String disclaimer,
 			String symbol,
 			String source,
