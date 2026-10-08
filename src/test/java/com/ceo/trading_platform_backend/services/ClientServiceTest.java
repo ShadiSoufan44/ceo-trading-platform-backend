@@ -29,7 +29,7 @@ class ClientServiceTest {
 
     @BeforeEach
     void setUp() {
-        clientService = new ClientService(orderRepository, portfolioRepository);
+        clientService = new ClientService(portfolioRepository, orderRepository);
     }
 
     @Test
