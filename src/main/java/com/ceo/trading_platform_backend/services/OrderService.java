@@ -94,6 +94,12 @@ public class OrderService {
     // validate info liek instrument tradable and has sufficient holdings
     public Order validate(Order order) {
         // TODO need to check time and put into different queues if doing after hours
+        if (outOfHours(order, order.getCreatedDate())) {
+            Instant today = Instant.now();
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+            order.addOrderStatusChange(rejectedOrderStatus);
+            return order; // early return, don't validate --> this functionality may change depending on if allowing extra hours
+        }
         if (!instrumentIsTradeable(order)) {
             Instant today = Instant.now();
             OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "instrument not tradable", today);
@@ -116,10 +122,10 @@ public class OrderService {
 
     public Order execute(Order order) {
         BigDecimal price =  marketService.getPrice(instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol());
-        if (outOfHours(order)) {
+        if (outOfHours(order, Instant.now())) {
             Instant today = Instant.now();
-            OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
-            order.addOrderStatusChange(pendingOrderStatus);
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+            order.addOrderStatusChange(rejectedOrderStatus);
             return order; // early return, don't execute
         }
         if (!withinIncreaseThreshold(order, price)) {
@@ -151,17 +157,16 @@ public class OrderService {
         return orders;
     } 
 
-    // Check if in hours
-    private boolean outOfHours(Order order) {
-        Instant submittedInstant = order.getCreatedDate();
+    // check if given time stamp is out of hours of market (createdDate for validaiton, now for execution)
+    private boolean outOfHours(Order order, Instant timestamp) {
         ZoneId zone = ZoneId.of("America/New_York");
-        LocalDateTime submittedDateTime = LocalDateTime.ofInstant(submittedInstant, zone);
-        LocalTime submittedTime = submittedDateTime.toLocalTime();
-        DayOfWeek submittedDay = submittedDateTime.toLocalDate().getDayOfWeek();
-        if (submittedDay == DayOfWeek.SATURDAY || submittedDay == DayOfWeek.SUNDAY) {
+        LocalDateTime dateTime = LocalDateTime.ofInstant(timestamp, zone);
+        LocalTime time = dateTime.toLocalTime();
+        DayOfWeek day = dateTime.toLocalDate().getDayOfWeek();
+        if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
             return true;
         }
-        if (submittedTime.isBefore(OPEN_TIME_LOCAL) || submittedTime.isAfter(CLOSE_TIME_LOCAL)) { // submitted time shoudl be in request dto
+        if (time.isBefore(OPEN_TIME_LOCAL) || time.isAfter(CLOSE_TIME_LOCAL)) { // submitted time shoudl be in request dto
             return true;
         }
         return false;
