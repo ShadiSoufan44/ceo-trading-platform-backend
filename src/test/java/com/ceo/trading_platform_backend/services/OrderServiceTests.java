@@ -86,7 +86,6 @@ public class OrderServiceTests {
             new BigDecimal(0.1), 
             new BigDecimal(5)
         );
-        System.out.println(order.getQuote().toString());
         return order;
     }
 
@@ -409,7 +408,6 @@ public class OrderServiceTests {
             badOrder.setSide(Side.BUY);
             badOrder.setPortfolioId(uuid3);
             badOrder.setIncreaseThreshold(new BigDecimal(100)); // within threshold to isolate funds
-            System.out.println(badOrder.getQuote().toString());
             // make time in ours ot isolate insufficient funds
             LocalTime time = LocalTime.of(12, 0); // 7pm
             ZoneId easternZone = ZoneId.of("America/New_York");
