@@ -100,47 +100,48 @@ public class PortfolioService {
         repository.save(portfolio);
     }
     
+
+    // addQuantity * addPrice = subQuantity * subPrice 
+    // addPrice 
+    // subPrice 
     @Transactional 
-    public void updateHoldingsFromOrder(Order order, BigDecimal instrumentPrice) {
+    public void updateHoldingsFromOrder(
+            Order order, BigDecimal addPrice, BigDecimal subPrice
+    ) {
         Portfolio portfolio = getPortfolioById(order.getPortfolioId());
-        Side side = order.getSide();
-
-        BigDecimal totalCashQuantity;
-        BigDecimal instrumentQuantity;
-        if (side == Side.BUY) {
-            totalCashQuantity = instrumentPrice.negate().multiply(order.getQuantity());
-            instrumentQuantity = order.getQuantity();
-        } else {
-            totalCashQuantity = instrumentPrice.multiply(order.getQuantity());
-            instrumentQuantity = order.getQuantity().negate();
-        }
-
-        Instrument tradeInstrument = instrumentService.getInstrumentById(order.getInstrumentId());
-        Instrument cashInstrument = instrumentService.getInstrumentBySymbol(US_CURRENCY_SYMBOL);
+        Instrument addInstrument = instrumentService.getInstrumentById(
+            order.getAddInstrumentId()
+        );
+        Instrument subInstrument = instrumentService.getInstrumentById(
+            order.getSubtractInstrumentId()
+        );
 
         Instant now = Instant.now();
 
-        Holding cashHolding = new Holding(
+        BigDecimal addQuantity = order.getQuantity();
+        // addQuantity * addPrice = subQuantity * subPrice 
+        BigDecimal subQuantity = addQuantity.multiply(addPrice).divide(subPrice);
+
+        Holding addHolding = new Holding(
             now,
-            BigDecimal.ONE,
-            totalCashQuantity,
-            cashInstrument,
+            addPrice,
+            addQuantity,
+            addInstrument,
             order,
             portfolio
         );
-
-        Holding tradeHolding = new Holding(
+        Holding subHolding = new Holding(
             now,
-            instrumentPrice,
-            instrumentQuantity,
-            tradeInstrument,
+            subPrice,
+            subQuantity,
+            subInstrument,
             order,
             portfolio
         );
 
         portfolio = repository.save(portfolio);
-        portfolio.addHolding(cashHolding);
-        portfolio.addHolding(tradeHolding);
+        portfolio.addHolding(addHolding);
+        portfolio.addHolding(subHolding);
         repository.save(portfolio);
     }
 }

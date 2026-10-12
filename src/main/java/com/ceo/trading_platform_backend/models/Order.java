@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.enums.Side;
 
 import jakarta.persistence.CascadeType;
@@ -30,8 +29,11 @@ public class Order {
     @Column(name = "order_id")
     private UUID orderId;
 
-    @Column(name = "instrument_id")
-    private UUID instrumentId;
+    @Column(name = "add_instrument_id")
+    private UUID addInstrumentId;
+
+    @Column(name = "subtract_instrument_id")
+    private UUID subtractInstrumentId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "side")
@@ -59,16 +61,18 @@ public class Order {
     protected Order() {
     }
 
-    public Order(UUID instrumentId, Side side, UUID portfolioId, UUID clientId,
-            BigDecimal quote, BigDecimal increaseThreshold, BigDecimal quantity) {
-        this.instrumentId = instrumentId;
+    public Order(UUID addInstrumentId, UUID subtractInstrumentId, 
+                Side side, UUID portfolioId, UUID clientId,
+                BigDecimal quote, BigDecimal increaseThreshold, BigDecimal quantity) {
+
+        this.addInstrumentId = addInstrumentId;
+        this.subtractInstrumentId = subtractInstrumentId;
         this.side = side;
         this.portfolioId = portfolioId;
         this.clientId = clientId;
         this.quote = quote;
         this.increaseThreshold = increaseThreshold;
         this.quantity = quantity;
-        Instant createdDate = Instant.now();
         // this.orderHistory.add(new OrderStatusChange(
         //     OrderStatus.PENDING,
         //     "Order Created",
@@ -84,12 +88,12 @@ public class Order {
         return orderId;
     }
 
-    public UUID getInstrumentId() {
-        return instrumentId;
+    public UUID getAddInstrumentId() {
+        return addInstrumentId;
     }
 
-    public void setInstrumentId(UUID instrumentId) {
-        this.instrumentId = instrumentId;
+    public UUID getSubtractInstrumentId() {
+        return subtractInstrumentId;
     }
 
     public Side getSide() {
