@@ -100,10 +100,6 @@ public class PortfolioService {
         repository.save(portfolio);
     }
     
-
-    // addQuantity * addPrice = subQuantity * subPrice 
-    // addPrice 
-    // subPrice 
     @Transactional 
     public void updateHoldingsFromOrder(
             Order order, BigDecimal addPrice, BigDecimal subPrice
@@ -117,26 +113,17 @@ public class PortfolioService {
         );
 
         Instant now = Instant.now();
-
         BigDecimal addQuantity = order.getQuantity();
         // addQuantity * addPrice = subQuantity * subPrice 
         BigDecimal subQuantity = addQuantity.multiply(addPrice).divide(subPrice);
 
         Holding addHolding = new Holding(
-            now,
-            addPrice,
-            addQuantity,
-            addInstrument,
-            order,
-            portfolio
+            now, addPrice, addQuantity,
+            addInstrument, order, portfolio
         );
         Holding subHolding = new Holding(
-            now,
-            subPrice,
-            subQuantity,
-            subInstrument,
-            order,
-            portfolio
+            now, subPrice, subQuantity,
+            subInstrument, order, portfolio
         );
 
         portfolio = repository.save(portfolio);
@@ -145,7 +132,6 @@ public class PortfolioService {
         repository.save(portfolio);
     }
 }
-
 
 // BUY US Equity: negative USD, positive US equity
 // SELL US Equity: positive USD, negative US equity
