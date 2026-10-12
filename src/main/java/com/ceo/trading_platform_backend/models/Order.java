@@ -48,8 +48,8 @@ public class Order {
     @Column(name = "quote")
     private BigDecimal quote;
 
-    @Column(name = "increase_threshold")
-    private BigDecimal increaseThreshold;
+    @Column(name = "change_threshold")
+    private BigDecimal changeThreshold;
 
     @Column(name = "quantity")
     private BigDecimal quantity;
@@ -63,7 +63,7 @@ public class Order {
 
     public Order(UUID addInstrumentId, UUID subtractInstrumentId, 
                 Side side, UUID portfolioId, UUID clientId,
-                BigDecimal quote, BigDecimal increaseThreshold, BigDecimal quantity) {
+                BigDecimal quote, BigDecimal changeThreshold, BigDecimal quantity) {
 
         this.addInstrumentId = addInstrumentId;
         this.subtractInstrumentId = subtractInstrumentId;
@@ -71,7 +71,7 @@ public class Order {
         this.portfolioId = portfolioId;
         this.clientId = clientId;
         this.quote = quote;
-        this.increaseThreshold = increaseThreshold;
+        this.changeThreshold = changeThreshold;
         this.quantity = quantity;
         // this.orderHistory.add(new OrderStatusChange(
         //     OrderStatus.PENDING,
@@ -94,6 +94,14 @@ public class Order {
 
     public UUID getSubtractInstrumentId() {
         return subtractInstrumentId;
+    }
+
+    public void setAddInstrumentId(UUID id) {
+        this.addInstrumentId = id;
+    }
+
+    public void setSubtractInstrumentId(UUID id) {
+        this.subtractInstrumentId = id;
     }
 
     public Side getSide() {
@@ -128,12 +136,12 @@ public class Order {
         this.quote = quote;
     }
 
-    public BigDecimal getIncreaseThreshold() {
-        return increaseThreshold;
+    public BigDecimal getChangeThreshold() {
+        return changeThreshold;
     }
 
-    public void setIncreaseThreshold(BigDecimal increaseThreshold) {
-        this.increaseThreshold = increaseThreshold;
+    public void setChangeThreshold(BigDecimal changeThreshold) {
+        this.changeThreshold = changeThreshold;
     }
 
     public Instant getCreatedDate() {
