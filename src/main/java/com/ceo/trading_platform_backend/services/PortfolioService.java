@@ -14,6 +14,7 @@ import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
+import com.ceo.trading_platform_backend.utils.MoneyUtilities;
 
 import jakarta.transaction.Transactional;
 
@@ -111,24 +112,46 @@ public class PortfolioService {
         Instrument subInstrument = instrumentService.getInstrumentById(
             order.getSubtractInstrumentId()
         );
+        Side side = order.getSide();
 
         Instant now = Instant.now();
-        BigDecimal addQuantity = order.getQuantity();
-        // addQuantity * addPrice = subQuantity * subPrice 
-        BigDecimal subQuantity = addQuantity.multiply(addPrice).divide(subPrice);
+        // addQuantity * addPrice = subQuantity * subPrice
+        BigDecimal addQuantity;
+        BigDecimal subQuantity;
+        if (side == Side.BUY) {
+            addQuantity = order.getQuantity();
+            subQuantity = MoneyUtilities.safeDivide(
+                addQuantity.multiply(addPrice), 
+                subPrice
+            );
+        } else if (side == Side.SELL) {
+            subQuantity = order.getQuantity();
+            addQuantity = MoneyUtilities.safeDivide(
+                subQuantity.multiply(subPrice), 
+                addPrice
+            );
+        } else /* if (side == Side.DEPOSIT) */ {
+            addQuantity = order.getQuantity();
+            subQuantity = BigDecimal.ZERO;
+        }
+
+        portfolio = repository.save(portfolio);
 
         Holding addHolding = new Holding(
             now, addPrice, addQuantity,
             addInstrument, order, portfolio
         );
-        Holding subHolding = new Holding(
-            now, subPrice, subQuantity,
-            subInstrument, order, portfolio
-        );
-
-        portfolio = repository.save(portfolio);
         portfolio.addHolding(addHolding);
-        portfolio.addHolding(subHolding);
+
+        if (side != Side.DEPOSIT) {
+            Holding subHolding = new Holding(
+                now, subPrice, subQuantity.negate(),
+                subInstrument, order, portfolio
+            );
+            portfolio.addHolding(subHolding);
+        }
+        
+
         repository.save(portfolio);
     }
 }
