@@ -48,7 +48,7 @@ public class PortfolioServiceTests {
     private final UUID uuid1 = UUID.randomUUID();
     private final UUID uuid2 = UUID.randomUUID();
     private final UUID uuid3 = UUID.randomUUID();
-    // private final UUID uuid4 = UUID.randomUUID();
+    private final UUID uuid4 = UUID.randomUUID();
     private final UUID uuid5 = UUID.randomUUID();
 
 
@@ -80,6 +80,7 @@ public class PortfolioServiceTests {
             null, 
             null, 
             null, 
+            null,
             null
         );
         return order;
@@ -350,6 +351,7 @@ public class PortfolioServiceTests {
             
             buyOrder = new Order(
                 uuid2,  // instrumentId (AAPL)
+                uuid1, // instrumentId (USD)
                 Side.BUY,
                 uuid1,  // portfolioId
                 uuid3,  // clientId
@@ -359,6 +361,7 @@ public class PortfolioServiceTests {
             );
             
             sellOrder = new Order(
+                uuid1, // instrumentId (USD)
                 uuid2,  // instrumentId (AAPL)
                 Side.SELL,
                 uuid1,  // portfolioId
@@ -375,7 +378,7 @@ public class PortfolioServiceTests {
             when(portfolioRepository.getReferenceById(uuid5))
                 .thenThrow(new ResourceNotFoundException("Portfolio not found with id " + uuid5));
 
-            assertThatThrownBy(() -> portfolioService.updateHoldingsFromOrder(buyOrder, new BigDecimal("150")))
+            assertThatThrownBy(() -> portfolioService.updateHoldingsFromOrder(buyOrder, new BigDecimal("150"), BigDecimal.ONE))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Portfolio not found with id");
         }
@@ -388,7 +391,7 @@ public class PortfolioServiceTests {
             when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
             when(instrumentService.getInstrumentBySymbol("USD")).thenReturn(usdInstrument);
 
-            portfolioService.updateHoldingsFromOrder(buyOrder, new BigDecimal("150"));
+            portfolioService.updateHoldingsFromOrder(buyOrder, new BigDecimal("150"), BigDecimal.ONE);
 
             // Verify holdings were added: cash holding (negative) and instrument holding (positive)
             assertThat(portfolio.getHoldings()).hasSize(2);
@@ -421,7 +424,7 @@ public class PortfolioServiceTests {
             when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
             when(instrumentService.getInstrumentBySymbol("USD")).thenReturn(usdInstrument);
 
-            portfolioService.updateHoldingsFromOrder(buyOrder, new BigDecimal("150"));
+            portfolioService.updateHoldingsFromOrder(buyOrder, new BigDecimal("150"), BigDecimal.ONE);
 
             Holding cashHolding = portfolio.getHoldings().stream()
                 .filter(h -> h.getInstrument().getSymbol().equals("USD"))
@@ -443,7 +446,7 @@ public class PortfolioServiceTests {
             when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
             when(instrumentService.getInstrumentBySymbol("USD")).thenReturn(usdInstrument);
 
-            portfolioService.updateHoldingsFromOrder(buyOrder, new BigDecimal("150"));
+            portfolioService.updateHoldingsFromOrder(buyOrder, new BigDecimal("150"), BigDecimal.ONE);
 
             Holding instrumentHolding = portfolio.getHoldings().stream()
                 .filter(h -> h.getInstrument().getSymbol().equals("AAPL"))
@@ -467,7 +470,7 @@ public class PortfolioServiceTests {
             when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
             when(instrumentService.getInstrumentBySymbol("USD")).thenReturn(usdInstrument);
 
-            portfolioService.updateHoldingsFromOrder(sellOrder, new BigDecimal("200"));
+            portfolioService.updateHoldingsFromOrder(sellOrder, BigDecimal.ONE, new BigDecimal("200"));
 
             // Verify holdings were added: cash holding (positive) and instrument holding (negative)
             assertThat(portfolio.getHoldings()).hasSize(2);
@@ -499,7 +502,7 @@ public class PortfolioServiceTests {
             when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
             when(instrumentService.getInstrumentBySymbol("USD")).thenReturn(usdInstrument);
 
-            portfolioService.updateHoldingsFromOrder(sellOrder, new BigDecimal("200"));
+            portfolioService.updateHoldingsFromOrder(sellOrder, BigDecimal.ONE, new BigDecimal("200"));
 
             Holding cashHolding = portfolio.getHoldings().stream()
                 .filter(h -> h.getInstrument().getSymbol().equals("USD"))
@@ -521,7 +524,7 @@ public class PortfolioServiceTests {
             when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
             when(instrumentService.getInstrumentBySymbol("USD")).thenReturn(usdInstrument);
 
-            portfolioService.updateHoldingsFromOrder(sellOrder, new BigDecimal("200"));
+            portfolioService.updateHoldingsFromOrder(sellOrder, BigDecimal.ONE, new BigDecimal("200"));
 
             Holding instrumentHolding = portfolio.getHoldings().stream()
                 .filter(h -> h.getInstrument().getSymbol().equals("AAPL"))
@@ -544,7 +547,7 @@ public class PortfolioServiceTests {
             when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
             when(instrumentService.getInstrumentBySymbol("USD")).thenReturn(usdInstrument);
 
-            portfolioService.updateHoldingsFromOrder(buyOrder, new BigDecimal("150"));
+            portfolioService.updateHoldingsFromOrder(buyOrder, new BigDecimal("150"), BigDecimal.ONE);
 
             verify(portfolioRepository).getReferenceById(uuid1);
             verify(portfolioRepository, org.mockito.Mockito.times(2)).save(portfolio);
@@ -554,6 +557,7 @@ public class PortfolioServiceTests {
         @DisplayName("BUY order with fractional shares: should handle BigDecimal quantities correctly")
         void shouldHandleFractionalSharesForBuyOrder() {
             Order fractionalOrder = new Order(
+                uuid4,
                 uuid2,  // instrumentId
                 Side.BUY,
                 uuid1,  // portfolioId
@@ -569,7 +573,7 @@ public class PortfolioServiceTests {
             when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
             when(instrumentService.getInstrumentBySymbol("USD")).thenReturn(usdInstrument);
 
-            portfolioService.updateHoldingsFromOrder(fractionalOrder, new BigDecimal("125.0"));
+            portfolioService.updateHoldingsFromOrder(fractionalOrder, new BigDecimal("125.0"), BigDecimal.ONE);
 
             Holding cashHolding = portfolio.getHoldings().stream()
                 .filter(h -> h.getInstrument().getSymbol().equals("USD"))
@@ -586,6 +590,7 @@ public class PortfolioServiceTests {
         void shouldHandleFractionalSharesForSellOrder() {
             Order fractionalOrder = new Order(
                 uuid2,  // instrumentId
+                uuid4,
                 Side.SELL,
                 uuid1,  // portfolioId
                 uuid3,  // clientId
@@ -599,7 +604,7 @@ public class PortfolioServiceTests {
             when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
             when(instrumentService.getInstrumentBySymbol("USD")).thenReturn(usdInstrument);
 
-            portfolioService.updateHoldingsFromOrder(fractionalOrder, new BigDecimal("200.75"));
+            portfolioService.updateHoldingsFromOrder(fractionalOrder, BigDecimal.ONE, new BigDecimal("200.75"));
 
             Holding cashHolding = portfolio.getHoldings().stream()
                 .filter(h -> h.getInstrument().getSymbol().equals("USD"))
