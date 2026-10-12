@@ -1,20 +1,26 @@
 package com.ceo.trading_platform_backend.services;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Properties;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
 import com.ceo.trading_platform_backend.services.MarketService.*;
+import com.ceo.trading_platform_backend.services.MarketService.Candle;
+import com.ceo.trading_platform_backend.services.MarketService.Coverage;
+import com.ceo.trading_platform_backend.services.MarketService.QuoteData;
+import com.ceo.trading_platform_backend.services.MarketService.SymbolMetadataData;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
@@ -82,6 +88,55 @@ public class MarketServiceTest {
     void testGetPriceThrowsExceptionForEmptySymbol() {
         assertThrows(IllegalArgumentException.class, () -> {
             marketService.getPrice("");
+        });
+    }
+
+    @Test
+    void testGetEquityPriceThrowsExceptionForNullSymbol() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            marketService.getEquityPrice(null);
+        });
+    }
+
+    @Test
+    void testGetCryptoPriceThrowsExceptionForNullSymbol() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            marketService.getCryptoPrice(null);
+        });
+    }
+
+    @Test
+    void testGetCashPriceThrowsExceptionForNullSymbol() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            marketService.getCashPrice(null);
+        });
+    }
+
+    @Test
+    void testGetCryptoPriceThrowsExceptionWhenApiKeyMissing() {
+        MarketService noKeyMarketService = new MarketService(
+            RestClient.builder(),
+            objectMapper,
+            baseUrl,
+            ""
+        );
+
+        assertThrows(IllegalStateException.class, () -> {
+            noKeyMarketService.getCryptoPrice("BTC-USD");
+        });
+    }
+
+    @Test
+    void testGetCashMetadataThrowsExceptionWhenApiKeyMissing() {
+        MarketService noKeyMarketService = new MarketService(
+            RestClient.builder(),
+            objectMapper,
+            baseUrl,
+            ""
+        );
+
+        assertThrows(IllegalStateException.class, () -> {
+            noKeyMarketService.getCashMetadata("EURUSD");
         });
     }
 

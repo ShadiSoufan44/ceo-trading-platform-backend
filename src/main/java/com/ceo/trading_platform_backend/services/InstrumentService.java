@@ -51,19 +51,25 @@ public class InstrumentService {
             // Fetch real instrument metadata from market service
             var metadata = marketService.getSymbolMetadata(symbol);
             InstrumentType type = parseInstrumentType(metadata.type());
-            instrument = insertInstrumentByFields(symbol, type, metadata.name());
+            String canonicalSymbol = metadata.symbol() != null && !metadata.symbol().isBlank()
+                ? metadata.symbol()
+                : symbol;
+            instrument = insertInstrumentByFields(canonicalSymbol, type, metadata.name());
         }
         return instrument;
     }
     
     private InstrumentType parseInstrumentType(String typeString) {
-        if (typeString == null) {
+        if (typeString == null || typeString.isBlank()) {
             return InstrumentType.EQUITY; // default
         }
-        try {
-            return InstrumentType.valueOf(typeString.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return InstrumentType.EQUITY; // fallback default
-        }
-    }   
+
+        String normalizedType = typeString.trim().toUpperCase();
+        return switch (normalizedType) {
+            case "EQUITY", "STOCK" -> InstrumentType.EQUITY;
+            case "CRYPTO" -> InstrumentType.CRYPTO;
+            case "CASH", "FX", "FOREX" -> InstrumentType.CASH;
+            default -> InstrumentType.EQUITY; // fallback default
+        };
+    }
 }

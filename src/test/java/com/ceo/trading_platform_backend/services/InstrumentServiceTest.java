@@ -1,13 +1,17 @@
 package com.ceo.trading_platform_backend.services;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.MockitoAnnotations;
 
 import com.ceo.trading_platform_backend.enums.InstrumentType;
@@ -204,6 +208,62 @@ public class InstrumentServiceTest {
         assertNotNull(result);
         assertEquals(InstrumentType.EQUITY, result.getType());
         assertEquals("Some Crypto", result.getFullName());
+    }
+
+    /**
+     * Tests that parseInstrumentType maps crypto to CRYPTO.
+     */
+    @Test
+    public void testGetOrInsertInstrumentBySymbolParsesCryptoType() {
+        // Arrange
+        String symbol = "X:BTC-USD";
+        when(mockRepository.findBySymbol(symbol)).thenReturn(null);
+
+        MarketService.SymbolMetadataData mockMetadata = createMockMetadata(
+            "X:BTC-USD",
+            "crypto",
+            "Bitcoin"
+        );
+        when(mockMarketService.getSymbolMetadata(symbol)).thenReturn(mockMetadata);
+
+        when(mockRepository.save(any(Instrument.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Instrument result = instrumentService.getOrInsertInstrumentBySymbol(symbol);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("X:BTC-USD", result.getSymbol());
+        assertEquals(InstrumentType.CRYPTO, result.getType());
+        assertEquals("Bitcoin", result.getFullName());
+    }
+
+    /**
+     * Tests that parseInstrumentType maps fx to CASH.
+     */
+    @Test
+    public void testGetOrInsertInstrumentBySymbolParsesFxTypeAsCash() {
+        // Arrange
+        String symbol = "FX:EURUSD";
+        when(mockRepository.findBySymbol(symbol)).thenReturn(null);
+
+        MarketService.SymbolMetadataData mockMetadata = createMockMetadata(
+            "FX:EURUSD",
+            "fx",
+            "Euro / US Dollar"
+        );
+        when(mockMarketService.getSymbolMetadata(symbol)).thenReturn(mockMetadata);
+
+        when(mockRepository.save(any(Instrument.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Instrument result = instrumentService.getOrInsertInstrumentBySymbol(symbol);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("FX:EURUSD", result.getSymbol());
+        assertEquals(InstrumentType.CASH, result.getType());
+        assertEquals("Euro / US Dollar", result.getFullName());
     }
     
     /**
