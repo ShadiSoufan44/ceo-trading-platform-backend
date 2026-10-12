@@ -96,6 +96,14 @@ public class Order {
         return subtractInstrumentId;
     }
 
+    public void setAddInstrumentId(UUID id) {
+        this.addInstrumentId = id;
+    }
+
+    public void setSubtractInstrumentId(UUID id) {
+        this.subtractInstrumentId = id;
+    }
+
     public Side getSide() {
         return side;
     }

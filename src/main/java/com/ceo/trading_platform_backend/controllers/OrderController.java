@@ -86,9 +86,12 @@ public class OrderController {
         UUID orderId = order.getOrderId();
         UUID clientId = order.getClientId();
         UUID portfolioId = order.getPortfolioId();
-        String instrumentSymbol = instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol();
-        String instrumentFullName = instrumentService.getInstrumentById(order.getInstrumentId()).getFullName();
-        InstrumentType instrumentType = instrumentService.getInstrumentById(order.getInstrumentId()).getType();
+        String addInstrumentSymbol = instrumentService.getInstrumentById(order.getAddInstrumentId()).getSymbol();
+        String addInstrumentFullName = instrumentService.getInstrumentById(order.getAddInstrumentId()).getFullName();
+        InstrumentType addInstrumentType = instrumentService.getInstrumentById(order.getAddInstrumentId()).getType();
+        String subtractInstrumentSymbol = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getSymbol();
+        String subtractInstrumentFullName = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getFullName();
+        InstrumentType subtractInstrumentType = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getType();
         String createdDate = order.getCreatedDate().toString();
         BigDecimal quantity = order.getQuantity();
         BigDecimal quotedPrice = order.getQuote();
@@ -99,7 +102,7 @@ public class OrderController {
             resolvedDate = order.getCurrentOrderStatus().getDate().toString();
         }
         OrderStatus currentStatus = order.getCurrentOrderStatus().getStatus();
-        OrderResponseDTO response = new OrderResponseDTO(orderId, clientId, portfolioId, instrumentSymbol, instrumentType, instrumentFullName, quantity, quotedPrice, side, changeThreshold, createdDate, resolvedDate, currentStatus); 
+        OrderResponseDTO response = new OrderResponseDTO(orderId, clientId, portfolioId, addInstrumentSymbol, addInstrumentType, addInstrumentFullName, subtractInstrumentSymbol, subtractInstrumentType, subtractInstrumentFullName, quantity, quotedPrice, side, changeThreshold, createdDate, resolvedDate, currentStatus); 
 
         return response;
     }
