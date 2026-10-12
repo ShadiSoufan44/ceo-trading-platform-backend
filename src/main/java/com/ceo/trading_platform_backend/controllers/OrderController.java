@@ -93,13 +93,13 @@ public class OrderController {
         BigDecimal quantity = order.getQuantity();
         BigDecimal quotedPrice = order.getQuote();
         Side side = order.getSide();
-        BigDecimal increaseThreshold = order.getIncreaseThreshold();
+        BigDecimal changeThreshold = order.getChangeThreshold();
         String resolvedDate = "";
         if(isResolved(order)) {
             resolvedDate = order.getCurrentOrderStatus().getDate().toString();
         }
         OrderStatus currentStatus = order.getCurrentOrderStatus().getStatus();
-        OrderResponseDTO response = new OrderResponseDTO(orderId, clientId, portfolioId, instrumentSymbol, instrumentType, instrumentFullName, quantity, quotedPrice, side, increaseThreshold, createdDate, resolvedDate, currentStatus); 
+        OrderResponseDTO response = new OrderResponseDTO(orderId, clientId, portfolioId, instrumentSymbol, instrumentType, instrumentFullName, quantity, quotedPrice, side, changeThreshold, createdDate, resolvedDate, currentStatus); 
 
         return response;
     }
