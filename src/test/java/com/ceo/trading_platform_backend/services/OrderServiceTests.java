@@ -226,7 +226,7 @@ public class OrderServiceTests {
             Order badOrder = createTestOrder(uuid1); // try to validate this
             badOrder.setInstrumentId(uuid2);
 
-            // make time in ours ot isolate increase threshold
+            // make time in ours ot isolate change threshold
             LocalTime time = LocalTime.of(12, 0); // 7pm
             ZoneId easternZone = ZoneId.of("America/New_York");
             LocalDate date = LocalDate.now();
@@ -255,7 +255,7 @@ public class OrderServiceTests {
             badOrder.setSide(Side.SELL);
             badOrder.setPortfolioId(uuid3);
 
-            // make time in ours ot isolate increase threshold
+            // make time in ours ot isolate change threshold
             LocalTime time = LocalTime.of(12, 0); // 7pm
             ZoneId easternZone = ZoneId.of("America/New_York");
             LocalDate date = LocalDate.now();
@@ -284,7 +284,7 @@ public class OrderServiceTests {
             Order workingOrder = createTestOrder(uuid1);
             workingOrder.setInstrumentId(uuid2);
 
-            // make time in ours ot isolate increase threshold
+            // make time in ours ot isolate change threshold
             LocalTime time = LocalTime.of(12, 0); // 7pm
             ZoneId easternZone = ZoneId.of("America/New_York");
             LocalDate date = LocalDate.now();
@@ -312,7 +312,7 @@ public class OrderServiceTests {
             workingOrder.setInstrumentId(uuid2);
             workingOrder.setPortfolioId(uuid3);
 
-            // make time in ours ot isolate increase threshold
+            // make time in ours ot isolate change threshold
             LocalTime time = LocalTime.of(12, 0); // 7pm
             ZoneId easternZone = ZoneId.of("America/New_York");
             LocalDate date = LocalDate.now();
@@ -377,12 +377,12 @@ public class OrderServiceTests {
         }
 
         @Test
-        @DisplayName("Should reject orders when price change exceeds increase threshold")
-        void testExceededIncreaseThreshold() {
+        @DisplayName("Should reject orders when price change exceeds change threshold")
+        void testExceededChangeThreshold() {
             Order badOrder = createTestOrder(uuid1);
             badOrder.setInstrumentId(uuid2);
 
-            // make time in ours ot isolate increase threshold
+            // make time in ours ot isolate change threshold
             LocalTime time = LocalTime.of(12, 0); // 7pm
             ZoneId easternZone = ZoneId.of("America/New_York");
             LocalDate date = LocalDate.now();
@@ -407,7 +407,7 @@ public class OrderServiceTests {
             badOrder.setInstrumentId(uuid2);
             badOrder.setSide(Side.BUY);
             badOrder.setPortfolioId(uuid3);
-            badOrder.setIncreaseThreshold(new BigDecimal(100)); // within threshold to isolate funds
+            badOrder.setChangeThreshold(new BigDecimal(100)); // within threshold to isolate funds
             // make time in ours ot isolate insufficient funds
             LocalTime time = LocalTime.of(12, 0); // 7pm
             ZoneId easternZone = ZoneId.of("America/New_York");
@@ -434,7 +434,7 @@ public class OrderServiceTests {
 
             Order workingOrder = createTestOrder(uuid1);
             workingOrder.setInstrumentId(uuid2);
-            workingOrder.setIncreaseThreshold(new BigDecimal(100)); // set increase threshold to pass
+            workingOrder.setChangeThreshold(new BigDecimal(100)); // set change threshold to pass
 
             // make time in hour
             LocalTime time = LocalTime.of(12, 0); // 7pm

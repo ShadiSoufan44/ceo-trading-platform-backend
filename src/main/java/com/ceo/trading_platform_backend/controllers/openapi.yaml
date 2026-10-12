@@ -133,7 +133,7 @@ components:
         - quantity
         - quotedPrice
         - side
-        - increaseThreshold
+        - changeThreshold
       properties:
         clientId:
           type: string
@@ -165,10 +165,10 @@ components:
           example: 150.50
         side:
           $ref: '#/components/schemas/Side'
-        increaseThreshold:
+        changeThreshold:
           type: number
           format: decimal
-          description: The threshold value for price increase triggers
+          description: The threshold value for price change triggers
           example: 5.00
 
     OrderResponseDTO:
@@ -184,7 +184,7 @@ components:
         - quantity
         - quotedPrice
         - side
-        - increaseThreshold
+        - changeThreshold
         - createdDate
         - resolvedDate
         - currentStatus
@@ -226,10 +226,10 @@ components:
           example: 150.50
         side:
           $ref: '#/components/schemas/Side'
-        increaseThreshold:
+        changeThreshold:
           type: number
           format: decimal
-          description: The threshold value for price increase triggers
+          description: The threshold value for price change triggers
           example: 5.00
         createdDate:
           type: string

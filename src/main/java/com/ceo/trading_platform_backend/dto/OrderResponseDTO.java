@@ -17,7 +17,7 @@ public record OrderResponseDTO(
     BigDecimal quantity,
     BigDecimal quotedPrice,
     Side side,
-    BigDecimal increaseThreshold,
+    BigDecimal changeThreshold,
     String createdDate,
     String resolvedDate,
     OrderStatus currentStatus

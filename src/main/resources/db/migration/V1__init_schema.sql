@@ -27,7 +27,7 @@ CREATE TABLE public.portfolio (
 CREATE TABLE public."order" (
   side text,
   quote numeric,
-  increase_threshold numeric,
+  change_threshold numeric,
   quantity numeric,
   portfolio_id uuid DEFAULT gen_random_uuid(),
   client_id uuid DEFAULT gen_random_uuid(),
