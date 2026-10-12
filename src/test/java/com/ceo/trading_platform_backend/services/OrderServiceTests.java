@@ -66,12 +66,16 @@ public class OrderServiceTests {
     private final UUID uuid1 = UUID.randomUUID();
     private final UUID uuid2 = UUID.randomUUID();
     private final UUID uuid3 = UUID.randomUUID();
+    private final UUID uuid4 = UUID.randomUUID();
 
     private Instrument stockInstrument;
+    private Instrument usdInstrument;
 
     @BeforeEach 
     void setUp() {
         stockInstrument = new Instrument("AAPL", InstrumentType.EQUITY, "Apple Inc.");
+        usdInstrument = new Instrument("USD", InstrumentType.CASH, "United States Dollar");
+
 
     }
 
@@ -80,7 +84,7 @@ public class OrderServiceTests {
         Order order = new Order(
             null, 
             null, 
-            null, 
+            Side.BUY, 
             null,
             null,
             new BigDecimal(2), 
@@ -254,6 +258,7 @@ public class OrderServiceTests {
             // test that a sell order is rejected if the user does not have enough holdings
             Order badOrder = createTestOrder(uuid1);
             badOrder.setSubtractInstrumentId(uuid2);
+            badOrder.setAddInstrumentId(uuid4);
             badOrder.setSide(Side.SELL);
             badOrder.setPortfolioId(uuid3);
 
@@ -273,7 +278,11 @@ public class OrderServiceTests {
             // stub portfolioService to return holdings list
             when(portfolioService.getHoldingsByPortfolioId(badOrder.getPortfolioId())).thenReturn(holdingsList);
             when(instrumentService.getInstrumentById(badOrder.getSubtractInstrumentId())).thenReturn(stockInstrument);
+            when(instrumentService.getInstrumentById(badOrder.getAddInstrumentId())).thenReturn(usdInstrument);
+
             when(marketService.isActiveSymbol(stockInstrument.getSymbol())).thenReturn(true);
+            when(marketService.isActiveSymbol(usdInstrument.getSymbol())).thenReturn(true);
+
 
             Order resultOrder = orderService.validate(badOrder);
 
@@ -285,6 +294,7 @@ public class OrderServiceTests {
         void testWorkingBuyValidation() {
             Order workingOrder = createTestOrder(uuid1);
             workingOrder.setAddInstrumentId(uuid2);
+            workingOrder.setSubtractInstrumentId(uuid4);
 
             // make time in ours ot isolate change threshold
             LocalTime time = LocalTime.of(12, 0); // 7pm
@@ -299,7 +309,11 @@ public class OrderServiceTests {
             // stub instrumentSerrvice to return set up instrument
             // stub marketService to say instrument untradable
             when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
+            when(instrumentService.getInstrumentById(uuid4)).thenReturn(usdInstrument);
+
             when(marketService.isActiveSymbol(stockInstrument.getSymbol())).thenReturn(true);
+            when(marketService.isActiveSymbol(usdInstrument.getSymbol())).thenReturn(true);
+
 
             Order resultOrder = orderService.validate(workingOrder);
 
@@ -312,6 +326,7 @@ public class OrderServiceTests {
         void testWorkingSellValidation() {
             Order workingOrder = createWorkingSellOrder(uuid1);
             workingOrder.setSubtractInstrumentId(uuid2);
+            workingOrder.setAddInstrumentId(uuid4);
             workingOrder.setPortfolioId(uuid3);
 
             // make time in ours ot isolate change threshold
@@ -330,7 +345,11 @@ public class OrderServiceTests {
             // stub portfolioService to return holdings list
             when(portfolioService.getHoldingsByPortfolioId(workingOrder.getPortfolioId())).thenReturn(holdingsList);
             when(instrumentService.getInstrumentById(workingOrder.getSubtractInstrumentId())).thenReturn(stockInstrument);
+            when(instrumentService.getInstrumentById(workingOrder.getAddInstrumentId())).thenReturn(usdInstrument);
+
             when(marketService.isActiveSymbol(stockInstrument.getSymbol())).thenReturn(true);
+            when(marketService.isActiveSymbol(usdInstrument.getSymbol())).thenReturn(true);
+
 
             Order resultOrder = orderService.validate(workingOrder);
 
@@ -383,6 +402,7 @@ public class OrderServiceTests {
         void testExceededChangeThreshold() {
             Order badOrder = createTestOrder(uuid1);
             badOrder.setAddInstrumentId(uuid2);
+            badOrder.setSubtractInstrumentId(uuid4);
 
             // make time in ours ot isolate change threshold
             LocalTime time = LocalTime.of(12, 0); // 7pm
@@ -395,7 +415,11 @@ public class OrderServiceTests {
             badOrder.addOrderStatusChange(initialStatusChange);
 
             when(instrumentService.getInstrumentById(badOrder.getAddInstrumentId())).thenReturn(stockInstrument);
+            when(instrumentService.getInstrumentById(badOrder.getSubtractInstrumentId())).thenReturn(usdInstrument);
+
             when(marketService.getPrice(stockInstrument.getSymbol())).thenReturn(new BigDecimal(10));
+            when(marketService.getPrice(usdInstrument.getSymbol())).thenReturn(new BigDecimal(10));
+
             
             Order resultOrder = orderService.execute(badOrder);
     
@@ -407,6 +431,7 @@ public class OrderServiceTests {
         void testBuyWithInsufficientFunds() {
             Order badOrder = createTestOrder(uuid1);
             badOrder.setAddInstrumentId(uuid2);
+            badOrder.setSubtractInstrumentId(uuid4);
             badOrder.setSide(Side.BUY);
             badOrder.setPortfolioId(uuid3);
             badOrder.setChangeThreshold(new BigDecimal(100)); // within threshold to isolate funds
@@ -421,7 +446,11 @@ public class OrderServiceTests {
             badOrder.addOrderStatusChange(initialStatusChange);
 
             when(instrumentService.getInstrumentById(badOrder.getAddInstrumentId())).thenReturn(stockInstrument);
+            when(instrumentService.getInstrumentById(badOrder.getSubtractInstrumentId())).thenReturn(usdInstrument);
+
             when(marketService.getPrice(stockInstrument.getSymbol())).thenReturn(new BigDecimal(10));
+            when(marketService.getPrice(usdInstrument.getSymbol())).thenReturn(new BigDecimal(10));
+
             when(portfolioService.getBuyingPowerByPortfolioId(badOrder.getPortfolioId())).thenReturn(BigDecimal.ONE);
 
             Order resultOrder = orderService.execute(badOrder);
@@ -436,6 +465,7 @@ public class OrderServiceTests {
 
             Order workingOrder = createTestOrder(uuid1);
             workingOrder.setAddInstrumentId(uuid2);
+            workingOrder.setSubtractInstrumentId(uuid4);
             workingOrder.setChangeThreshold(new BigDecimal(100)); // set change threshold to pass
 
             // make time in hour
@@ -451,8 +481,12 @@ public class OrderServiceTests {
             // stub instrumentSerrvice to return set up instrument
             // stub marketService to say instrument untradable
             when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
+            when(instrumentService.getInstrumentById(uuid4)).thenReturn(usdInstrument);
+
             when(marketService.getPrice(stockInstrument.getSymbol())).thenReturn(new BigDecimal(1));
-            // when(portfolioService.getBuyingPowerByPortfolioId(workingOrder.getPortfolioId())).thenReturn(new BigDecimal(100));
+            when(marketService.getPrice(usdInstrument.getSymbol())).thenReturn(new BigDecimal(1));
+
+            when(portfolioService.getBuyingPowerByPortfolioId(workingOrder.getPortfolioId())).thenReturn(new BigDecimal(100));
 
             // when(marketService.isActiveSymbol(stockInstrument.getSymbol())).thenReturn(true);
 
@@ -466,6 +500,7 @@ public class OrderServiceTests {
         void testWorkingSellExecution() {
             Order workingOrder = createWorkingSellOrder(uuid1);
             workingOrder.setSubtractInstrumentId(uuid2);
+            workingOrder.setAddInstrumentId(uuid4);
             workingOrder.setPortfolioId(uuid3);
 
             // make time in hours
@@ -483,8 +518,12 @@ public class OrderServiceTests {
 
             // stub portfolioService to return holdings list
             when(instrumentService.getInstrumentById(workingOrder.getSubtractInstrumentId())).thenReturn(stockInstrument);
+            when(instrumentService.getInstrumentById(workingOrder.getAddInstrumentId())).thenReturn(usdInstrument);
+
             // when(marketService.isActiveSymbol(stockInstrument.getSymbol())).thenReturn(true);
             when(marketService.getPrice(stockInstrument.getSymbol())).thenReturn(new BigDecimal(1));
+            when(marketService.getPrice(usdInstrument.getSymbol())).thenReturn(new BigDecimal(1));
+
 
 
             Order resultOrder = orderService.execute(workingOrder);
