@@ -129,11 +129,12 @@ components:
         - clientId
         - clientName
         - portfolioId
-        - instrumentSymbol
+        - addInstrumentSymbol
+        - subtractInstrumentSymbol
         - quantity
         - quotedPrice
         - side
-        - increaseThreshold
+        - changeThreshold
       properties:
         clientId:
           type: string
@@ -149,10 +150,14 @@ components:
           format: uuid
           description: The unique identifier of the portfolio
           example: "550e8400-e29b-41d4-a716-446655440001"
-        instrumentSymbol:
+        addInstrumentSymbol:
           type: string
-          description: The symbol of the instrument being traded (e.g., AAPL, GOOG)
+          description: The symbol of the instrument to add (e.g., AAPL, GOOG)
           example: "AAPL"
+        subtractInstrumentSymbol:
+          type: string
+          description: The symbol of the instrument to subtract (matches DTO field name)
+          example: "USD"
         quantity:
           type: number
           format: decimal
@@ -165,10 +170,10 @@ components:
           example: 150.50
         side:
           $ref: '#/components/schemas/Side'
-        increaseThreshold:
+        changeThreshold:
           type: number
           format: decimal
-          description: The threshold value for price increase triggers
+          description: The threshold value for price change triggers
           example: 5.00
 
     OrderResponseDTO:
@@ -178,13 +183,16 @@ components:
         - orderId
         - clientId
         - portfolioId
-        - instrumentSymbol
-        - instrumentType
-        - instrumentFullName
+        - addInstrumentSymbol
+        - addInstrumentType
+        - addInstrumentFullName
+        - subtractInstrumentSymbol
+        - subtractInstrumentType
+        - subtractInstrumentFullName
         - quantity
         - quotedPrice
         - side
-        - increaseThreshold
+        - changeThreshold
         - createdDate
         - resolvedDate
         - currentStatus
@@ -204,16 +212,26 @@ components:
           format: uuid
           description: The unique identifier of the portfolio
           example: "550e8400-e29b-41d4-a716-446655440001"
-        instrumentSymbol:
+        addInstrumentSymbol:
           type: string
-          description: The symbol of the instrument being traded
+          description: The symbol of the instrument being bought/added
           example: "AAPL"
-        instrumentType:
+        addInstrumentType:
           $ref: '#/components/schemas/InstrumentType'
-        instrumentFullName:
+        addInstrumentFullName:
           type: string
-          description: The full name of the instrument
+          description: The full name of the instrument being bought/added
           example: "Apple Inc."
+        subtractInstrumentSymbol:
+          type: string
+          description: The symbol of the instrument being sold/subtracted
+          example: "USD"
+        subtractInstrumentType:
+          $ref: '#/components/schemas/InstrumentType'
+        subtractInstrumentFullName:
+          type: string
+          description: The full name of the instrument being sold/subtracted
+          example: "US Dollar"
         quantity:
           type: number
           format: decimal
@@ -226,10 +244,10 @@ components:
           example: 150.50
         side:
           $ref: '#/components/schemas/Side'
-        increaseThreshold:
+        changeThreshold:
           type: number
           format: decimal
-          description: The threshold value for price increase triggers
+          description: The threshold value for price change triggers
           example: 5.00
         createdDate:
           type: string
@@ -238,7 +256,6 @@ components:
           example: "2024-01-15T10:30:00"
         resolvedDate:
           type: string
-          format: date-time
           description: The timestamp when the order was resolved (empty if not resolved)
           example: ""
         currentStatus:
@@ -259,8 +276,7 @@ components:
         - PENDING
         - ACCEPTED
         - REJECTED
-        - FILLED
-        - PARTIALLY_FILLED
+        - FULFILLED
         - CANCELLED
       example: PENDING
 
