@@ -49,7 +49,7 @@ public class OrderService {
         UUID clientId = orderRequest.clientId();
         UUID portfolioId = portfolioService.getPortfolioById(orderRequest.portfolioId()).getPortfolioId();
         UUID addInstrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.addInstrumentSymbol()).getID(); // instrument servcie asks external api for instrument info
-        UUID subtractInstrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.subtractInsturmentSymbol()).getID();
+        UUID subtractInstrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.subtractInstrumentSymbol()).getID();
         BigDecimal quantity = orderRequest.quantity();
         BigDecimal quotedPrice = orderRequest.quotedPrice();
         Side side = orderRequest.side();
@@ -200,7 +200,7 @@ public class OrderService {
         BigDecimal numSharesOwned = BigDecimal.ZERO;
 
         for (Holding holding : holdings) {
-            if (holding.getInstrument().equals(instrumentService.getInstrumentById(order.getSubtractInstrumentId()))) { // selling insturment is subtract
+            if (holding.getInstrument().equals(instrumentService.getInstrumentById(order.getSubtractInstrumentId()))) { // selling instrument is subtract
                 numSharesOwned = numSharesOwned.add(holding.getQuantity());
             }
         }

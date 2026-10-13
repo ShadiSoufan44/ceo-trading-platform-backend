@@ -37,7 +37,7 @@ CREATE TABLE public."order" (
   CONSTRAINT order_pkey PRIMARY KEY (order_id),
   CONSTRAINT order_portfolio_id_fkey FOREIGN KEY (portfolio_id) REFERENCES public.portfolio(portfolio_id),
   CONSTRAINT order_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.user_account(user_id),
-  CONSTRAINT order_instrument_id_fkey FOREIGN KEY (add_instrument_id) REFERENCES public.instrument(instrument_id)
+  CONSTRAINT order_instrument_id_fkey FOREIGN KEY (add_instrument_id) REFERENCES public.instrument(instrument_id),
   CONSTRAINT order_instrument_id_fkey2 FOREIGN KEY (subtract_instrument_id) REFERENCES public.instrument(instrument_id)
 );
 
