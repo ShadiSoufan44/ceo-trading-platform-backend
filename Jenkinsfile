@@ -2,6 +2,10 @@
 pipeline {
     agent any
 
+    tools {
+        jdk 'JDK21'
+    }
+
     options {
         timeout(time: 30, unit: 'MINUTES')
         timestamps()
@@ -42,8 +46,12 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo '========== Compiling application =========='
-                sh 'mvn -B clean compile'
+                echo '========== Building with Java 21 =========='
+                sh '''
+                    java -version
+                    mvn -version
+                    mvn -B clean compile
+                '''
             }
         }
 
