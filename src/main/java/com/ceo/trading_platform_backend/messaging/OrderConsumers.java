@@ -7,6 +7,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.services.OrderService;
 
@@ -30,8 +31,13 @@ public class OrderConsumers {
     public void validate(UUID orderId) {
         System.out.println("UNVALIDATED: " + orderId);
         Order order = orderService.getOrderById(orderId).orElseThrow();
-        orderService.validate(order);
-        kafka.send("orders.unexecuted", Objects.requireNonNull(order.getOrderId())).join();
+        order = orderService.validate(order);
+        if (order.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
+            kafka.send(
+                "orders.unexecuted", Objects.requireNonNull(order.getOrderId())
+            ).join();
+        }
+
     }
 
     @KafkaListener(topics = "orders.unexecuted", groupId = "executors")

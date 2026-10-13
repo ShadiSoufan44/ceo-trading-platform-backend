@@ -10,7 +10,7 @@ public record OrderRequestDTO(
     String clientName,
     UUID portfolioId,
     String addInstrumentSymbol,
-    String subtractInsturmentSymbol,
+    String subtractInstrumentSymbol,
     BigDecimal quantity,
     BigDecimal quotedPrice,
     Side side,
