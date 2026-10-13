@@ -106,14 +106,17 @@ public class PortfolioService {
             Order order, BigDecimal addPrice, BigDecimal subPrice
     ) {
         Portfolio portfolio = getPortfolioById(order.getPortfolioId());
+        Side side = order.getSide();
         Instrument addInstrument = instrumentService.getInstrumentById(
             order.getAddInstrumentId()
         );
-        Instrument subInstrument = instrumentService.getInstrumentById(
-            order.getSubtractInstrumentId()
-        );
-        Side side = order.getSide();
-
+        Instrument subInstrument = null;
+        if (side != Side.DEPOSIT) {
+            subInstrument = instrumentService.getInstrumentById(
+                order.getSubtractInstrumentId()
+            );
+        }
+        
         Instant now = Instant.now();
         // addQuantity * addPrice = subQuantity * subPrice
         BigDecimal addQuantity;
