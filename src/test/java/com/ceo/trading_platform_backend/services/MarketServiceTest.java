@@ -1,20 +1,26 @@
 package com.ceo.trading_platform_backend.services;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Properties;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
 import com.ceo.trading_platform_backend.services.MarketService.*;
+import com.ceo.trading_platform_backend.services.MarketService.Candle;
+import com.ceo.trading_platform_backend.services.MarketService.Coverage;
+import com.ceo.trading_platform_backend.services.MarketService.QuoteData;
+import com.ceo.trading_platform_backend.services.MarketService.SymbolMetadataData;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
@@ -82,6 +88,55 @@ public class MarketServiceTest {
     void testGetPriceThrowsExceptionForEmptySymbol() {
         assertThrows(IllegalArgumentException.class, () -> {
             marketService.getPrice("");
+        });
+    }
+
+    @Test
+    void testGetEquityPriceThrowsExceptionForNullSymbol() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            marketService.getEquityPrice(null);
+        });
+    }
+
+    @Test
+    void testGetCryptoPriceThrowsExceptionForNullSymbol() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            marketService.getCryptoPrice(null);
+        });
+    }
+
+    @Test
+    void testGetCashPriceThrowsExceptionForNullSymbol() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            marketService.getCashPrice(null);
+        });
+    }
+
+    @Test
+    void testGetCryptoPriceThrowsExceptionWhenApiKeyMissing() {
+        MarketService noKeyMarketService = new MarketService(
+            RestClient.builder(),
+            objectMapper,
+            baseUrl,
+            ""
+        );
+
+        assertThrows(IllegalStateException.class, () -> {
+            noKeyMarketService.getCryptoPrice("BTC-USD");
+        });
+    }
+
+    @Test
+    void testGetCashMetadataThrowsExceptionWhenApiKeyMissing() {
+        MarketService noKeyMarketService = new MarketService(
+            RestClient.builder(),
+            objectMapper,
+            baseUrl,
+            ""
+        );
+
+        assertThrows(IllegalStateException.class, () -> {
+            noKeyMarketService.getCashMetadata("EURUSD");
         });
     }
 
@@ -227,6 +282,42 @@ public class MarketServiceTest {
         } catch (Exception e) {
             // Log the error but don't fail the test if API is unreachable
             System.out.println("Symbol Metadata Test - Error occurred: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    void testGetSymbolMetadataForCashFxEurUsd() {
+        // This test verifies the real API call to /symbols/FX:EURUSD endpoint
+        try {
+            System.out.println("Testing Symbol Metadata endpoint for FX:EURUSD...");
+
+            SymbolMetadataData metadata = marketService.getCashMetadata("EURUSD");
+
+            assertNotNull(metadata);
+            assertNotNull(metadata.symbol());
+            assertEquals("FX:EURUSD", metadata.symbol());
+            assertNotNull(metadata.type());
+            assertEquals("fx", metadata.type().toLowerCase());
+
+            System.out.println("{\n"
+                    + "  \"data\": {\n"
+                    + "    \"symbol\": \"" + metadata.symbol() + "\",\n"
+                    + "    \"name\": \"" + metadata.name() + "\",\n"
+                    + "    \"type\": \"" + metadata.type() + "\",\n"
+                    + "    \"exchange\": \"" + metadata.exchange() + "\",\n"
+                    + "    \"currency\": \"" + metadata.currency() + "\",\n"
+                    + "    \"active\": " + metadata.active() + ",\n"
+                    + "    \"coverage\": {\n"
+                    + "      \"eodFrom\": \"" + (metadata.coverage() == null ? null : metadata.coverage().eodFrom()) + "\",\n"
+                    + "      \"eodTo\": \"" + (metadata.coverage() == null ? null : metadata.coverage().eodTo()) + "\"\n"
+                    + "    }\n"
+                    + "  }\n"
+                    + "}");
+        } catch (IllegalStateException e) {
+            System.out.println("API key not configured: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Cash Symbol Metadata Test - Error occurred: " + e.getClass().getSimpleName() + " - " + e.getMessage());
             e.printStackTrace();
         }
     }

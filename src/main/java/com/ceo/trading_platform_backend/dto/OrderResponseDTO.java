@@ -11,13 +11,16 @@ public record OrderResponseDTO(
     UUID orderId,
     UUID clientId,
     UUID portfolioId,
-    String instrumentSymbol,
-    InstrumentType instrumentType,
-    String instrumentFullName,//should we remove this? 
+    String addInstrumentSymbol,
+    InstrumentType addInstrumentType,
+    String addInstrumentFullName,//should we remove this? 
+    String subtractInstrumentSymbol,
+    InstrumentType subtractInstrumentType,
+    String subtractInstrumentFullName,
     BigDecimal quantity,
     BigDecimal quotedPrice,
     Side side,
-    BigDecimal increaseThreshold,
+    BigDecimal changeThreshold,
     String createdDate,
     String resolvedDate,
     OrderStatus currentStatus

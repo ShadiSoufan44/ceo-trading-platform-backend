@@ -14,6 +14,7 @@ import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
+import com.ceo.trading_platform_backend.utils.MoneyUtilities;
 
 import jakarta.transaction.Transactional;
 
@@ -23,7 +24,7 @@ public class PortfolioService {
     private final InstrumentService instrumentService;
     private final MarketService marketService;
 
-    private final String CURRENCY_SYMBOL = "USD";
+    private final String US_CURRENCY_SYMBOL = "USD";
 
     public PortfolioService(
         PortfolioRepository repository,
@@ -38,7 +39,7 @@ public class PortfolioService {
     private BigDecimal getPortfolioBuyingPower(Portfolio portfolio) {
         BigDecimal totalValue = new BigDecimal(0);
         for (Holding holding : portfolio.getHoldings()) {
-            if (holding.getInstrument().getSymbol().equals(CURRENCY_SYMBOL)) {
+            if (holding.getInstrument().getSymbol().equals(US_CURRENCY_SYMBOL)) {
                 totalValue = totalValue.add(holding.getQuantity());
             }
         }
@@ -50,7 +51,7 @@ public class PortfolioService {
 
         for (Holding holding : portfolio.getHoldings()) {
             BigDecimal price;
-            if (holding.getInstrument().getSymbol().equals(CURRENCY_SYMBOL)) {
+            if (holding.getInstrument().getSymbol().equals(US_CURRENCY_SYMBOL)) {
                 price = new BigDecimal(1);
             } else {
                 price = marketService.getPrice(holding.getInstrument().getSymbol());
@@ -84,48 +85,96 @@ public class PortfolioService {
         if (portfolio == null) return null;
         return portfolio.getHoldings();
     }
+
+    @Transactional 
+    private void addDeposit(Portfolio portfolio, Order order, BigDecimal amount, String currency) {
+        Holding depositHolding = new Holding(
+            Instant.now(),
+            BigDecimal.ONE,
+            amount,
+            instrumentService.getInstrumentBySymbol(currency),
+            order,
+            portfolio
+        );
+        portfolio = repository.save(portfolio);
+        portfolio.addHolding(depositHolding);
+        repository.save(portfolio);
+    }
     
     @Transactional 
-    public void updateHoldingsFromOrder(Order order, BigDecimal instrumentPrice) {
+    public void updateHoldingsFromOrder(
+            Order order, BigDecimal addPrice, BigDecimal subPrice
+    ) {
         Portfolio portfolio = getPortfolioById(order.getPortfolioId());
         Side side = order.getSide();
-
-        BigDecimal totalCashQuantity;
-        BigDecimal instrumentQuantity;
+        Instrument addInstrument = instrumentService.getInstrumentById(
+            order.getAddInstrumentId()
+        );
+        Instrument subInstrument = null;
+        if (side != Side.DEPOSIT) {
+            subInstrument = instrumentService.getInstrumentById(
+                order.getSubtractInstrumentId()
+            );
+        }
+        
+        Instant now = Instant.now();
+        // addQuantity * addPrice = subQuantity * subPrice
+        BigDecimal addQuantity;
+        BigDecimal subQuantity;
         if (side == Side.BUY) {
-            totalCashQuantity = instrumentPrice.negate().multiply(order.getQuantity());
-            instrumentQuantity = order.getQuantity();
-        } else {
-            totalCashQuantity = instrumentPrice.multiply(order.getQuantity());
-            instrumentQuantity = order.getQuantity().negate();
+            addQuantity = order.getQuantity();
+            subQuantity = MoneyUtilities.safeDivide(
+                addQuantity.multiply(addPrice), 
+                subPrice
+            );
+        } else if (side == Side.SELL) {
+            subQuantity = order.getQuantity();
+            addQuantity = MoneyUtilities.safeDivide(
+                subQuantity.multiply(subPrice), 
+                addPrice
+            );
+        } else /* if (side == Side.DEPOSIT) */ {
+            addQuantity = order.getQuantity();
+            subQuantity = BigDecimal.ZERO;
         }
 
-        Instrument tradeInstrument = instrumentService.getInstrumentById(order.getInstrumentId());
-        Instrument cashInstrument = instrumentService.getInstrumentBySymbol("USD");
-
-        Instant now = Instant.now();
-
-        Holding cashHolding = new Holding(
-            now,
-            BigDecimal.ONE,
-            totalCashQuantity,
-            cashInstrument,
-            order,
-            portfolio
-        );
-
-        Holding tradeHolding = new Holding(
-            now,
-            instrumentPrice,
-            instrumentQuantity,
-            tradeInstrument,
-            order,
-            portfolio
-        );
-
         portfolio = repository.save(portfolio);
-        portfolio.addHolding(cashHolding);
-        portfolio.addHolding(tradeHolding);
+
+        Holding addHolding = new Holding(
+            now, addPrice, addQuantity,
+            addInstrument, order, portfolio
+        );
+        portfolio.addHolding(addHolding);
+
+        if (side != Side.DEPOSIT) {
+            Holding subHolding = new Holding(
+                now, subPrice, subQuantity.negate(),
+                subInstrument, order, portfolio
+            );
+            portfolio.addHolding(subHolding);
+        }
+        
+
         repository.save(portfolio);
     }
 }
+
+// BUY US Equity: negative USD, positive US equity
+// SELL US Equity: positive USD, negative US equity
+    // 9:00 to 4:30 NY Time
+    // Can only use USD
+// BUY Indian Equity: negative INR, positive Indian equity
+// SELL Indian Equity: positive INR, negative Indian equity
+    // 9:15 to 3:30 IST
+    // Can only use USD or INR
+// DEPOSIT: positive money
+    // Any time
+    // USD or INR maybe (???)
+// BUY Crypto: negative money, positive crypto
+// SELL Crypto: positive money, negative crypto
+    // Any time
+    // Can use any currency to buy and sell crypto (???)
+// BUY Forex: negative USD, positive other currency
+// SELL Forex: positive USD, negative other currency
+    // Any time
+    // Can trade any currency for any other
