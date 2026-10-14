@@ -6,8 +6,6 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ceo.trading_platform_backend.repositories.OrderRepository;
-
 /**
  * AnalystService handles analyst-specific reporting and market data operations.
  */
