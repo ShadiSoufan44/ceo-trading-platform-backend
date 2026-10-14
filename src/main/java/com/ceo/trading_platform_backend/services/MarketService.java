@@ -54,7 +54,7 @@ public class MarketService {
 	}
 
 	// Returns the latest numeric price for a single symbol.
-	public BigDecimal getPrice(String symbol) {
+	private BigDecimal getPrice(String symbol) {
 		System.out.println("Getting Price for " + symbol);
 		return getQuote(symbol).price();
 	}
@@ -71,6 +71,9 @@ public class MarketService {
 
 	// Returns the latest numeric price for a cash/FX symbol.
 	private BigDecimal getCashPrice(String symbol) {
+		if (symbol == null) {
+			throw new IllegalArgumentException("Symbol is required");
+		}
 		if (symbol.equals("USD")) {
 			return BigDecimal.ONE;
 		}
