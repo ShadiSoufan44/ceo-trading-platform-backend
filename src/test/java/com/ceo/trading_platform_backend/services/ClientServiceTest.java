@@ -13,14 +13,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.ceo.trading_platform_backend.models.Portfolio;
-import com.ceo.trading_platform_backend.repositories.OrderRepository;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ClientServiceTest {
-
-    @Mock
-    private OrderRepository orderRepository;
 
     @Mock
     private PortfolioRepository portfolioRepository;
@@ -29,7 +25,7 @@ class ClientServiceTest {
 
     @BeforeEach
     void setUp() {
-        clientService = new ClientService(portfolioRepository, orderRepository);
+        clientService = new ClientService(portfolioRepository);
     }
 
     @Test
