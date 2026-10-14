@@ -57,20 +57,34 @@ pipeline {
 
         stage('Test') {
             steps {
+                echo '========== Running Maven tests =========='
+
                 withCredentials([file(
                     credentialsId: 'backend-env',
                     variable: 'ENV_FILE'
                 )]) {
                     sh '''
                         set +x
+
+                        CLEAN_ENV=$(mktemp)
+                        chmod 600 "$CLEAN_ENV"
+
+                        trap 'rm -f "$CLEAN_ENV"' EXIT
+
+                        # Convert Windows line endings to Unix
+                        tr -d '\\r' < "$ENV_FILE" > "$CLEAN_ENV"
+
+                        # Load environment variables
                         set -a
-                        . "$ENV_FILE"
+                        . "$CLEAN_ENV"
                         set +a
 
+                        # Run Maven tests
                         mvn -B test
                     '''
                 }
             }
+
             post {
                 always {
                     junit allowEmptyResults: true,
