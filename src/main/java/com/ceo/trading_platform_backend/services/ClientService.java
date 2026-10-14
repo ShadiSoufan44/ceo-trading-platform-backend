@@ -1,6 +1,8 @@
 package com.ceo.trading_platform_backend.services;
 
 import java.util.List;
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
