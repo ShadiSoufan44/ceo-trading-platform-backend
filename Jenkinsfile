@@ -99,7 +99,7 @@ pipeline {
 
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                        mvn -B sonar:sonar \
+                        mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
                             -Dsonar.projectKey=ceo-trading-platform-backend
                     '''
                 }
