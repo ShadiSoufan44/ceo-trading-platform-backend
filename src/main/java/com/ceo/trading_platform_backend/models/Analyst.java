@@ -1,10 +1,11 @@
 package com.ceo.trading_platform_backend.models;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
 import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 
 import com.ceo.trading_platform_backend.uml_objects.Report;
@@ -15,6 +16,7 @@ import com.ceo.trading_platform_backend.uml_objects.Report;
  * needs reliable historical data, queries cannot compete with live trading.
  */
 @DiscriminatorValue("ANALYST")
+// @Entity 
 public class Analyst extends User {
 
     @OneToMany private Set<Report> reports = new HashSet<>();
@@ -23,7 +25,7 @@ public class Analyst extends User {
         super();
     }
 
-    public Analyst(String fullName, String email, String password, OffsetDateTime joinDate) {
+    public Analyst(String fullName, String email, String password, Instant joinDate) {
         super(fullName, email, password, joinDate, "ANALYST");
     }
 

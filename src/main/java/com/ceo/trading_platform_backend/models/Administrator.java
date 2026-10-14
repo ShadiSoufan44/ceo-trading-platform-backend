@@ -1,10 +1,11 @@
 package com.ceo.trading_platform_backend.models;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
 import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 
 import com.ceo.trading_platform_backend.uml_objects.AuditLog;
@@ -13,6 +14,7 @@ import com.ceo.trading_platform_backend.uml_objects.AuditLog;
  * Represents an Administrator/Ops user 
  */
 @DiscriminatorValue("ADMIN")
+// @Entity 
 public class Administrator extends User {
 
     @OneToMany private Set<AuditLog> auditLogs = new HashSet<>();
@@ -21,7 +23,7 @@ public class Administrator extends User {
         super();
     }
 
-    public Administrator(String fullName, String email, String password, OffsetDateTime joinDate) {
+    public Administrator(String fullName, String email, String password, Instant joinDate) {
         super(fullName, email, password, joinDate, "ADMIN");
     }
 

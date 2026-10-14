@@ -48,12 +48,13 @@ public class OrderService {
     public Order createOrder(OrderRequestDTO orderRequest) {
         UUID clientId = orderRequest.clientId();
         UUID portfolioId = portfolioService.getPortfolioById(orderRequest.portfolioId()).getPortfolioId();
-        UUID instrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.instrumentSymbol()).getID(); // instrument servcie asks external api for instrument info
+        UUID addInstrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.addInstrumentSymbol()).getID(); // instrument servcie asks external api for instrument info
+        UUID subtractInstrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.subtractInstrumentSymbol()).getID();
         BigDecimal quantity = orderRequest.quantity();
         BigDecimal quotedPrice = orderRequest.quotedPrice();
         Side side = orderRequest.side();
-        BigDecimal increaseThreshold = orderRequest.increaseThreshold();
-        Order order = new Order(instrumentId, side, portfolioId, clientId, quotedPrice, increaseThreshold, quantity);
+        BigDecimal changeThreshold = orderRequest.changeThreshold();
+        Order order = new Order(addInstrumentId, subtractInstrumentId, side, portfolioId, clientId, quotedPrice, changeThreshold, quantity);
         order = this.repository.save(order);
         return order;
     }
@@ -73,29 +74,28 @@ public class OrderService {
         return order;
     }
 
-    public Order submit(OrderRequestDTO orderRequest) {
-        Order order = createOrder(orderRequest);
-        // set pending
-        Instant today = Instant.now();
-        OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.PENDING, "order submitted to be processed", today);
-        order.addOrderStatusChange(pendingOrderStatus);
-        repository.save(order);
-
-        Order validatedOrder = validate(order);
-        if (validatedOrder.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
-            return execute(validatedOrder);
-        } 
-        return repository.save(validatedOrder);
-    }
 
     // these methods get called from kafka pipeline
 
     // validate info liek instrument tradable and has sufficient holdings
-    private Order validate(Order order) {
+    public Order validate(Order order) {
         // TODO need to check time and put into different queues if doing after hours
-        if (!instrumentIsTradeable(order)) {
+        if (outOfHours(order, order.getCreatedDate())) {
             Instant today = Instant.now();
-            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "instrument not tradable", today);
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+            order.addOrderStatusChange(rejectedOrderStatus);
+            return order; // early return, don't validate --> this functionality may change depending on if allowing extra hours
+        }
+        if (!instrumentIsTradeable(order.getAddInstrumentId())) {
+            Instant today = Instant.now();
+            String symbol = instrumentService.getInstrumentById(order.getAddInstrumentId()).getSymbol();
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "instrument" + symbol + "not tradable", today);
+            order.addOrderStatusChange(rejectedOrderStatus);
+            return order;
+        } else if (!instrumentIsTradeable(order.getSubtractInstrumentId())){
+            Instant today = Instant.now();
+            String symbol = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getSymbol();
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "instrument" + symbol + "not tradable", today);
             order.addOrderStatusChange(rejectedOrderStatus);
             return order;
         }
@@ -113,22 +113,25 @@ public class OrderService {
         return order; // go ahead to send to queue base don order status
     }
 
-    private Order execute(Order order) {
-        BigDecimal price =  marketService.getPrice(instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol());
-        if (outOfHours(order)) {
+    public Order execute(Order order) {
+        BigDecimal addPrice = marketService.getPrice(instrumentService.getInstrumentById(order.getAddInstrumentId()).getSymbol());
+        BigDecimal subtractPrice = marketService.getPrice(instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getSymbol());
+        BigDecimal activePrice = (order.getSide() == Side.SELL) ? subtractPrice : addPrice;
+
+        if (outOfHours(order, Instant.now())) {
             Instant today = Instant.now();
-            OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
-            order.addOrderStatusChange(pendingOrderStatus);
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+            order.addOrderStatusChange(rejectedOrderStatus);
             return order; // early return, don't execute
         }
-        if (!withinIncreaseThreshold(order, price)) {
+        if (!withinChangeThreshold(order, activePrice)) {
             Instant today = Instant.now();
-            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "price " + price + " increased past threshold since submitting "+ order.getQuote(), today);
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "price " + activePrice + " changed past threshold since submitting "+ order.getQuote(), today);
             order.addOrderStatusChange(rejectedOrderStatus);
             return order;
         }
         if (order.getSide() == Side.BUY) {
-            if (!hasSufficientFundsBuy(order, price)) {
+            if (!hasSufficientFundsBuy(order, activePrice)) {
                 Instant today = Instant.now();
                 OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "insufficient funds", today);
                 order.addOrderStatusChange(rejectedOrderStatus);
@@ -136,7 +139,7 @@ public class OrderService {
             }
         }
   
-        portfolioService.updateHoldingsFromOrder(order, price);
+        portfolioService.updateHoldingsFromOrder(order, addPrice, subtractPrice);
         // update status - shoudl this happen based on portfolio service results above or is it just assumed thos will work?
         Instant today = Instant.now();
         OrderStatusChange fulfilledOrderStatus = new OrderStatusChange(OrderStatus.FULFILLED, "order fulfilled", today);
@@ -150,30 +153,37 @@ public class OrderService {
         return orders;
     } 
 
-    // Check if in hours
-    private boolean outOfHours(Order order) {
-        Instant submittedInstant = order.getCreatedDate();
+    // check if given time stamp is out of hours of market (createdDate for validaiton, now for execution)
+    private boolean outOfHours(Order order, Instant timestamp) {
         ZoneId zone = ZoneId.of("America/New_York");
-        LocalDateTime submittedDateTime = LocalDateTime.ofInstant(submittedInstant, zone);
-        LocalTime submittedTime = submittedDateTime.toLocalTime();
-        DayOfWeek submittedDay = submittedDateTime.toLocalDate().getDayOfWeek();
-        if (submittedDay == DayOfWeek.SATURDAY || submittedDay == DayOfWeek.SUNDAY) {
+        LocalDateTime dateTime = LocalDateTime.ofInstant(timestamp, zone);
+        LocalTime time = dateTime.toLocalTime();
+        DayOfWeek day = dateTime.toLocalDate().getDayOfWeek();
+        if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
             return true;
         }
-        if (submittedTime.isBefore(OPEN_TIME_LOCAL) || submittedTime.isAfter(CLOSE_TIME_LOCAL)) { // submitted time shoudl be in request dto
+        if (time.isBefore(OPEN_TIME_LOCAL) || time.isAfter(CLOSE_TIME_LOCAL)) { // submitted time shoudl be in request dto
             return true;
         }
         return false;
     }
 
-    // check if the price has increased too much since ordering
-    private boolean withinIncreaseThreshold(Order order, BigDecimal price) {
-        BigDecimal increaseThreshold = order.getIncreaseThreshold();
+    // check if the price has changed too much since ordering
+    private boolean withinChangeThreshold(Order order, BigDecimal activePrice) {
+        BigDecimal changeThreshold = order.getChangeThreshold();
         BigDecimal quotedPrice = order.getQuote();
-        BigDecimal toleratedPrice = quotedPrice.add(quotedPrice.multiply(increaseThreshold));
-        if (price.compareTo(toleratedPrice) > 0) {
-            return false;
-        }
+        BigDecimal toleratedPrice;
+        if (order.getSide() == Side.BUY) {
+            toleratedPrice = quotedPrice.add(quotedPrice.multiply(changeThreshold));
+            if (activePrice.compareTo(toleratedPrice) > 0) {
+                return false;
+            }
+        } else {
+            toleratedPrice = quotedPrice.subtract(quotedPrice.multiply(changeThreshold));
+            if (activePrice.compareTo(toleratedPrice) < 0)  {
+                return false;
+            }
+        } 
         return true;
     }
 
@@ -190,7 +200,7 @@ public class OrderService {
         BigDecimal numSharesOwned = BigDecimal.ZERO;
 
         for (Holding holding : holdings) {
-            if (holding.getInstrument().equals(instrumentService.getInstrumentById(order.getInstrumentId()))) {
+            if (holding.getInstrument().equals(instrumentService.getInstrumentById(order.getSubtractInstrumentId()))) { // selling instrument is subtract
                 numSharesOwned = numSharesOwned.add(holding.getQuantity());
             }
         }
@@ -202,9 +212,9 @@ public class OrderService {
         return true;
     }
 
-    private boolean instrumentIsTradeable(Order order) {
+    private boolean instrumentIsTradeable(UUID instrumentId) {
         // comes from market API
-        Boolean tradable = marketService.isActiveSymbol(instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol());
+        Boolean tradable = marketService.isActiveSymbol(instrumentService.getInstrumentById(instrumentId).getSymbol());
         return tradable;
     }
 }

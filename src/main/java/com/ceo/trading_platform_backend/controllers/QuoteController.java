@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ceo.trading_platform_backend.services.ClientService;
+import com.ceo.trading_platform_backend.services.MarketService;
 
 /**
  * QuoteController handles stock quote requests.
@@ -16,10 +16,10 @@ import com.ceo.trading_platform_backend.services.ClientService;
 @RequestMapping("/api/quotes")
 public class QuoteController {
 
-    private final ClientService clientService;
+    private final MarketService marketService;
 
-    public QuoteController(ClientService clientService) {
-        this.clientService = clientService;
+    public QuoteController(MarketService marketService) {
+        this.marketService = marketService;
     }
 
     /**
@@ -29,7 +29,7 @@ public class QuoteController {
     @GetMapping("/{symbol}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Object> getStockQuote(@PathVariable String symbol) {
-        Object quote = clientService.getStockQuote(symbol);
+        Object quote = marketService.getQuote(symbol);
         return ResponseEntity.ok(quote);
     }
 }

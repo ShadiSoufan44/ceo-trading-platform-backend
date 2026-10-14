@@ -1,5 +1,6 @@
 package com.ceo.trading_platform_backend.services;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +107,7 @@ public class AdminService {
         }
 
         User user;
-        OffsetDateTime now = OffsetDateTime.now();
+        Instant now = Instant.now();
         String encodedPassword = passwordEncoder.encode(request.password());
 
         switch (role.toUpperCase()) {

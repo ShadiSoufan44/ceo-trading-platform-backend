@@ -22,8 +22,8 @@ import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.enums.Side;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
+import com.ceo.trading_platform_backend.messaging.OrderProducers;
 import com.ceo.trading_platform_backend.services.InstrumentService;
-import com.ceo.trading_platform_backend.services.OrderService;
 import com.ceo.trading_platform_backend.services.OrderService;
 import com.ceo.trading_platform_backend.models.Order;
 
@@ -35,11 +35,13 @@ public class OrderController {
 
     private final OrderService orderService;
     private final InstrumentService instrumentService;
+    private final OrderProducers producers;
 
 
-    public OrderController(OrderService orderService, InstrumentService instrumentService) {
+    public OrderController(OrderService orderService, InstrumentService instrumentService, OrderProducers producers) {
         this.orderService = orderService;
         this.instrumentService = instrumentService;
+        this.producers = producers;
     }
 
     //get all orders 
@@ -73,7 +75,9 @@ public class OrderController {
 
     @PostMapping("/new")
     public ResponseEntity<OrderResponseDTO> submitOrder(@Valid @RequestBody OrderRequestDTO request) {
-        Order order = orderService.submit(request);
+        // Order order = orderService.submit(request);
+        Order order = orderService.createOrder(request);
+        producers.submit(order);
         OrderResponseDTO response = createOrderResponse(order);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -82,20 +86,23 @@ public class OrderController {
         UUID orderId = order.getOrderId();
         UUID clientId = order.getClientId();
         UUID portfolioId = order.getPortfolioId();
-        String instrumentSymbol = instrumentService.getInstrumentById(order.getInstrumentId()).getSymbol();
-        String instrumentFullName = instrumentService.getInstrumentById(order.getInstrumentId()).getFullName();
-        InstrumentType instrumentType = instrumentService.getInstrumentById(order.getInstrumentId()).getType();
+        String addInstrumentSymbol = instrumentService.getInstrumentById(order.getAddInstrumentId()).getSymbol();
+        String addInstrumentFullName = instrumentService.getInstrumentById(order.getAddInstrumentId()).getFullName();
+        InstrumentType addInstrumentType = instrumentService.getInstrumentById(order.getAddInstrumentId()).getType();
+        String subtractInstrumentSymbol = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getSymbol();
+        String subtractInstrumentFullName = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getFullName();
+        InstrumentType subtractInstrumentType = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getType();
         String createdDate = order.getCreatedDate().toString();
         BigDecimal quantity = order.getQuantity();
         BigDecimal quotedPrice = order.getQuote();
         Side side = order.getSide();
-        BigDecimal increaseThreshold = order.getIncreaseThreshold();
+        BigDecimal changeThreshold = order.getChangeThreshold();
         String resolvedDate = "";
         if(isResolved(order)) {
             resolvedDate = order.getCurrentOrderStatus().getDate().toString();
         }
         OrderStatus currentStatus = order.getCurrentOrderStatus().getStatus();
-        OrderResponseDTO response = new OrderResponseDTO(orderId, clientId, portfolioId, instrumentSymbol, instrumentType, instrumentFullName, quantity, quotedPrice, side, increaseThreshold, createdDate, resolvedDate, currentStatus); 
+        OrderResponseDTO response = new OrderResponseDTO(orderId, clientId, portfolioId, addInstrumentSymbol, addInstrumentType, addInstrumentFullName, subtractInstrumentSymbol, subtractInstrumentType, subtractInstrumentFullName, quantity, quotedPrice, side, changeThreshold, createdDate, resolvedDate, currentStatus); 
 
         return response;
     }

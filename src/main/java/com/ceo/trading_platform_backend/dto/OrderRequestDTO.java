@@ -9,9 +9,10 @@ public record OrderRequestDTO(
     UUID clientId,
     String clientName,
     UUID portfolioId,
-    String instrumentSymbol,
+    String addInstrumentSymbol,
+    String subtractInstrumentSymbol,
     BigDecimal quantity,
     BigDecimal quotedPrice,
     Side side,
-    BigDecimal increaseThreshold
+    BigDecimal changeThreshold
 ) {}

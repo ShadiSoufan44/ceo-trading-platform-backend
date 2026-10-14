@@ -1,11 +1,12 @@
 package com.ceo.trading_platform_backend.models;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 
@@ -17,6 +18,7 @@ import java.util.HashSet;
  * real-time position visibility, no jargon or complex workflows.
  */
 @DiscriminatorValue("CLIENT")
+@Entity 
 public class Client extends User {
     
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
@@ -28,7 +30,7 @@ public class Client extends User {
         portfolios = new HashSet<>();
     }
 
-    public Client(String fullName, String email, String password, OffsetDateTime joinDate) {
+    public Client(String fullName, String email, String password, Instant joinDate) {
         super(fullName, email, password, joinDate, "CLIENT");
         portfolios = new HashSet<>();
     }

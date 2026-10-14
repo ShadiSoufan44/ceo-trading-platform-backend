@@ -3,8 +3,8 @@ package com.ceo.trading_platform_backend.services;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +46,21 @@ public class MarketService {
 		return getQuote(symbol).price();
 	}
 
+	// Returns the latest numeric price for an equity symbol.
+	public BigDecimal getEquityPrice(String symbol) {
+		return getPrice(normalizeEquitySymbol(symbol));
+	}
+
+	// Returns the latest numeric price for a crypto symbol.
+	public BigDecimal getCryptoPrice(String symbol) {
+		return getPrice(normalizeCryptoSymbol(symbol));
+	}
+
+	// Returns the latest numeric price for a cash/FX symbol.
+	public BigDecimal getCashPrice(String symbol) {
+		return getPrice(normalizeCashSymbol(symbol));
+	}
+
 	// Fetches the full latest quote payload for a single symbol.
 	public QuoteData getQuote(String symbol) {
 		QuoteResponse response = getAndRead("/quotes/{symbol}", QuoteResponse.class, normalizeSymbol(symbol));
@@ -80,6 +95,21 @@ public class MarketService {
 	public SymbolMetadataData getSymbolMetadata(String symbol) {
 		SymbolMetadataResponse response = getAndRead("/symbols/{symbol}", SymbolMetadataResponse.class, normalizeSymbol(symbol));
 		return response.data();
+	}
+
+	// Fetches metadata for an equity symbol.
+	public SymbolMetadataData getEquityMetadata(String symbol) {
+		return getSymbolMetadata(normalizeEquitySymbol(symbol));
+	}
+
+	// Fetches metadata for a crypto symbol.
+	public SymbolMetadataData getCryptoMetadata(String symbol) {
+		return getSymbolMetadata(normalizeCryptoSymbol(symbol));
+	}
+
+	// Fetches metadata for a cash/FX symbol.
+	public SymbolMetadataData getCashMetadata(String symbol) {
+		return getSymbolMetadata(normalizeCashSymbol(symbol));
 	}
 
 	// Fetches daily candles for a symbol over an optional date range.
@@ -183,6 +213,26 @@ public class MarketService {
 		return symbol.trim().toUpperCase();
 	}
 
+	private String normalizeEquitySymbol(String symbol) {
+		return normalizeSymbol(symbol);
+	}
+
+	private String normalizeCryptoSymbol(String symbol) {
+		String normalized = normalizeSymbol(symbol);
+		if (!normalized.startsWith("X:")) {
+			normalized = "X:" + normalized;
+		}
+		return normalized;
+	}
+
+	private String normalizeCashSymbol(String symbol) {
+		String normalized = normalizeSymbol(symbol).replace("/", "");
+		if (!normalized.startsWith("FX:")) {
+			normalized = "FX:" + normalized;
+		}
+		return normalized;
+	}
+
 	// Ensures an API key is configured before any outbound request is attempted.
 	private String requireApiKey() {
 		if (apiKey == null || apiKey.isBlank()) {
@@ -219,7 +269,7 @@ public class MarketService {
 			BigDecimal change,
 			BigDecimal changePercent,
 			BigDecimal previousClose,
-			OffsetDateTime asOf,
+			Instant asOf,
 			String marketState) {
 	}
 
@@ -276,7 +326,7 @@ public class MarketService {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record ApiMeta(
-			OffsetDateTime asOf,
+			Instant asOf,
 			String disclaimer,
 			String symbol,
 			String source,

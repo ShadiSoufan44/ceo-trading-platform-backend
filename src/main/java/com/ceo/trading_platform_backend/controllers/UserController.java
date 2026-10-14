@@ -67,11 +67,14 @@ public class UserController {
      * @param userId the user ID
      * @return 200 OK with UserResponse
      */
-    @GetMapping("/{userId}")
-    @PreAuthorize("hasRole('ADMIN') or @userService.isOwnProfile(#userId)")
-    public ResponseEntity<UserResponse> getUser(@PathVariable UUID userId) {
-        return ResponseEntity.ok(userService.getUser(userId));
-    }
+    // TODO: commented out until userService fully implemented
+    // @GetMapping("/{userId}")
+    // @PreAuthorize("hasRole('ADMIN') or @userService.isOwnProfile(#userId)")
+    // public ResponseEntity<UserResponse> getUser(@PathVariable UUID userId) {
+    //     return ResponseEntity.ok(userService.getUser(userId));
+    // }
+
+
 
     /**
      * Change user password.

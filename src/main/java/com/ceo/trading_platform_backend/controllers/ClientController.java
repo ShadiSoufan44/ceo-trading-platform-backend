@@ -1,6 +1,7 @@
 package com.ceo.trading_platform_backend.controllers;
 
 import java.util.List;
+import java.util.UUID;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -35,7 +36,7 @@ public class ClientController {
     @PostMapping("/orders")
     @PreAuthorize("@userService.isOwnProfile(#userId)")
     public ResponseEntity<Order> placeOrder(
-            @PathVariable Integer userId,
+            @PathVariable UUID userId,
             @Valid @RequestBody Order order) {
         Order placedOrder = clientService.placeOrder(userId, order);
         return ResponseEntity.status(HttpStatus.CREATED).body(placedOrder);
@@ -46,7 +47,7 @@ public class ClientController {
      */
     @GetMapping("/orders")
     @PreAuthorize("@userService.isOwnProfile(#userId)")
-    public ResponseEntity<List<Order>> viewTransactionHistory(@PathVariable Integer userId) {
+    public ResponseEntity<List<Order>> viewTransactionHistory(@PathVariable UUID userId) {
         List<Order> transactions = clientService.viewTransactionHistory(userId);
         return ResponseEntity.ok(transactions);
     }
@@ -56,7 +57,7 @@ public class ClientController {
      */
     @GetMapping("/positions")
     @PreAuthorize("@userService.isOwnProfile(#userId)")
-    public ResponseEntity<List<Holding>> getPositions(@PathVariable Integer userId) {
+    public ResponseEntity<List<Holding>> getPositions(@PathVariable UUID userId) {
         List<Holding> positions = clientService.getPositions(userId);
         return ResponseEntity.ok(positions);
     }
@@ -68,8 +69,8 @@ public class ClientController {
     @GetMapping("/orders/{orderId}")
     @PreAuthorize("@userService.isOwnProfile(#userId)")
     public ResponseEntity<Order> getOrderStatus(
-            @PathVariable Integer userId,
-            @PathVariable Integer orderId) {
+            @PathVariable UUID userId,
+            @PathVariable UUID orderId) {
         Order order = clientService.getOrderStatus(userId, orderId);
         return ResponseEntity.ok(order);
     }
@@ -79,7 +80,7 @@ public class ClientController {
      */
     @GetMapping("/portfolios")
     @PreAuthorize("@userService.isOwnProfile(#userId)")
-    public ResponseEntity<List<Portfolio>> getPortfolios(@PathVariable Integer userId) {
+    public ResponseEntity<List<Portfolio>> getPortfolios(@PathVariable UUID userId) {
         List<Portfolio> portfolios = clientService.getPortfolios(userId);
         return ResponseEntity.ok(portfolios);
     }
