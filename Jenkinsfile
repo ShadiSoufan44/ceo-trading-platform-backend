@@ -57,13 +57,24 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo '========== Running Maven tests =========='
-                sh 'mvn -B test'
+                withCredentials([file(
+                    credentialsId: 'backend-env',
+                    variable: 'ENV_FILE'
+                )]) {
+                    sh '''
+                        set +x
+                        set -a
+                        . "$ENV_FILE"
+                        set +a
+
+                        mvn -B test
+                    '''
+                }
             }
             post {
                 always {
                     junit allowEmptyResults: true,
-                          testResults: 'target/surefire-reports/*.xml'
+                        testResults: 'target/surefire-reports/*.xml'
                 }
             }
         }
