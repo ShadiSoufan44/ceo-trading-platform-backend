@@ -50,8 +50,14 @@ public class OrderService {
     public Order createOrder(OrderRequestDTO orderRequest) {
         UUID clientId = orderRequest.clientId();
         UUID portfolioId = portfolioService.getPortfolioById(orderRequest.portfolioId()).getPortfolioId();
-        UUID addInstrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.addInstrumentSymbol()).getID(); // instrument servcie asks external api for instrument info
-        UUID subtractInstrumentId = instrumentService.getOrInsertInstrumentBySymbol(orderRequest.subtractInstrumentSymbol()).getID();
+        UUID addInstrumentId = instrumentService.getOrInsertInstrumentBySymbolAndType(
+            orderRequest.addInstrumentSymbol(), 
+            orderRequest.addInstrumentType()
+        ).getID(); 
+        UUID subtractInstrumentId = instrumentService.getOrInsertInstrumentBySymbolAndType(
+            orderRequest.subtractInstrumentSymbol(),
+            orderRequest.subtractInstrumentType()
+        ).getID();
         BigDecimal quantity = orderRequest.quantity();
         BigDecimal quotedPrice = orderRequest.quotedPrice();
         Side side = orderRequest.side();
@@ -265,7 +271,8 @@ public class OrderService {
 
     private boolean instrumentIsTradeable(UUID instrumentId) {
         // comes from market API
-        Boolean tradable = marketService.isActiveSymbol(instrumentService.getInstrumentById(instrumentId).getSymbol());
+        Instrument instrument = instrumentService.getInstrumentById(instrumentId);
+        Boolean tradable = marketService.isActiveSymbolByType(instrument.getSymbol(), instrument.getType());
         return tradable;
     }
 
