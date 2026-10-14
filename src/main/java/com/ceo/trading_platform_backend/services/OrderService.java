@@ -74,6 +74,21 @@ public class OrderService {
         return order;
     }
 
+    public Order save(Order order) {
+        return repository.save(order);
+    }
+
+    public void markRejected(UUID orderId, String message) {
+        repository.findById(orderId).ifPresent(order -> {
+            order.addOrderStatusChange(new OrderStatusChange(
+                OrderStatus.REJECTED,
+                message,
+                Instant.now()
+            ));
+            repository.save(order);
+        });
+    }
+
 
     // these methods get called from kafka pipeline
 

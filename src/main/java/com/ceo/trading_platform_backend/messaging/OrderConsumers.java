@@ -30,12 +30,20 @@ public class OrderConsumers {
     @Transactional 
     public void validate(UUID orderId) {
         System.out.println("UNVALIDATED: " + orderId);
-        Order order = orderService.getOrderById(orderId).orElseThrow();
-        order = orderService.validate(order);
-        if (order.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
-            kafka.send(
-                "orders.unexecuted", Objects.requireNonNull(order.getOrderId())
-            ).join();
+        try {
+            Order order = orderService.getOrderById(orderId).orElseThrow();
+            if (order.getCurrentOrderStatus().getStatus() != OrderStatus.PENDING) {
+                return;
+            }
+            order = orderService.validate(order);
+            orderService.save(order);
+            if (order.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
+                kafka.send(
+                    "orders.unexecuted", Objects.requireNonNull(order.getOrderId())
+                ).join();
+            }
+        } catch (RuntimeException exception) {
+            orderService.markRejected(orderId, "order validation failed: " + exception.getMessage());
         }
 
     }
@@ -44,9 +52,17 @@ public class OrderConsumers {
     @Transactional 
     public void execute(UUID orderId) {
         System.out.println("UNEXECUTED: " + orderId);
-        Order order = orderService.getOrderById(orderId).orElseThrow();
-        System.out.println("UNEXECUTED2: " + orderId);
-        orderService.execute(order);
+        try {
+            Order order = orderService.getOrderById(orderId).orElseThrow();
+            if (order.getCurrentOrderStatus().getStatus() != OrderStatus.ACCEPTED) {
+                return;
+            }
+            System.out.println("UNEXECUTED2: " + orderId);
+            order = orderService.execute(order);
+            orderService.save(order);
+        } catch (RuntimeException exception) {
+            orderService.markRejected(orderId, "order execution failed: " + exception.getMessage());
+        }
     }
 }
 
