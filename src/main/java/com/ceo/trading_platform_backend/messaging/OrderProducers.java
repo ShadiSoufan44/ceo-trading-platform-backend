@@ -30,11 +30,11 @@ public class OrderProducers {
 
     public void submit(Order order) {
         UUID id = Objects.requireNonNull(order.getOrderId());
-        kafka.send("orders.unvalidated", id).join();
         Instant today = Instant.now();
         OrderStatusChange pendingOrderStatus = new OrderStatusChange(OrderStatus.PENDING, "order submitted to be processed", today);
         order.addOrderStatusChange(pendingOrderStatus);
         repository.save(order);
+        kafka.send("orders.unvalidated", id).join();
     }
 
 }
