@@ -16,11 +16,13 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 
 import com.ceo.trading_platform_backend.models.Holding;
+import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.OrderStatusChange;
 
 import com.ceo.trading_platform_backend.repositories.OrderRepository; // waiting for implementation
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.enums.Side;
 
@@ -80,12 +82,27 @@ public class OrderService {
     // validate info liek instrument tradable and has sufficient holdings
     public Order validate(Order order) {
         // TODO need to check time and put into different queues if doing after hours
-        if (outOfHours(order, order.getCreatedDate())) {
-            Instant today = Instant.now();
-            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
-            order.addOrderStatusChange(rejectedOrderStatus);
-            return order; // early return, don't validate --> this functionality may change depending on if allowing extra hours
-        }
+        InstrumentType type1 = instrumentService.getInstrumentById(order.getAddInstrumentId()).getType();
+        InstrumentType type2 = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getType();
+
+        if (!isCryptoTransaction(type1, type2)) {
+            // forex or equity cannot occure on weekends
+            if (outOfHoursWeekend(order, order.getCreatedDate())) {
+                Instant today = Instant.now();
+                OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+                order.addOrderStatusChange(rejectedOrderStatus);
+                return order;
+            }
+            if (isEquityTransaction(type1, type2)) {
+                if (outOfHours(order, order.getCreatedDate())) {
+                    Instant today = Instant.now();
+                    OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+                    order.addOrderStatusChange(rejectedOrderStatus);
+                    return order; // early return, don't validate --> this functionality may change depending on if allowing extra hours
+                }
+            }
+        } 
+        // should check this for all types of transactions?
         if (!instrumentIsTradeable(order.getAddInstrumentId())) {
             Instant today = Instant.now();
             String symbol = instrumentService.getInstrumentById(order.getAddInstrumentId()).getSymbol();
@@ -113,9 +130,18 @@ public class OrderService {
         return order; // go ahead to send to queue base don order status
     }
 
+    // private BigDecimal getTypedPrice(Order order) {
+    //     if ()
+    // }
+    // HERE THE BELOW GET PRICE IS NOT RIGHT
+
     public Order execute(Order order) {
-        BigDecimal addPrice = marketService.getPrice(instrumentService.getInstrumentById(order.getAddInstrumentId()).getSymbol());
-        BigDecimal subtractPrice = marketService.getPrice(instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getSymbol());
+        // new: this should change to clal the correct get__Price deoending on instrumenttype
+        Instrument addInstrument = instrumentService.getInstrumentById(order.getAddInstrumentId());
+        Instrument subtractInstrument = instrumentService.getInstrumentById(order.getSubtractInstrumentId());
+
+        BigDecimal addPrice = marketService.getPriceWithType(addInstrument.getType(), addInstrument.getSymbol());
+        BigDecimal subtractPrice = marketService.getPriceWithType(subtractInstrument.getType(), subtractInstrument.getSymbol());
         BigDecimal activePrice = (order.getSide() == Side.SELL) ? subtractPrice : addPrice;
 
         if (outOfHours(order, Instant.now())) {
@@ -158,11 +184,21 @@ public class OrderService {
         ZoneId zone = ZoneId.of("America/New_York");
         LocalDateTime dateTime = LocalDateTime.ofInstant(timestamp, zone);
         LocalTime time = dateTime.toLocalTime();
-        DayOfWeek day = dateTime.toLocalDate().getDayOfWeek();
-        if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
+        boolean weekend = outOfHoursWeekend(order, timestamp);
+        if (weekend) {
             return true;
         }
         if (time.isBefore(OPEN_TIME_LOCAL) || time.isAfter(CLOSE_TIME_LOCAL)) { // submitted time shoudl be in request dto
+            return true;
+        }
+        return false;
+    }
+
+    private boolean outOfHoursWeekend(Order order, Instant timestamp) {
+        ZoneId zone = ZoneId.of("America/New_York");
+        LocalDateTime dateTime = LocalDateTime.ofInstant(timestamp, zone);
+        DayOfWeek day = dateTime.toLocalDate().getDayOfWeek();
+        if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
             return true;
         }
         return false;
@@ -216,5 +252,21 @@ public class OrderService {
         // comes from market API
         Boolean tradable = marketService.isActiveSymbol(instrumentService.getInstrumentById(instrumentId).getSymbol());
         return tradable;
+    }
+
+    // utils?
+    private boolean isCryptoTransaction(InstrumentType type1, InstrumentType type2) { // lowkey just pass in type because when this method is called you'll have the types already
+        if (type1 == InstrumentType.CRYPTO || type2 == InstrumentType.CRYPTO) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isEquityTransaction(InstrumentType type1, InstrumentType type2) {
+        return (type1 == InstrumentType.EQUITY || type2 == InstrumentType.EQUITY);
+    }
+
+    private boolean isForexTransaction(InstrumentType type1, InstrumentType type2) {
+        return (type1 == InstrumentType.CASH && type2 == InstrumentType.CASH);
     }
 }

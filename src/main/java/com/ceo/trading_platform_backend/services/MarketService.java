@@ -15,6 +15,7 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -41,23 +42,34 @@ public class MarketService {
 		this.apiKey = apiKey;
 	}
 
+	// gets price given the insturmenttype
+	public BigDecimal getPriceWithType(InstrumentType type, String symbol) {
+		if (type == InstrumentType.EQUITY) { 
+			return getEquityPrice(symbol);
+		} else if (type == InstrumentType.CRYPTO) {
+			return getCryptoPrice(symbol);
+		} else { // cash
+			return getCashPrice(symbol);
+		}
+	}
+
 	// Returns the latest numeric price for a single symbol.
 	public BigDecimal getPrice(String symbol) {
 		return getQuote(symbol).price();
 	}
 
 	// Returns the latest numeric price for an equity symbol.
-	public BigDecimal getEquityPrice(String symbol) {
+	private BigDecimal getEquityPrice(String symbol) {
 		return getPrice(normalizeEquitySymbol(symbol));
 	}
 
 	// Returns the latest numeric price for a crypto symbol.
-	public BigDecimal getCryptoPrice(String symbol) {
+	private BigDecimal getCryptoPrice(String symbol) {
 		return getPrice(normalizeCryptoSymbol(symbol));
 	}
 
 	// Returns the latest numeric price for a cash/FX symbol.
-	public BigDecimal getCashPrice(String symbol) {
+	private BigDecimal getCashPrice(String symbol) {
 		return getPrice(normalizeCashSymbol(symbol));
 	}
 
