@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.services.MarketService.*;
 import com.ceo.trading_platform_backend.services.MarketService.Candle;
 import com.ceo.trading_platform_backend.services.MarketService.Coverage;
@@ -91,29 +92,36 @@ public class MarketServiceTest {
         });
     }
 
+    // @Test
+    // void testGetEquityPriceThrowsExceptionForNullSymbol() {
+    //     assertThrows(IllegalArgumentException.class, () -> {
+    //         marketService.getEquityPrice(null);
+    //     });
+    // }
+
+    // @Test
+    // void testGetCryptoPriceThrowsExceptionForNullSymbol() {
+    //     assertThrows(IllegalArgumentException.class, () -> {
+    //         marketService.getCryptoPrice(null);
+    //     });
+    // }
+
+    // @Test
+    // void testGetCashPriceThrowsExceptionForNullSymbol() {
+    //     assertThrows(IllegalArgumentException.class, () -> {
+    //         marketService.getCashPrice(null);
+    //     });
+    // }
+
     @Test
-    void testGetEquityPriceThrowsExceptionForNullSymbol() {
+    void testGetPriceWithTypeForNullSymbol() {
         assertThrows(IllegalArgumentException.class, () -> {
-            marketService.getEquityPrice(null);
+            marketService.getPriceWithType(null, null);
         });
     }
 
     @Test
-    void testGetCryptoPriceThrowsExceptionForNullSymbol() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            marketService.getCryptoPrice(null);
-        });
-    }
-
-    @Test
-    void testGetCashPriceThrowsExceptionForNullSymbol() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            marketService.getCashPrice(null);
-        });
-    }
-
-    @Test
-    void testGetCryptoPriceThrowsExceptionWhenApiKeyMissing() {
+    void testGetPriceWithTypeThrowsExceptionWhenApiKeyMissing() {
         MarketService noKeyMarketService = new MarketService(
             RestClient.builder(),
             objectMapper,
@@ -122,7 +130,7 @@ public class MarketServiceTest {
         );
 
         assertThrows(IllegalStateException.class, () -> {
-            noKeyMarketService.getCryptoPrice("BTC-USD");
+            noKeyMarketService.getPriceWithType(InstrumentType.CRYPTO, "BTC-USD");
         });
     }
 
