@@ -36,7 +36,7 @@ public class OrderService {
     private final InstrumentService instrumentService;
     private final MarketService marketService;
 
-    private final LocalTime OPEN_TIME_LOCAL = LocalTime.of(9, 40, 0); // shoudl these be find
+    private final LocalTime OPEN_TIME_LOCAL = LocalTime.of(9, 30, 0); // shoudl these be find
     private final LocalTime CLOSE_TIME_LOCAL = LocalTime.of(16, 0, 0);
 
     public OrderService(OrderRepository repository, PortfolioService portfolioService, InstrumentService instrumentService, MarketService marketService) {
