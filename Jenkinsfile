@@ -100,19 +100,23 @@ pipeline {
                         set +x
 
                         if [ -z "$SONAR_AUTH_TOKEN" ]; then
-                            echo "ERROR: Jenkins did not inject a SonarQube token"
+                            echo "ERROR: SonarQube token missing"
                             exit 1
                         fi
 
-                        echo "SonarQube token is present"
-
-                        STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
+                        RESPONSE=$(curl -fsS \
                             -H "Authorization: Bearer $SONAR_AUTH_TOKEN" \
                             "$SONAR_HOST_URL/api/authentication/validate")
 
-                        echo "Authentication endpoint HTTP status: $STATUS"
-
-                        [ "$STATUS" = "200" ] || exit 1
+                        case "$RESPONSE" in
+                            *'"valid":true'*|*'"valid": true'*)
+                                echo "Token validation: VALID"
+                                ;;
+                            *)
+                                echo "Token validation: FAILED"
+                                exit 1
+                                ;;
+                        esac
 
                         export SONAR_TOKEN="$SONAR_AUTH_TOKEN"
 
