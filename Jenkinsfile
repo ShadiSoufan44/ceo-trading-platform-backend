@@ -98,14 +98,26 @@ pipeline {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
                         set +x
-                        test -n "$SONAR_AUTH_TOKEN" || {
-                            echo "SonarQube token was not injected"
-                            exit 1
-                        }
 
-                        mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-                            -Dsonar.projectKey=ceo-trading-platform-backend \
-                            -Dsonar.token="$SONAR_AUTH_TOKEN"
+                        if [ -z "$SONAR_AUTH_TOKEN" ]; then
+                            echo "ERROR: Jenkins did not inject a SonarQube token"
+                            exit 1
+                        fi
+
+                        echo "SonarQube token is present"
+
+                        STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
+                            -H "Authorization: Bearer $SONAR_AUTH_TOKEN" \
+                            "$SONAR_HOST_URL/api/authentication/validate")
+
+                        echo "Authentication endpoint HTTP status: $STATUS"
+
+                        [ "$STATUS" = "200" ] || exit 1
+
+                        export SONAR_TOKEN="$SONAR_AUTH_TOKEN"
+
+                        mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar \
+                            -Dsonar.projectKey=ceo-trading-platform-backend
                     '''
                 }
             }
