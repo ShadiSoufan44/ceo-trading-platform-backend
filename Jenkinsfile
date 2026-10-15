@@ -167,37 +167,39 @@ pipeline {
         }
 
         stage('Deploy') {
-            input {
-                message 'Deploy to production?'
-                ok 'Deploy'
-            }
-
             steps {
                 echo '========== Deploying application =========='
 
-                sh '''
-                    test -f .env || {
-                        echo "ERROR: .env file is missing"
-                        exit 1
-                    }
+                withCredentials([file(credentialsId: 'backend-env', variable: 'ENV_FILE')]) {
+                    sh '''
+                        set -eu
+                        set +x
 
-                    docker stop trading-platform-backend || true
-                    docker rm trading-platform-backend || true
+                        CLEAN_ENV=$(mktemp)
+                        chmod 600 "$CLEAN_ENV"
+                        trap 'rm -f "$CLEAN_ENV"' EXIT
 
-                    docker run -d \
-                        --name trading-platform-backend \
-                        --restart unless-stopped \
-                        -p 8081:8081 \
-                        --env-file .env \
-                        "$IMAGE_REPO:$BUILD_NUMBER"
+                        # Remove Windows CRLF line endings
+                        tr -d '\\r' < "$ENV_FILE" > "$CLEAN_ENV"
 
-                    sleep 10
-                    docker ps --filter name=trading-platform-backend
-                    docker logs trading-platform-backend
-                '''
+                        docker stop trading-platform-backend || true
+                        docker rm trading-platform-backend || true
+
+                        docker run -d \
+                            --name trading-platform-backend \
+                            --restart unless-stopped \
+                            -p 8081:8081 \
+                            --env-file "$CLEAN_ENV" \
+                            "$IMAGE_REPO:$BUILD_NUMBER"
+
+                        sleep 10
+
+                        docker ps --filter name=trading-platform-backend
+                        docker logs --tail 50 trading-platform-backend
+                    '''
+                }
             }
         }
-    }
 
     post {
         success {
