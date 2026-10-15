@@ -143,21 +143,21 @@ pipeline {
             steps {
                 echo '========== Pushing Docker images =========='
 
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
                     sh '''
+                        set -eu
                         set +x
+
                         export DOCKER_CONFIG="$(mktemp -d)"
-                        trap 'docker logout "$DOCKER_REGISTRY" >/dev/null 2>&1 || true; rm -rf "$DOCKER_CONFIG"' EXIT
+                        trap 'rm -rf "$DOCKER_CONFIG"' EXIT
 
                         printf '%s' "$DOCKER_PASS" | docker login \
-                            -u "$DOCKER_USER" \
-                            --password-stdin "$DOCKER_REGISTRY"
+                            --username "$DOCKER_USER" \
+                            --password-stdin
 
                         docker push "$IMAGE_REPO:$DOCKER_IMAGE_TAG"
                         docker push "$IMAGE_REPO:$BUILD_NUMBER"
