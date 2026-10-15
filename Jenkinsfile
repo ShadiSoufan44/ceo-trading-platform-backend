@@ -130,24 +130,12 @@ pipeline {
             steps {
                 echo '========== Building Docker image =========='
 
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                        set -eu
-
-                        IMAGE_REPO="${DOCKER_REGISTRY}/${DOCKER_USER}/${DOCKER_IMAGE_NAME}"
-
-                        echo "Building image: $IMAGE_REPO"
-
-                        docker build \
-                            -t "$IMAGE_REPO:$DOCKER_IMAGE_TAG" \
-                            -t "$IMAGE_REPO:$BUILD_NUMBER" \
-                            -f Dockerfile .
-                    '''
-                }
+                sh '''
+                    docker build \
+                        -t "$IMAGE_REPO:$DOCKER_IMAGE_TAG" \
+                        -t "$IMAGE_REPO:$BUILD_NUMBER" \
+                        -f Dockerfile .
+                '''
             }
         }
 
