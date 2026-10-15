@@ -305,7 +305,7 @@ public class PortfolioServiceTests {
             portfolio.addHolding(createCashHolding(new BigDecimal("5000"), portfolio));
             portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
 
-            when(marketService.getPrice(stockInstrument.getSymbol()))
+            when(marketService.getPriceWithType(stockInstrument.getType(), stockInstrument.getSymbol()))
                 .thenReturn(new BigDecimal("150"));
             when(portfolioRepository.getReferenceById(uuid1))
                 .thenReturn(portfolio);
@@ -325,7 +325,7 @@ public class PortfolioServiceTests {
             portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
             portfolio.addHolding(createStockHolding(new BigDecimal("5"), new BigDecimal("200"), portfolio));
 
-            when(marketService.getPrice(stockInstrument.getSymbol()))
+            when(marketService.getPriceWithType(stockInstrument.getType(), stockInstrument.getSymbol()))
                 .thenReturn(new BigDecimal("150"))
                 .thenReturn(new BigDecimal("200"));
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);

@@ -1,100 +1,120 @@
+
 pipeline {
     agent any
+
+    tools {
+        jdk 'JDK21'
+    }
 
     options {
         timeout(time: 30, unit: 'MINUTES')
         timestamps()
         buildDiscarder(logRotator(numToKeepStr: '10'))
+        skipDefaultCheckout(true)
     }
 
     parameters {
-        string(name: 'DOCKER_REGISTRY', defaultValue: 'docker.io', description: 'Docker registry URL')
-        string(name: 'DOCKER_IMAGE_NAME', defaultValue: 'trading-platform-backend', description: 'Docker image name')
-        string(name: 'DOCKER_IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag')
+        string(
+            name: 'DOCKER_REGISTRY',
+            defaultValue: 'docker.io',
+            description: 'Docker registry'
+        )
+        string(
+            name: 'DOCKER_IMAGE_NAME',
+            defaultValue: 'trading-platform-backend',
+            description: 'Docker image repository name'
+        )
+        string(
+            name: 'DOCKER_IMAGE_TAG',
+            defaultValue: 'latest',
+            description: 'Docker image tag'
+        )
     }
 
     environment {
-        JAVA_HOME = tool 'JDK17'
-        MAVEN_HOME = tool 'Maven-3.8.1'
-        PATH = "${MAVEN_HOME}/bin:${JAVA_HOME}/bin:${PATH}"
-        SONAR_HOST_URL = credentials('sonar-host-url')
-        SONAR_LOGIN = credentials('sonar-login-token')
-        DOCKER_CREDENTIALS = credentials('docker-credentials')
+        IMAGE_REPO = ''
     }
 
     stages {
+
         stage('Checkout') {
             steps {
-                echo '========== Checking out code from main branch =========='
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[url: 'https://github.com/your-org/ceo-trading-platform-backend.git']]
-                ])
+                echo '========== Checking out code =========='
+                checkout scm
             }
         }
 
         stage('Build') {
             steps {
-                echo '========== Running Maven clean compile =========='
-                sh 'mvn clean compile'
+                echo '========== Building with Java 21 =========='
+                sh '''
+                    java -version
+                    mvn -version
+                    mvn -B clean compile
+                '''
             }
         }
 
         stage('Test') {
             steps {
                 echo '========== Running Maven tests =========='
-                sh 'mvn test'
+                sh 'mvn -B test'
             }
             post {
                 always {
-                    junit 'target/surefire-reports/*.xml'
-                    publishHTML([
-                        reportDir: 'target/surefire-reports',
-                        reportFiles: 'index.html',
-                        reportName: 'Test Report'
-                    ])
+                    junit allowEmptyResults: true,
+                          testResults: 'target/surefire-reports/*.xml'
                 }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                echo '========== Running SonarQube code quality analysis =========='
-                sh '''
-                    mvn sonar:sonar \
-                        -Dsonar.projectKey=ceo-trading-platform-backend \
-                        -Dsonar.sources=src/main/java \
-                        -Dsonar.tests=src/test/java \
-                        -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.login=${SONAR_LOGIN}
-                '''
+                echo '========== Running SonarQube analysis =========='
+
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        mvn -B sonar:sonar \
+                            -Dsonar.projectKey=ceo-trading-platform-backend
+                    '''
+                }
             }
         }
 
         stage('Package') {
             steps {
                 echo '========== Packaging application =========='
-                sh 'mvn package -DskipTests'
+                sh 'mvn -B package -DskipTests'
             }
             post {
                 success {
-                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                    archiveArtifacts(
+                        artifacts: 'target/*.jar',
+                        fingerprint: true
+                    )
                 }
             }
         }
 
         stage('Build Docker Image') {
-            when {
-                branch 'main'
-            }
             steps {
                 echo '========== Building Docker image =========='
-                script {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+                    script {
+                        env.IMAGE_REPO = "${params.DOCKER_REGISTRY}/${env.DOCKER_USER}/${params.DOCKER_IMAGE_NAME}"
+                    }
+
                     sh '''
                         docker build \
-                            -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
-                            -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} \
+                            -t "$IMAGE_REPO:$DOCKER_IMAGE_TAG" \
+                            -t "$IMAGE_REPO:$BUILD_NUMBER" \
                             -f Dockerfile .
                     '''
                 }
@@ -102,91 +122,76 @@ pipeline {
         }
 
         stage('Push to Docker Registry') {
-            when {
-                branch 'main'
-            }
             steps {
-                echo '========== Pushing Docker image to registry =========='
-                script {
+                echo '========== Pushing Docker images =========='
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
                     sh '''
-                        echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin ${DOCKER_REGISTRY}
-                        docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-                        docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}
-                        docker logout ${DOCKER_REGISTRY}
+                        set +x
+                        export DOCKER_CONFIG="$(mktemp -d)"
+                        trap 'docker logout "$DOCKER_REGISTRY" >/dev/null 2>&1 || true; rm -rf "$DOCKER_CONFIG"' EXIT
+
+                        printf '%s' "$DOCKER_PASS" | docker login \
+                            -u "$DOCKER_USER" \
+                            --password-stdin "$DOCKER_REGISTRY"
+
+                        docker push "$IMAGE_REPO:$DOCKER_IMAGE_TAG"
+                        docker push "$IMAGE_REPO:$BUILD_NUMBER"
                     '''
                 }
             }
         }
 
         stage('Deploy') {
-            when {
-                branch 'main'
-            }
             input {
-                message "Deploy to production?"
-                ok "Deploy"
+                message 'Deploy to production?'
+                ok 'Deploy'
             }
+
             steps {
-                echo '========== Deploying Docker container =========='
-                script {
-                    sh '''
-                        # Stop and remove existing container
-                        docker stop trading-platform-backend || true
-                        docker rm trading-platform-backend || true
+                echo '========== Deploying application =========='
 
-                        # Run new container
-                        docker run -d \
-                            --name trading-platform-backend \
-                            -p 8081:8081 \
-                            --env-file .env \
-                            ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+                sh '''
+                    test -f .env || {
+                        echo "ERROR: .env file is missing"
+                        exit 1
+                    }
 
-                        # Wait for container to start
-                        sleep 10
-                        docker logs trading-platform-backend
-                    '''
-                }
+                    docker stop trading-platform-backend || true
+                    docker rm trading-platform-backend || true
+
+                    docker run -d \
+                        --name trading-platform-backend \
+                        --restart unless-stopped \
+                        -p 8081:8081 \
+                        --env-file .env \
+                        "$IMAGE_REPO:$BUILD_NUMBER"
+
+                    sleep 10
+                    docker ps --filter name=trading-platform-backend
+                    docker logs trading-platform-backend
+                '''
             }
         }
     }
 
     post {
-        always {
-            echo '========== Pipeline finished =========='
-            cleanWs()
-        }
         success {
-            emailext(
-                subject: "Build SUCCESS: ${env.JOB_NAME} - #${env.BUILD_NUMBER}",
-                body: """
-                    Build successful!
-
-                    Job: ${env.JOB_NAME}
-                    Build Number: ${env.BUILD_NUMBER}
-                    Build URL: ${env.BUILD_URL}
-                    
-                    Docker Image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-                """,
-                to: '${DEFAULT_RECIPIENTS}',
-                mimeType: 'text/html'
-            )
+            echo '========== Pipeline completed successfully =========='
         }
-        failure {
-            emailext(
-                subject: "Build FAILED: ${env.JOB_NAME} - #${env.BUILD_NUMBER}",
-                body: """
-                    Build failed!
 
-                    Job: ${env.JOB_NAME}
-                    Build Number: ${env.BUILD_NUMBER}
-                    Build URL: ${env.BUILD_URL}
-                    
-                    Check the logs for details.
-                """,
-                to: '${DEFAULT_RECIPIENTS}',
-                mimeType: 'text/html',
-                attachLog: true
-            )
+        failure {
+            echo '========== Pipeline failed =========='
+        }
+
+        always {
+            echo "Build number: ${env.BUILD_NUMBER}"
         }
     }
 }

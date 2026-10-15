@@ -1,11 +1,10 @@
 openapi: 3.0.0
 info:
-  title: Order Controller API
-  description: API for managing trading orders in the CEO Trading Platform
+  title: CEO Trading Platform API
+  description: API for authentication, users, portfolios, orders, positions, and market data.
   version: 1.0.0
   contact:
     name: API Support
-
 servers:
   - url: http://localhost:8081
     description: Development server
@@ -13,282 +12,361 @@ servers:
     description: Production server
 
 paths:
-  /order:
+  /api/users/{userId}/portfolios:
     get:
-      summary: Get all orders
-      description: Retrieves a list of all orders in the system
-      operationId: getAllOrders
-      tags:
-        - Orders
+      summary: Get all portfolios for a user
+      description: Returns portfolios joined to the user through portfolio.client_id = user_account.user_id. Each portfolio may contain its own holdings.
+      operationId: getUserPortfolios
+      tags: [Client]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
       responses:
         '200':
-          description: Successfully retrieved all orders
+          description: User portfolios
           content:
             application/json:
               schema:
                 type: array
-                items:
-                  $ref: '#/components/schemas/OrderResponseDTO'
-        '500':
-          description: Internal server error
+                items: { $ref: '#/components/schemas/PortfolioModel' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /order:
+    get:
+      summary: Get all orders
+      operationId: getAllOrders
+      tags: [Orders]
+      responses:
+        '200':
+          description: All orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/OrderResponseDTO' }
 
   /order/{orderID}:
     get:
-      summary: Get order by ID
-      description: Retrieves a specific order by its ID
+      summary: Get an order by ID
       operationId: getOrder
-      tags:
-        - Orders
-      parameters:
-        - name: orderID
-          in: path
-          required: true
-          description: The unique identifier of the order
-          schema:
-            type: string
-            format: uuid
+      tags: [Orders]
+      parameters: [{ $ref: '#/components/parameters/OrderID' }]
       responses:
         '200':
-          description: Successfully retrieved the order
+          description: Order details
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '404':
-          description: Order not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "order id 999 not found in DB"
-        '500':
-          description: Internal server error
+              schema: { $ref: '#/components/schemas/OrderResponseDTO' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /order/by_client/{clientID}:
     get:
       summary: Get orders by client ID
-      description: Retrieves all orders for a specific client
       operationId: getClientOrders
-      tags:
-        - Orders
-      parameters:
-        - name: clientID
-          in: path
-          required: true
-          description: The unique identifier of the client
-          schema:
-            type: string
-            format: uuid
+      tags: [Orders]
+      parameters: [{ $ref: '#/components/parameters/ClientId' }]
       responses:
         '200':
-          description: Successfully retrieved client orders
+          description: Client orders
           content:
             application/json:
               schema:
                 type: array
-                items:
-                  $ref: '#/components/schemas/OrderResponseDTO'
-        '500':
-          description: Internal server error
+                items: { $ref: '#/components/schemas/OrderResponseDTO' }
 
   /order/new:
     post:
       summary: Submit a new order
-      description: Creates and submits a new trading order
       operationId: submitOrder
-      tags:
-        - Orders
+      tags: [Orders]
       requestBody:
         required: true
-        description: Order details for the new order
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/OrderRequestDTO'
+            schema: { $ref: '#/components/schemas/OrderRequestDTO' }
       responses:
         '201':
-          description: Order successfully created and submitted
+          description: Order created and submitted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderResponseDTO' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /api/portfolio/{portfolioId}/buying_power:
+    get:
+      summary: Get portfolio buying power
+      operationId: getBuyingPowerByPortfolioId
+      tags: [Portfolios]
+      parameters: [{ $ref: '#/components/parameters/PortfolioId' }]
+      responses:
+        '200':
+          description: Buying power
+          content:
+            application/json:
+              schema: { type: number, format: double }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/portfolio/{portfolioId}/total_value:
+    get:
+      summary: Get total portfolio value
+      operationId: getTotalValueByPortfolioId
+      tags: [Portfolios]
+      parameters: [{ $ref: '#/components/parameters/PortfolioId' }]
+      responses:
+        '200':
+          description: Total portfolio value
+          content:
+            application/json:
+              schema: { type: number, format: double }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/portfolio/{portfolioId}/holdings:
+    get:
+      summary: Get portfolio holdings
+      operationId: getHoldingsByPortfolioId
+      tags: [Portfolios]
+      parameters: [{ $ref: '#/components/parameters/PortfolioId' }]
+      responses:
+        '200':
+          description: Portfolio holdings
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '400':
-          description: Invalid request body or validation error
-        '500':
-          description: Internal server error
+                type: array
+                items: { $ref: '#/components/schemas/HoldingResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/portfolio/{portfolioId}:
+    get:
+      summary: Get a portfolio by ID
+      operationId: getPortfolioById
+      tags: [Portfolios]
+      parameters: [{ $ref: '#/components/parameters/PortfolioId' }]
+      responses:
+        '200':
+          description: Portfolio details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PortfolioResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/quotes/{symbol}:
+    get:
+      summary: Get a market quote
+      operationId: getStockQuote
+      tags: [Market Data]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Current quote
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuoteData' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/candles/{symbol}/api/candles:
+    get:
+      summary: Get candle data
+      description: This path reflects the controller's current combined class and method mapping.
+      operationId: getCandles
+      tags: [Market Data]
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema: { type: string }
+        - name: param
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Candle response
+          content:
+            text/plain:
+              schema: { type: string }
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ClientId:
+      name: clientID
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PortfolioId:
+      name: portfolioId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    OrderID:
+      name: orderID
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Unauthorized:
+      description: Authentication required
+    Forbidden:
+      description: User is not allowed to access this resource
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
   schemas:
     OrderRequestDTO:
       type: object
-      description: Request object for creating a new order
-      required:
-        - clientId
-        - clientName
-        - portfolioId
-        - addInstrumentSymbol
-        - subtractInstrumentSymbol
-        - quantity
-        - quotedPrice
-        - side
-        - changeThreshold
+      required: [clientId, clientName, portfolioId, addInstrumentSymbol, addInstrumentType, subtractInstrumentSymbol, subtractInstrumentType, quantity, quotedPrice, side, changeThreshold]
       properties:
-        clientId:
-          type: string
-          format: uuid
-          description: The unique identifier of the client
-          example: "550e8400-e29b-41d4-a716-446655440000"
-        clientName:
-          type: string
-          description: The name of the client
-          example: "John Doe"
-        portfolioId:
-          type: string
-          format: uuid
-          description: The unique identifier of the portfolio
-          example: "550e8400-e29b-41d4-a716-446655440001"
-        addInstrumentSymbol:
-          type: string
-          description: The symbol of the instrument to add (e.g., AAPL, GOOG)
-          example: "AAPL"
-        subtractInstrumentSymbol:
-          type: string
-          description: The symbol of the instrument to subtract (matches DTO field name)
-          example: "USD"
-        quantity:
-          type: number
-          format: decimal
-          description: The quantity of the instrument to trade
-          example: 100.00
-        quotedPrice:
-          type: number
-          format: decimal
-          description: The quoted price per unit of the instrument
-          example: 150.50
-        side:
-          $ref: '#/components/schemas/Side'
-        changeThreshold:
-          type: number
-          format: decimal
-          description: The threshold value for price change triggers
-          example: 5.00
-
+        clientId: { type: string, format: uuid }
+        clientName: { type: string }
+        portfolioId: { type: string, format: uuid }
+        addInstrumentSymbol: { type: string }
+        addInstrumentType: { $ref: '#/components/schemas/InstrumentType' }
+        subtractInstrumentSymbol: { type: string }
+        subtractInstrumentType: { $ref: '#/components/schemas/InstrumentType' }
+        quantity: { type: number, format: double }
+        quotedPrice: { type: number, format: double }
+        side: { $ref: '#/components/schemas/Side' }
+        changeThreshold: { type: number, format: double }
     OrderResponseDTO:
       type: object
-      description: Response object containing order details
-      required:
-        - orderId
-        - clientId
-        - portfolioId
-        - addInstrumentSymbol
-        - addInstrumentType
-        - addInstrumentFullName
-        - subtractInstrumentSymbol
-        - subtractInstrumentType
-        - subtractInstrumentFullName
-        - quantity
-        - quotedPrice
-        - side
-        - changeThreshold
-        - createdDate
-        - resolvedDate
-        - currentStatus
       properties:
-        orderId:
-          type: string
-          format: uuid
-          description: The unique identifier of the order
-          example: "550e8400-e29b-41d4-a716-446655440002"
-        clientId:
-          type: string
-          format: uuid
-          description: The unique identifier of the client
-          example: "550e8400-e29b-41d4-a716-446655440000"
-        portfolioId:
-          type: string
-          format: uuid
-          description: The unique identifier of the portfolio
-          example: "550e8400-e29b-41d4-a716-446655440001"
-        addInstrumentSymbol:
-          type: string
-          description: The symbol of the instrument being bought/added
-          example: "AAPL"
-        addInstrumentType:
-          $ref: '#/components/schemas/InstrumentType'
-        addInstrumentFullName:
-          type: string
-          description: The full name of the instrument being bought/added
-          example: "Apple Inc."
-        subtractInstrumentSymbol:
-          type: string
-          description: The symbol of the instrument being sold/subtracted
-          example: "USD"
-        subtractInstrumentType:
-          $ref: '#/components/schemas/InstrumentType'
-        subtractInstrumentFullName:
-          type: string
-          description: The full name of the instrument being sold/subtracted
-          example: "US Dollar"
-        quantity:
-          type: number
-          format: decimal
-          description: The quantity of the instrument
-          example: 100.00
-        quotedPrice:
-          type: number
-          format: decimal
-          description: The quoted price per unit
-          example: 150.50
-        side:
-          $ref: '#/components/schemas/Side'
-        changeThreshold:
-          type: number
-          format: decimal
-          description: The threshold value for price change triggers
-          example: 5.00
-        createdDate:
-          type: string
-          format: date-time
-          description: The timestamp when the order was created
-          example: "2024-01-15T10:30:00"
-        resolvedDate:
-          type: string
-          description: The timestamp when the order was resolved (empty if not resolved)
-          example: ""
-        currentStatus:
-          $ref: '#/components/schemas/OrderStatus'
-
+        orderId: { type: string, format: uuid }
+        clientId: { type: string, format: uuid }
+        portfolioId: { type: string, format: uuid }
+        addInstrumentSymbol: { type: string }
+        addInstrumentType: { $ref: '#/components/schemas/InstrumentType' }
+        addInstrumentFullName: { type: string }
+        subtractInstrumentSymbol: { type: string }
+        subtractInstrumentType: { $ref: '#/components/schemas/InstrumentType' }
+        subtractInstrumentFullName: { type: string }
+        quantity: { type: number, format: double }
+        quotedPrice: { type: number, format: double }
+        side: { $ref: '#/components/schemas/Side' }
+        changeThreshold: { type: number, format: double }
+        createdDate: { type: string }
+        resolvedDate: { type: string }
+        currentStatus: { $ref: '#/components/schemas/OrderStatus' }
+    HoldingResponse:
+      type: object
+      properties:
+        holdingId: { type: string, format: uuid }
+        dateCreated: { type: string, format: date-time }
+        instrumentId: { type: string, format: uuid }
+        orderId: { type: string, format: uuid }
+        purchasedPrice: { type: number, format: double }
+        quantity: { type: number, format: double }
+    PortfolioResponse:
+      type: object
+      properties:
+        ID: { type: string, format: uuid }
+        holdingIds:
+          type: array
+          items: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/PortfolioType' }
+    QuoteData:
+      type: object
+      properties:
+        symbol: { type: string }
+        price: { type: number, format: double }
+        bid: { type: number, format: double }
+        ask: { type: number, format: double }
+        spreadBps: { type: number, format: double }
+        currency: { type: string }
+        change: { type: number, format: double }
+        changePercent: { type: number, format: double }
+        previousClose: { type: number, format: double }
+        asOf: { type: string, format: date-time }
+        marketState: { type: string }
+    OrderModel:
+      type: object
+      properties:
+        orderId: { type: string, format: uuid }
+        instrumentId: { type: string, format: uuid }
+        side: { $ref: '#/components/schemas/Side' }
+        portfolioId: { type: string, format: uuid }
+        clientId: { type: string, format: uuid }
+        quote: { type: number, format: double }
+        increaseThreshold: { type: number, format: double }
+        quantity: { type: number, format: double }
+        createdDate: { type: string, format: date-time }
+        currentOrderStatus: { $ref: '#/components/schemas/OrderStatusChangeModel' }
+    OrderStatusChangeModel:
+      type: object
+      properties:
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        date: { type: string, format: date-time }
+    HoldingModel:
+      type: object
+      properties:
+        ID: { type: string, format: uuid }
+        dateCreated: { type: string, format: date-time }
+        instrument: { $ref: '#/components/schemas/InstrumentModel' }
+        order: { $ref: '#/components/schemas/OrderModel' }
+        purchasedPrice: { type: number, format: double }
+        quantity: { type: number, format: double }
+    InstrumentModel:
+      type: object
+      properties:
+        ID: { type: string, format: uuid }
+        symbol: { type: string }
+        type: { $ref: '#/components/schemas/InstrumentType' }
+        fullName: { type: string }
+    PortfolioModel:
+      type: object
+      properties:
+        portfolioId: { type: string, format: uuid }
+        holdings:
+          type: array
+          items: { $ref: '#/components/schemas/HoldingModel' }
+        type: { $ref: '#/components/schemas/PortfolioType' }
+    ErrorResponse:
+      type: object
+      properties:
+        message: { type: string }
     Side:
       type: string
-      description: The side of the order (BUY or SELL)
-      enum:
-        - BUY
-        - SELL
-      example: BUY
-
+      enum: [BUY, SELL]
     OrderStatus:
       type: string
-      description: The current status of the order
-      enum:
-        - PENDING
-        - ACCEPTED
-        - REJECTED
-        - FULFILLED
-        - CANCELLED
-      example: PENDING
-
+      enum: [PENDING, ACCEPTED, REJECTED, FULFILLED, CANCELLED]
     InstrumentType:
       type: string
-      description: The type of financial instrument
-      enum:
-        - EQUITY
-        - CASH
-        - CRYPTO
-      example: EQUITY
+      enum: [EQUITY, CASH, CRYPTO]
+    PortfolioType:
+      type: string
+      enum: [RETIREMENT, BROKERAGE]
 
 tags:
+  - name: Authentication
+  - name: Users
+  - name: Client
   - name: Orders
-    description: Order management operations
+  - name: Portfolios
+  - name: Market Data

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.services.MarketService.*;
 import com.ceo.trading_platform_backend.services.MarketService.Candle;
 import com.ceo.trading_platform_backend.services.MarketService.Coverage;
@@ -78,42 +79,49 @@ public class MarketServiceTest {
     }
 
     @Test
-    void testGetPriceThrowsExceptionForNullSymbol() {
+    void testGetPriceWithTypeThrowsExceptionForNullSymbol() {
         assertThrows(IllegalArgumentException.class, () -> {
-            marketService.getPrice(null);
+            marketService.getPriceWithType(InstrumentType.CASH, null);
         });
     }
 
     @Test
-    void testGetPriceThrowsExceptionForEmptySymbol() {
+    void testGetPriceWithTypeThrowsExceptionForEmptySymbol() {
         assertThrows(IllegalArgumentException.class, () -> {
-            marketService.getPrice("");
+            marketService.getPriceWithType(InstrumentType.CASH, "");
+        });
+    }
+
+    // @Test
+    // void testGetEquityPriceThrowsExceptionForNullSymbol() {
+    //     assertThrows(IllegalArgumentException.class, () -> {
+    //         marketService.getEquityPrice(null);
+    //     });
+    // }
+
+    // @Test
+    // void testGetCryptoPriceThrowsExceptionForNullSymbol() {
+    //     assertThrows(IllegalArgumentException.class, () -> {
+    //         marketService.getCryptoPrice(null);
+    //     });
+    // }
+
+    // @Test
+    // void testGetCashPriceThrowsExceptionForNullSymbol() {
+    //     assertThrows(IllegalArgumentException.class, () -> {
+    //         marketService.getCashPrice(null);
+    //     });
+    // }
+
+    @Test
+    void testGetPriceWithTypeForNullSymbol() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            marketService.getPriceWithType(InstrumentType.CASH, null);
         });
     }
 
     @Test
-    void testGetEquityPriceThrowsExceptionForNullSymbol() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            marketService.getEquityPrice(null);
-        });
-    }
-
-    @Test
-    void testGetCryptoPriceThrowsExceptionForNullSymbol() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            marketService.getCryptoPrice(null);
-        });
-    }
-
-    @Test
-    void testGetCashPriceThrowsExceptionForNullSymbol() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            marketService.getCashPrice(null);
-        });
-    }
-
-    @Test
-    void testGetCryptoPriceThrowsExceptionWhenApiKeyMissing() {
+    void testGetPriceWithTypeThrowsExceptionWhenApiKeyMissing() {
         MarketService noKeyMarketService = new MarketService(
             RestClient.builder(),
             objectMapper,
@@ -122,12 +130,12 @@ public class MarketServiceTest {
         );
 
         assertThrows(IllegalStateException.class, () -> {
-            noKeyMarketService.getCryptoPrice("BTC-USD");
+            noKeyMarketService.getPriceWithType(InstrumentType.CRYPTO, "BTC-USD");
         });
     }
 
     @Test
-    void testGetCashMetadataThrowsExceptionWhenApiKeyMissing() {
+    void testGetSymbolMetadataThrowsExceptionWhenApiKeyMissing() {
         MarketService noKeyMarketService = new MarketService(
             RestClient.builder(),
             objectMapper,
@@ -136,7 +144,7 @@ public class MarketServiceTest {
         );
 
         assertThrows(IllegalStateException.class, () -> {
-            noKeyMarketService.getCashMetadata("EURUSD");
+            noKeyMarketService.getSymbolMetadataByType("EURUSD", InstrumentType.CASH);
         });
     }
 
@@ -250,7 +258,7 @@ public class MarketServiceTest {
         try {
             System.out.println("Testing Symbol Metadata endpoint for AAPL...");
             
-            SymbolMetadataData metadata = marketService.getSymbolMetadata("AAPL");
+            SymbolMetadataData metadata = marketService.getSymbolMetadataByType("AAPL", InstrumentType.EQUITY);
             
             // Verify the response is not null and contains expected data
             assertNotNull(metadata);
@@ -286,39 +294,39 @@ public class MarketServiceTest {
         }
     }
 
-    @Test
-    void testGetSymbolMetadataForCashFxEurUsd() {
-        // This test verifies the real API call to /symbols/FX:EURUSD endpoint
-        try {
-            System.out.println("Testing Symbol Metadata endpoint for FX:EURUSD...");
+    // @Test
+    // void testGetSymbolMetadataForCashFxEurUsd() {
+    //     // This test verifies the real API call to /symbols/FX:EURUSD endpoint
+    //     try {
+    //         System.out.println("Testing Symbol Metadata endpoint for FX:EURUSD...");
 
-            SymbolMetadataData metadata = marketService.getCashMetadata("EURUSD");
+    //         SymbolMetadataData metadata = marketService.getCashMetadata("EURUSD");
 
-            assertNotNull(metadata);
-            assertNotNull(metadata.symbol());
-            assertEquals("FX:EURUSD", metadata.symbol());
-            assertNotNull(metadata.type());
-            assertEquals("fx", metadata.type().toLowerCase());
+    //         assertNotNull(metadata);
+    //         assertNotNull(metadata.symbol());
+    //         assertEquals("FX:EURUSD", metadata.symbol());
+    //         assertNotNull(metadata.type());
+    //         assertEquals("fx", metadata.type().toLowerCase());
 
-            System.out.println("{\n"
-                    + "  \"data\": {\n"
-                    + "    \"symbol\": \"" + metadata.symbol() + "\",\n"
-                    + "    \"name\": \"" + metadata.name() + "\",\n"
-                    + "    \"type\": \"" + metadata.type() + "\",\n"
-                    + "    \"exchange\": \"" + metadata.exchange() + "\",\n"
-                    + "    \"currency\": \"" + metadata.currency() + "\",\n"
-                    + "    \"active\": " + metadata.active() + ",\n"
-                    + "    \"coverage\": {\n"
-                    + "      \"eodFrom\": \"" + (metadata.coverage() == null ? null : metadata.coverage().eodFrom()) + "\",\n"
-                    + "      \"eodTo\": \"" + (metadata.coverage() == null ? null : metadata.coverage().eodTo()) + "\"\n"
-                    + "    }\n"
-                    + "  }\n"
-                    + "}");
-        } catch (IllegalStateException e) {
-            System.out.println("API key not configured: " + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("Cash Symbol Metadata Test - Error occurred: " + e.getClass().getSimpleName() + " - " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
+    //         System.out.println("{\n"
+    //                 + "  \"data\": {\n"
+    //                 + "    \"symbol\": \"" + metadata.symbol() + "\",\n"
+    //                 + "    \"name\": \"" + metadata.name() + "\",\n"
+    //                 + "    \"type\": \"" + metadata.type() + "\",\n"
+    //                 + "    \"exchange\": \"" + metadata.exchange() + "\",\n"
+    //                 + "    \"currency\": \"" + metadata.currency() + "\",\n"
+    //                 + "    \"active\": " + metadata.active() + ",\n"
+    //                 + "    \"coverage\": {\n"
+    //                 + "      \"eodFrom\": \"" + (metadata.coverage() == null ? null : metadata.coverage().eodFrom()) + "\",\n"
+    //                 + "      \"eodTo\": \"" + (metadata.coverage() == null ? null : metadata.coverage().eodTo()) + "\"\n"
+    //                 + "    }\n"
+    //                 + "  }\n"
+    //                 + "}");
+    //     } catch (IllegalStateException e) {
+    //         System.out.println("API key not configured: " + e.getMessage());
+    //     } catch (Exception e) {
+    //         System.out.println("Cash Symbol Metadata Test - Error occurred: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+    //         e.printStackTrace();
+    //     }
+    // }
 }

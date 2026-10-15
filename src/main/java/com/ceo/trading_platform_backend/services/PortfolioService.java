@@ -54,7 +54,10 @@ public class PortfolioService {
             if (holding.getInstrument().getSymbol().equals(US_CURRENCY_SYMBOL)) {
                 price = new BigDecimal(1);
             } else {
-                price = marketService.getPrice(holding.getInstrument().getSymbol());
+                Instrument instrument = holding.getInstrument();
+                price = marketService.getPriceWithType(
+                    instrument.getType(), instrument.getSymbol()
+                );
             }
             value = value.add(price.multiply(holding.getQuantity()));
         }
