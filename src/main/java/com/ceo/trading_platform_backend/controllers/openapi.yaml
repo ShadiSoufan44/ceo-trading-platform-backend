@@ -12,84 +12,6 @@ servers:
     description: Production server
 
 paths:
-  /api/users/{userId}/orders:
-    post:
-      summary: Place an order for a user
-      operationId: placeOrder
-      tags: [Client]
-      security: [{ bearerAuth: [] }]
-      parameters: [{ $ref: '#/components/parameters/UserId' }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OrderModel'
-      responses:
-        '201':
-          description: Order placed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OrderModel'
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-    get:
-      summary: Get a user's order history
-      operationId: viewTransactionHistory
-      tags: [Client]
-      security: [{ bearerAuth: [] }]
-      parameters: [{ $ref: '#/components/parameters/UserId' }]
-      responses:
-        '200':
-          description: User orders
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/OrderModel' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /api/users/{userId}/positions:
-    get:
-      summary: Get a user's current positions
-      description: Returns holdings aggregated across portfolios whose client user ID matches userId. Holdings belong to portfolios, not directly to users.
-      operationId: getPositions
-      tags: [Client]
-      security: [{ bearerAuth: [] }]
-      parameters: [{ $ref: '#/components/parameters/UserId' }]
-      responses:
-        '200':
-          description: User holdings
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/HoldingModel' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /api/users/{userId}/orders/{orderId}:
-    get:
-      summary: Get a user's order status
-      operationId: getOrderStatus
-      tags: [Client]
-      security: [{ bearerAuth: [] }]
-      parameters:
-        - { $ref: '#/components/parameters/UserId' }
-        - { $ref: '#/components/parameters/OrderId' }
-      responses:
-        '200':
-          description: User order
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/OrderModel' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-
   /api/users/{userId}/portfolios:
     get:
       summary: Get all portfolios for a user
@@ -319,31 +241,37 @@ components:
   schemas:
     OrderRequestDTO:
       type: object
-      required: [clientId, clientName, portfolioId, instrumentSymbol, quantity, quotedPrice, side, increaseThreshold]
+      required: [clientId, clientName, portfolioId, addInstrumentSymbol, addInstrumentType, subtractInstrumentSymbol, subtractInstrumentType, quantity, quotedPrice, side, changeThreshold]
       properties:
         clientId: { type: string, format: uuid }
         clientName: { type: string }
         portfolioId: { type: string, format: uuid }
-        instrumentSymbol: { type: string }
+        addInstrumentSymbol: { type: string }
+        addInstrumentType: { $ref: '#/components/schemas/InstrumentType' }
+        subtractInstrumentSymbol: { type: string }
+        subtractInstrumentType: { $ref: '#/components/schemas/InstrumentType' }
         quantity: { type: number, format: double }
         quotedPrice: { type: number, format: double }
         side: { $ref: '#/components/schemas/Side' }
-        increaseThreshold: { type: number, format: double }
+        changeThreshold: { type: number, format: double }
     OrderResponseDTO:
       type: object
       properties:
         orderId: { type: string, format: uuid }
         clientId: { type: string, format: uuid }
         portfolioId: { type: string, format: uuid }
-        instrumentSymbol: { type: string }
-        instrumentType: { $ref: '#/components/schemas/InstrumentType' }
-        instrumentFullName: { type: string }
+        addInstrumentSymbol: { type: string }
+        addInstrumentType: { $ref: '#/components/schemas/InstrumentType' }
+        addInstrumentFullName: { type: string }
+        subtractInstrumentSymbol: { type: string }
+        subtractInstrumentType: { $ref: '#/components/schemas/InstrumentType' }
+        subtractInstrumentFullName: { type: string }
         quantity: { type: number, format: double }
         quotedPrice: { type: number, format: double }
         side: { $ref: '#/components/schemas/Side' }
-        increaseThreshold: { type: number, format: double }
-        createdDate: { type: string, format: date-time }
-        resolvedDate: { type: string, format: date-time, nullable: true }
+        changeThreshold: { type: number, format: double }
+        createdDate: { type: string }
+        resolvedDate: { type: string }
         currentStatus: { $ref: '#/components/schemas/OrderStatus' }
     HoldingResponse:
       type: object

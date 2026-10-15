@@ -115,17 +115,18 @@ public class InstrumentServiceTest {
     }
     
     /**
-     * Tests that getOrInsertInstrumentBySymbol returns existing instrument without calling MarketService
+     * Tests that getOrInsertInstrumentBySymbolAndType returns existing instrument without calling MarketService
      */
     @Test
-    public void testGetOrInsertInstrumentBySymbolWhenExists() {
+    public void testgetOrInsertInstrumentBySymbolAndTypeWhenExists() {
         // Arrange - instrument already exists
         String symbol = "AAPL";
+        InstrumentType type = InstrumentType.EQUITY;
         Instrument existingInstrument = new Instrument("AAPL", InstrumentType.EQUITY, "Apple Inc.");
         when(mockRepository.findBySymbol(symbol)).thenReturn(existingInstrument);
         
         // Act
-        Instrument result = instrumentService.getOrInsertInstrumentBySymbol(symbol);
+        Instrument result = instrumentService.getOrInsertInstrumentBySymbolAndType(symbol, type);
         
         // Assert
         assertNotNull(result);
@@ -133,23 +134,24 @@ public class InstrumentServiceTest {
         assertEquals("Apple Inc.", result.getFullName());
         
         // Verify MarketService was NOT called since instrument exists
-        verify(mockMarketService, never()).getSymbolMetadata(symbol);
+        verify(mockMarketService, never()).getSymbolMetadataByType(symbol, type);
         verify(mockRepository, never()).save(any(Instrument.class));
     }
     
     /**
-     * Tests that getOrInsertInstrumentBySymbol fetches from MarketService when instrument doesn't exist
+     * Tests that getOrInsertInstrumentBySymbolAndType fetches from MarketService when instrument doesn't exist
      * and uses the real MarketService data to create a new instrument
      */
     @Test
-    public void testGetOrInsertInstrumentBySymbolWhenNotExists_UsesRealMarketServiceData() {
+    public void testgetOrInsertInstrumentBySymbolAndTypeWhenNotExists_UsesRealMarketServiceData() {
         // Arrange - instrument doesn't exist, need to fetch from MarketService
         String symbol = "GOOGL";
+        InstrumentType type = InstrumentType.EQUITY;
         when(mockRepository.findBySymbol(symbol)).thenReturn(null);
         
         // Create mock metadata from MarketService
         MarketService.SymbolMetadataData mockMetadata = createMockMetadata("GOOGL", "EQUITY", "Alphabet Inc.");
-        when(mockMarketService.getSymbolMetadata(symbol)).thenReturn(mockMetadata);
+        when(mockMarketService.getSymbolMetadataByType(symbol, type)).thenReturn(mockMetadata);
         
         // Mock repository save to return the created instrument
         when(mockRepository.save(any(Instrument.class))).thenAnswer(invocation -> {
@@ -157,10 +159,10 @@ public class InstrumentServiceTest {
         });
         
         // Act
-        Instrument result = instrumentService.getOrInsertInstrumentBySymbol(symbol);
+        Instrument result = instrumentService.getOrInsertInstrumentBySymbolAndType(symbol, type);
         
         // Print data from MarketService integration
-        System.out.println("\n[testGetOrInsertInstrumentBySymbolWhenNotExists_UsesRealMarketServiceData]");
+        System.out.println("\n[testgetOrInsertInstrumentBySymbolAndTypeWhenNotExists_UsesRealMarketServiceData]");
         System.out.println("  Fetched from MarketService: Symbol=" + result.getSymbol() + 
                            ", Type=" + result.getType() + 
                            ", Name=" + result.getFullName());
@@ -173,122 +175,12 @@ public class InstrumentServiceTest {
         assertEquals("Alphabet Inc.", result.getFullName());
         
         // Verify MarketService was called with the symbol
-        verify(mockMarketService, times(1)).getSymbolMetadata(symbol);
+        verify(mockMarketService, times(1)).getSymbolMetadataByType(symbol, type);
         
         // Verify repository.save was called with the correct data
         verify(mockRepository, times(1)).save(any(Instrument.class));
     }
     
-    /**
-     * Tests that parseInstrumentType defaults to EQUITY when MarketService returns an unknown type string
-     */
-    @Test
-    public void testGetOrInsertInstrumentBySymbolParsesUnknownTypeAsEquity() {
-        // Arrange - MarketService returns unknown instrument type
-        String symbol = "CRYPTO";
-        when(mockRepository.findBySymbol(symbol)).thenReturn(null);
-        
-        MarketService.SymbolMetadataData mockMetadata = createMockMetadata("CRYPTO", "UNKNOWN_TYPE", "Some Crypto");
-        when(mockMarketService.getSymbolMetadata(symbol)).thenReturn(mockMetadata);
-        
-        when(mockRepository.save(any(Instrument.class))).thenAnswer(invocation -> {
-            return invocation.getArgument(0);
-        });
-        
-        // Act
-        Instrument result = instrumentService.getOrInsertInstrumentBySymbol(symbol);
-        
-        // Print type parsing result
-        System.out.println("\n[testGetOrInsertInstrumentBySymbolParsesUnknownTypeAsEquity]");
-        System.out.println("  Input type from MarketService: UNKNOWN_TYPE");
-        System.out.println("  Parsed type: " + result.getType() + " (defaulted to EQUITY)");
-        System.out.println("  Retrieved: Symbol=" + result.getSymbol() + ", Name=" + result.getFullName());
-        
-        // Assert - should default to EQUITY type
-        assertNotNull(result);
-        assertEquals(InstrumentType.EQUITY, result.getType());
-        assertEquals("Some Crypto", result.getFullName());
-    }
-
-    /**
-     * Tests that parseInstrumentType maps crypto to CRYPTO.
-     */
-    @Test
-    public void testGetOrInsertInstrumentBySymbolParsesCryptoType() {
-        // Arrange
-        String symbol = "X:BTC-USD";
-        when(mockRepository.findBySymbol(symbol)).thenReturn(null);
-
-        MarketService.SymbolMetadataData mockMetadata = createMockMetadata("X:BTC-USD", "crypto", "Bitcoin");
-        when(mockMarketService.getSymbolMetadata(symbol)).thenReturn(mockMetadata);
-
-        when(mockRepository.save(any(Instrument.class))).thenAnswer(invocation -> {
-            return invocation.getArgument(0);
-        });
-
-        // Act
-        Instrument result = instrumentService.getOrInsertInstrumentBySymbol(symbol);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(InstrumentType.CRYPTO, result.getType());
-        assertEquals("Bitcoin", result.getFullName());
-    }
-
-    /**
-     * Tests that parseInstrumentType maps fx to CASH.
-     */
-    @Test
-    public void testGetOrInsertInstrumentBySymbolParsesFxTypeAsCash() {
-        // Arrange
-        String symbol = "FX:EURUSD";
-        when(mockRepository.findBySymbol(symbol)).thenReturn(null);
-
-        MarketService.SymbolMetadataData mockMetadata = createMockMetadata("FX:EURUSD", "fx", "Euro / US Dollar");
-        when(mockMarketService.getSymbolMetadata(symbol)).thenReturn(mockMetadata);
-
-        when(mockRepository.save(any(Instrument.class))).thenAnswer(invocation -> {
-            return invocation.getArgument(0);
-        });
-
-        // Act
-        Instrument result = instrumentService.getOrInsertInstrumentBySymbol(symbol);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(InstrumentType.CASH, result.getType());
-        assertEquals("Euro / US Dollar", result.getFullName());
-    }
-    
-    /**
-     * Tests that parseInstrumentType defaults to EQUITY when MarketService returns null for type
-     */
-    @Test
-    public void testGetOrInsertInstrumentBySymbolParsesNullTypeAsEquity() {
-        // Arrange - MarketService returns null type
-        String symbol = "TEST";
-        when(mockRepository.findBySymbol(symbol)).thenReturn(null);
-        
-        MarketService.SymbolMetadataData mockMetadata = createMockMetadata("TEST", null, "Test Instrument");
-        when(mockMarketService.getSymbolMetadata(symbol)).thenReturn(mockMetadata);
-        
-        when(mockRepository.save(any(Instrument.class))).thenAnswer(invocation -> {
-            return invocation.getArgument(0);
-        });
-        
-        // Act
-        Instrument result = instrumentService.getOrInsertInstrumentBySymbol(symbol);
-        
-        // Print null type parsing result
-        System.out.println("\n[testGetOrInsertInstrumentBySymbolParsesNullTypeAsEquity]");
-        System.out.println("  Input type from MarketService: null");
-        System.out.println("  Parsed type: " + result.getType() + " (defaulted to EQUITY)");
-        System.out.println("  Retrieved: Symbol=" + result.getSymbol() + ", Name=" + result.getFullName());
-        
-        // Assert - should default to EQUITY type
-        assertNotNull(result);
-        assertEquals(InstrumentType.EQUITY, result.getType());
-    }
     
     /**
      * Helper method to create mock SymbolMetadataData using reflection

@@ -45,28 +45,13 @@ public class InstrumentService {
     }
 
     @Transactional 
-    public Instrument getOrInsertInstrumentBySymbol(String symbol) {
+    public Instrument getOrInsertInstrumentBySymbolAndType(String symbol, InstrumentType type) {
         Instrument instrument = getInstrumentBySymbol(symbol);
         if (instrument == null) {
             // Fetch real instrument metadata from market service
-            var metadata = marketService.getSymbolMetadata(symbol);
-            InstrumentType type = parseInstrumentType(metadata.type());
+            var metadata = marketService.getSymbolMetadataByType(symbol, type);
             instrument = insertInstrumentByFields(symbol, type, metadata.name());
         }
         return instrument;
     }
-    
-    private InstrumentType parseInstrumentType(String typeString) {
-        if (typeString == null || typeString.isBlank()) {
-            return InstrumentType.EQUITY; // default
-        }
-
-        String normalizedType = typeString.trim().toUpperCase();
-        return switch (normalizedType) {
-            case "EQUITY", "STOCK" -> InstrumentType.EQUITY;
-            case "CRYPTO" -> InstrumentType.CRYPTO;
-            case "CASH", "FX", "FOREX" -> InstrumentType.CASH;
-            default -> InstrumentType.EQUITY; // fallback default
-        };
-    }   
 }
