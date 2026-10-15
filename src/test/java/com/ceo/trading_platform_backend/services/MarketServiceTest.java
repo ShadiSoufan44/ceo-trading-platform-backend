@@ -79,16 +79,16 @@ public class MarketServiceTest {
     }
 
     @Test
-    void testGetPriceThrowsExceptionForNullSymbol() {
+    void testGetPriceWithTypeThrowsExceptionForNullSymbol() {
         assertThrows(IllegalArgumentException.class, () -> {
-            marketService.getPrice(null);
+            marketService.getPriceWithType(InstrumentType.CASH, null);
         });
     }
 
     @Test
-    void testGetPriceThrowsExceptionForEmptySymbol() {
+    void testGetPriceWithTypeThrowsExceptionForEmptySymbol() {
         assertThrows(IllegalArgumentException.class, () -> {
-            marketService.getPrice("");
+            marketService.getPriceWithType(InstrumentType.CASH, "");
         });
     }
 
@@ -116,7 +116,7 @@ public class MarketServiceTest {
     @Test
     void testGetPriceWithTypeForNullSymbol() {
         assertThrows(IllegalArgumentException.class, () -> {
-            marketService.getPriceWithType(null, null);
+            marketService.getPriceWithType(InstrumentType.CASH, null);
         });
     }
 
@@ -134,19 +134,19 @@ public class MarketServiceTest {
         });
     }
 
-    // @Test
-    // void testGetCashMetadataThrowsExceptionWhenApiKeyMissing() {
-    //     MarketService noKeyMarketService = new MarketService(
-    //         RestClient.builder(),
-    //         objectMapper,
-    //         baseUrl,
-    //         ""
-    //     );
+    @Test
+    void testGetSymbolMetadataThrowsExceptionWhenApiKeyMissing() {
+        MarketService noKeyMarketService = new MarketService(
+            RestClient.builder(),
+            objectMapper,
+            baseUrl,
+            ""
+        );
 
-    //     assertThrows(IllegalStateException.class, () -> {
-    //         noKeyMarketService.getCashMetadata("EURUSD");
-    //     });
-    // }
+        assertThrows(IllegalStateException.class, () -> {
+            noKeyMarketService.getSymbolMetadataByType("EURUSD", InstrumentType.CASH);
+        });
+    }
 
     @Test
     void testGetQuotesThrowsExceptionForMoreThan25Symbols() {
