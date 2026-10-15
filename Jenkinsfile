@@ -32,7 +32,7 @@ pipeline {
     }
 
     environment {
-        IMAGE_REPO = ''
+        IMAGE_REPO = 'docker.io/slimshadi4444/trading-platform-backend'
     }
 
     stages {
@@ -95,32 +95,16 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
+                echo '========== Running SonarQube analysis =========='
+
                 withSonarQubeEnv('SonarQube') {
                     sh '''
                         set +x
 
-                        if [ -z "$SONAR_AUTH_TOKEN" ]; then
-                            echo "ERROR: SonarQube token missing"
-                            exit 1
-                        fi
-
-                        RESPONSE=$(curl -fsS \
-                            -H "Authorization: Bearer $SONAR_AUTH_TOKEN" \
-                            "$SONAR_HOST_URL/api/authentication/validate")
-
-                        case "$RESPONSE" in
-                            *'"valid":true'*|*'"valid": true'*)
-                                echo "Token validation: VALID"
-                                ;;
-                            *)
-                                echo "Token validation: FAILED"
-                                exit 1
-                                ;;
-                        esac
-
                         export SONAR_TOKEN="$SONAR_AUTH_TOKEN"
 
-                        mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar \
+                        mvn -B \
+                            org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar \
                             -Dsonar.projectKey=ceo-trading-platform-backend
                     '''
                 }
@@ -142,22 +126,22 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+       stage('Build Docker Image') {
             steps {
                 echo '========== Building Docker image =========='
 
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
-                    script {
-                        env.IMAGE_REPO = "${params.DOCKER_REGISTRY}/${env.DOCKER_USER}/${params.DOCKER_IMAGE_NAME}"
-                    }
-
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
                     sh '''
+                        set -eu
+
+                        IMAGE_REPO="${DOCKER_REGISTRY}/${DOCKER_USER}/${DOCKER_IMAGE_NAME}"
+
+                        echo "Building image: $IMAGE_REPO"
+
                         docker build \
                             -t "$IMAGE_REPO:$DOCKER_IMAGE_TAG" \
                             -t "$IMAGE_REPO:$BUILD_NUMBER" \
