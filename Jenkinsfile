@@ -95,12 +95,17 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                echo '========== Running SonarQube analysis =========='
-
                 withSonarQubeEnv('SonarQube') {
                     sh '''
+                        set +x
+                        test -n "$SONAR_AUTH_TOKEN" || {
+                            echo "SonarQube token was not injected"
+                            exit 1
+                        }
+
                         mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-                            -Dsonar.projectKey=ceo-trading-platform-backend
+                            -Dsonar.projectKey=ceo-trading-platform-backend \
+                            -Dsonar.token="$SONAR_AUTH_TOKEN"
                     '''
                 }
             }
