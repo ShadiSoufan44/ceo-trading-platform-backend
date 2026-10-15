@@ -108,7 +108,7 @@ public class MarketService {
 	}
 
 	public SymbolMetadataData getSymbolMetadataByType(String symbol, InstrumentType type) {
-		System.out.println("Getting Metadata for " + normalizeSymbolByType(symbol, type) + "type: " + type);
+		System.out.println("Getting Metadata for " + normalizeSymbolByType(symbol, type) + "; type: " + type);
 		SymbolMetadataResponse response = getAndRead("/symbols/{symbol}", SymbolMetadataResponse.class, normalizeSymbolByType(symbol, type));
 		return response.data();
 	}
@@ -234,6 +234,9 @@ public class MarketService {
 
 
 	private String normalizeSymbolByType(String symbol, InstrumentType type) {
+		if (symbol.equals("USD")) {
+			return "USD";
+		}
 		if (type == InstrumentType.EQUITY) {
 			return normalizeEquitySymbol(symbol);
 		} else if (type == InstrumentType.CRYPTO) {

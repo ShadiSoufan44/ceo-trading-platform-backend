@@ -61,6 +61,7 @@ public class OrderConsumers {
             order = orderService.execute(order);
             orderService.save(order);
         } catch (RuntimeException exception) {
+            System.out.println("Execution Failed! " + exception.getMessage());
             orderService.markRejected(orderId, "order execution failed: " + exception.getMessage());
         }
     }

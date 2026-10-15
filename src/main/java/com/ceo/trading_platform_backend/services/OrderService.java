@@ -36,7 +36,7 @@ public class OrderService {
     private final InstrumentService instrumentService;
     private final MarketService marketService;
 
-    private final LocalTime OPEN_TIME_LOCAL = LocalTime.of(9, 30, 0); // shoudl these be find
+    private final LocalTime OPEN_TIME_LOCAL = LocalTime.of(9, 40, 0); // shoudl these be find
     private final LocalTime CLOSE_TIME_LOCAL = LocalTime.of(16, 0, 0);
 
     public OrderService(OrderRepository repository, PortfolioService portfolioService, InstrumentService instrumentService, MarketService marketService) {
@@ -103,10 +103,8 @@ public class OrderService {
     // validate info liek instrument tradable and has sufficient holdings
     public Order validate(Order order) {
         // TODO need to check time and put into different queues if doing after hours
-        InstrumentType type1 = instrumentService.getInstrumentById(order.getAddInstrumentId()).getType();
-        InstrumentType type2 = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getType();
 
-        if (!isCryptoTransaction(type1, type2)) {
+        if (!isCryptoTransaction(order)) {
             // forex or equity cannot occure on weekends
             if (outOfHoursWeekend(order, order.getCreatedDate())) {
                 Instant today = Instant.now();
@@ -114,7 +112,7 @@ public class OrderService {
                 order.addOrderStatusChange(rejectedOrderStatus);
                 return order;
             }
-            if (isEquityTransaction(type1, type2)) {
+            if (isEquityTransaction(order)) {
                 if (outOfHours(order, order.getCreatedDate())) {
                     Instant today = Instant.now();
                     OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
@@ -165,7 +163,11 @@ public class OrderService {
         BigDecimal subtractPrice = marketService.getPriceWithType(subtractInstrument.getType(), subtractInstrument.getSymbol());
         BigDecimal activePrice = (order.getSide() == Side.SELL) ? subtractPrice : addPrice;
 
-        if (outOfHours(order, Instant.now())) {
+        Instant now = Instant.now();
+        if (
+            (isEquityTransaction(order) && outOfHours(order, now)) || 
+            (isForexTransaction(order) && outOfHoursWeekend(order, now))
+        ) {
             Instant today = Instant.now();
             OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
             order.addOrderStatusChange(rejectedOrderStatus);
@@ -277,18 +279,21 @@ public class OrderService {
     }
 
     // utils?
-    private boolean isCryptoTransaction(InstrumentType type1, InstrumentType type2) { // lowkey just pass in type because when this method is called you'll have the types already
-        if (type1 == InstrumentType.CRYPTO || type2 == InstrumentType.CRYPTO) {
-            return true;
-        }
-        return false;
+    private boolean isCryptoTransaction(Order order) {
+        InstrumentType type1 = instrumentService.getInstrumentById(order.getAddInstrumentId()).getType();
+        InstrumentType type2 = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getType();
+        return (type1 == InstrumentType.CRYPTO || type2 == InstrumentType.CRYPTO);
     }
 
-    private boolean isEquityTransaction(InstrumentType type1, InstrumentType type2) {
+    private boolean isEquityTransaction(Order order) {
+        InstrumentType type1 = instrumentService.getInstrumentById(order.getAddInstrumentId()).getType();
+        InstrumentType type2 = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getType();
         return (type1 == InstrumentType.EQUITY || type2 == InstrumentType.EQUITY);
     }
 
-    private boolean isForexTransaction(InstrumentType type1, InstrumentType type2) {
+    private boolean isForexTransaction(Order order) {
+        InstrumentType type1 = instrumentService.getInstrumentById(order.getAddInstrumentId()).getType();
+        InstrumentType type2 = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getType();
         return (type1 == InstrumentType.CASH && type2 == InstrumentType.CASH);
     }
 }
