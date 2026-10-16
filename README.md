@@ -47,6 +47,17 @@ Two distinct concerns:
 ### 8. Database schema: Flyway-first
 The schema lives as versioned SQL migration files under `src/main/resources/db/migration/` (`V1__...sql`, `V2__...sql`, ...). This is the source of truth; JPA entities are written to match it, not the other way around. An earlier standalone `trading-db-schema.sql` (a drawDB export) has been deleted — it drifted out of sync with `V1__init_schema.sql` and having two "sources of truth" was itself a risk.
 
+#### 8b. Local test account
+
+Flyway seeds a deterministic account for exercising the frontend before backend authentication is available:
+
+- Email: `johndoe@email.com`
+- User ID: `2c522b92-7151-4daa-92db-81a2253c772a`
+- Portfolios: `BROKERAGE` (`edda8da3-fab9-4b3c-b792-c833abe8e146`) and `RETIREMENT` (`6e5f6e67-b8d8-43fc-8f3c-0e91b64d8d2b`)
+- The `password_hash` value is a placeholder because authentication is not wired yet; the current frontend login only requires non-empty fields.
+
+On a database that has already run Flyway, restart the backend so migration `V3__seed_second_test_portfolio.sql` is applied. The frontend account page can be opened at `/account/2c522b92-7151-4daa-92db-81a2253c772a` after signing in with any non-empty email and password.
+
 #### 8a. Schema hardening (2026-09-03)
 The initial `V1__init_schema.sql` had several gaps that were dangerous for a system handling money and auth. Fixed in place (not yet applied to any real database, so editing `V1` directly instead of adding `V2`):
 - **`user`/`order` were reserved SQL keywords** — every query needed manual quoting, which is a bug waiting to happen. Renamed to `users`/`orders` (already done in a prior pass, kept here).
