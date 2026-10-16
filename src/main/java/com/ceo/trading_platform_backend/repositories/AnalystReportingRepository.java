@@ -23,7 +23,7 @@ public interface AnalystReportingRepository extends JpaRepository<ReportingTrade
               AND (:symbol IS NULL OR symbol = :symbol)
               AND (:clientSegment IS NULL OR client_segment = :clientSegment)
             """, nativeQuery = true)
-    Object[] getTradingVolume(
+    List<Object[]> getTradingVolume(
             @Param("fromTs") Instant from,
             @Param("toTs") Instant to,
             @Param("symbol") String symbol,

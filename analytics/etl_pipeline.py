@@ -24,7 +24,7 @@ def extract_fulfilled_trades_from_db(db_url: str) -> pd.DataFrame:
         '''
         SELECT
             o.order_id,
-            osc.change_date AS executed_at,
+            fulfilled.change_date AS executed_at,
             o.client_id,
             ua.client_segment,
             o.instrument_id,
@@ -33,16 +33,33 @@ def extract_fulfilled_trades_from_db(db_url: str) -> pd.DataFrame:
             o.quantity,
             COALESCE(o.quote, 0) AS price
         FROM public."order" o
-        INNER JOIN public.order_status_change osc ON osc.order_id = o.order_id
+        INNER JOIN (
+            SELECT DISTINCT ON (order_id)
+                order_id,
+                change_date
+            FROM public.order_status_change
+            WHERE status = 'FULFILLED'
+            ORDER BY order_id, change_date DESC
+        ) fulfilled ON fulfilled.order_id = o.order_id
         INNER JOIN public.instrument i ON i.instrument_id = o.instrument_id
         INNER JOIN public.user_account ua ON ua.user_id = o.client_id
-        WHERE osc.status = 'FULFILLED'
         '''
     )
 
-    engine = create_engine(db_url)
-    with engine.connect() as connection:
-        return pd.read_sql_query(query, connection)
+    engine = create_engine(
+        db_url,
+        pool_size=1,
+        max_overflow=0,
+        pool_pre_ping=True,
+        connect_args={
+            "options": "-c statement_timeout=30000 -c default_transaction_read_only=on"
+        },
+    )
+    try:
+        with engine.connect() as connection:
+            return pd.read_sql_query(query, connection)
+    finally:
+        engine.dispose()
 
 
 def generate_realistic_test_data(rows: int = 5000) -> pd.DataFrame:
@@ -101,6 +118,7 @@ def clean_trade_data(df: pd.DataFrame) -> pd.DataFrame:
 
     cleaned = cleaned.dropna(subset=["executed_at", "quantity", "price"])
     cleaned = cleaned[(cleaned["quantity"] > 0) & (cleaned["price"] > 0)]
+    cleaned = cleaned.sort_values("executed_at").drop_duplicates("order_id", keep="last")
 
     cleaned["symbol"] = cleaned["symbol"].astype(str).str.strip().str.upper()
     cleaned["client_segment"] = cleaned["client_segment"].astype(str).str.strip().str.upper()
@@ -113,6 +131,8 @@ def clean_trade_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def compute_insights(df: pd.DataFrame) -> InsightBundle:
+    executed_day_naive_utc = df["executed_day"].dt.tz_convert("UTC").dt.tz_localize(None)
+
     volume_by_day = (
         df.groupby("executed_day", as_index=False)
         .agg(
@@ -134,7 +154,7 @@ def compute_insights(df: pd.DataFrame) -> InsightBundle:
     )
 
     client_activity_trends = (
-        df.assign(executed_week=df["executed_day"].dt.to_period("W").dt.start_time)
+        df.assign(executed_week=executed_day_naive_utc.dt.to_period("W").dt.start_time)
         .groupby(["executed_week", "client_segment"], as_index=False)
         .agg(
             total_notional=("notional", "sum"),
@@ -222,7 +242,13 @@ def write_cli_report(insights: InsightBundle, output_dir: Path) -> Path:
 
 
 def load_reporting_trade_fact(df: pd.DataFrame, db_url: str) -> None:
-    engine = create_engine(db_url)
+    engine = create_engine(
+        db_url,
+        pool_size=1,
+        max_overflow=0,
+        pool_pre_ping=True,
+        connect_args={"options": "-c statement_timeout=30000"},
+    )
     upsert = text(
         '''
         INSERT INTO public.reporting_trade_fact (
@@ -276,8 +302,11 @@ def load_reporting_trade_fact(df: pd.DataFrame, db_url: str) -> None:
         ]
     ].to_dict(orient="records")
 
-    with engine.begin() as connection:
-        connection.execute(upsert, records)
+    try:
+        with engine.begin() as connection:
+            connection.execute(upsert, records)
+    finally:
+        engine.dispose()
 
 
 def run_pipeline(

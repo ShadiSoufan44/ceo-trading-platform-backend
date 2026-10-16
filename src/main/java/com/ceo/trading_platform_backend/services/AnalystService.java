@@ -54,7 +54,10 @@ public class AnalystService {
     public TradingVolumeInsight getTradingVolume(Instant from, Instant to, String symbol, String clientSegment) {
         String normalizedSymbol = normalizeFilter(symbol);
         String normalizedSegment = normalizeFilter(clientSegment);
-        Object[] result = reportingRepository.getTradingVolume(from, to, normalizedSymbol, normalizedSegment);
+        List<Object[]> results = reportingRepository.getTradingVolume(from, to, normalizedSymbol, normalizedSegment);
+        Object[] result = results.isEmpty()
+            ? new Object[] { BigDecimal.ZERO, BigDecimal.ZERO, 0L }
+            : results.getFirst();
 
         BigDecimal totalNotional = (BigDecimal) result[0];
         BigDecimal totalQuantity = (BigDecimal) result[1];

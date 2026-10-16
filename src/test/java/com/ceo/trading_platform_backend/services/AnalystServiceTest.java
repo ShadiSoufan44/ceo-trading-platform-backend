@@ -45,8 +45,10 @@ class AnalystServiceTest {
         Instant from = LocalDate.of(2026, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC);
         Instant to = LocalDate.of(2026, 2, 1).atStartOfDay().toInstant(ZoneOffset.UTC);
 
+        List<Object[]> volumeRows = new ArrayList<>();
+        volumeRows.add(new Object[] { new BigDecimal("1000.50"), new BigDecimal("12.5"), Long.valueOf(7) });
         when(reportingRepository.getTradingVolume(from, to, "AAPL", "RETAIL"))
-                .thenReturn(new Object[] { new BigDecimal("1000.50"), new BigDecimal("12.5"), Long.valueOf(7) });
+            .thenReturn(volumeRows);
 
         TradingVolumeInsight insight = analystService.getTradingVolume(from, to, "aapl", "retail");
 
@@ -55,6 +57,21 @@ class AnalystServiceTest {
         assertThat(insight.executedTrades()).isEqualTo(7L);
         assertThat(insight.symbol()).isEqualTo("AAPL");
         assertThat(insight.clientSegment()).isEqualTo("RETAIL");
+    }
+
+    @Test
+    @DisplayName("getTradingVolume returns zero metrics when reporting data is empty")
+    void getTradingVolumeReturnsZeroMetricsWhenReportingDataIsEmpty() {
+        Instant from = LocalDate.of(2026, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        Instant to = LocalDate.of(2026, 2, 1).atStartOfDay().toInstant(ZoneOffset.UTC);
+
+        when(reportingRepository.getTradingVolume(from, to, null, null)).thenReturn(List.of());
+
+        TradingVolumeInsight insight = analystService.getTradingVolume(from, to, null, null);
+
+        assertThat(insight.totalNotional()).isZero();
+        assertThat(insight.totalQuantity()).isZero();
+        assertThat(insight.executedTrades()).isZero();
     }
 
     @Test
