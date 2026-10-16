@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ceo.trading_platform_backend.dto.HoldingResponse;
 import com.ceo.trading_platform_backend.dto.PortfolioResponse;
 import com.ceo.trading_platform_backend.models.Holding;
+import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.services.PortfolioService;
 
@@ -110,10 +111,14 @@ public class PortfolioController {
 
     private HoldingResponse createHoldingResponse(Holding holding) {
         if (holding == null) return null;
+        Instrument instrument = holding.getInstrument();
         return new HoldingResponse(
             holding.getID(),
             holding.getDateCreated(), 
-            holding.getInstrument().getID(),
+            instrument.getID(),
+            instrument.getSymbol(),
+            instrument.getFullName(),
+            instrument.getType(),
             holding.getOrder().getOrderId(),
             holding.getPurchasedPrice(),
             holding.getQuantity()
