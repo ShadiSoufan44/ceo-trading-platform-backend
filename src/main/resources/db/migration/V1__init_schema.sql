@@ -27,16 +27,19 @@ CREATE TABLE public.portfolio (
 CREATE TABLE public."order" (
   side text,
   quote numeric,
-  increase_threshold numeric,
+  change_threshold numeric,
   quantity numeric,
   portfolio_id uuid DEFAULT gen_random_uuid(),
   client_id uuid DEFAULT gen_random_uuid(),
-  instrument_id uuid DEFAULT gen_random_uuid(),
+  add_instrument_id uuid DEFAULT gen_random_uuid(),
+  subtract_instrument_id uuid DEFAULT gen_random_uuid(),
   order_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  market text,
   CONSTRAINT order_pkey PRIMARY KEY (order_id),
   CONSTRAINT order_portfolio_id_fkey FOREIGN KEY (portfolio_id) REFERENCES public.portfolio(portfolio_id),
   CONSTRAINT order_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.user_account(user_id),
-  CONSTRAINT order_instrument_id_fkey FOREIGN KEY (instrument_id) REFERENCES public.instrument(instrument_id)
+  CONSTRAINT order_instrument_id_fkey FOREIGN KEY (add_instrument_id) REFERENCES public.instrument(instrument_id),
+  CONSTRAINT order_instrument_id_fkey2 FOREIGN KEY (subtract_instrument_id) REFERENCES public.instrument(instrument_id)
 );
 
 CREATE TABLE public.holding (

@@ -45,25 +45,13 @@ public class InstrumentService {
     }
 
     @Transactional 
-    public Instrument getOrInsertInstrumentBySymbol(String symbol) {
+    public Instrument getOrInsertInstrumentBySymbolAndType(String symbol, InstrumentType type) {
         Instrument instrument = getInstrumentBySymbol(symbol);
         if (instrument == null) {
             // Fetch real instrument metadata from market service
-            var metadata = marketService.getSymbolMetadata(symbol);
-            InstrumentType type = parseInstrumentType(metadata.type());
+            var metadata = marketService.getSymbolMetadataByType(symbol, type);
             instrument = insertInstrumentByFields(symbol, type, metadata.name());
         }
         return instrument;
     }
-    
-    private InstrumentType parseInstrumentType(String typeString) {
-        if (typeString == null) {
-            return InstrumentType.EQUITY; // default
-        }
-        try {
-            return InstrumentType.valueOf(typeString.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return InstrumentType.EQUITY; // fallback default
-        }
-    }   
 }

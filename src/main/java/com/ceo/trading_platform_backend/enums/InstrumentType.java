@@ -4,6 +4,4 @@ public enum InstrumentType {
     EQUITY,
     CASH,
     CRYPTO;
-    /* FOREX is TBD */
-
 }

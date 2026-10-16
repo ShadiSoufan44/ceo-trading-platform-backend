@@ -47,6 +47,13 @@ public class UserService {
 
         return toResponse(userRepository.save(client));
     }
+
+    @Transactional(readOnly = true)
+    public UserResponse getUser(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        return toResponse(user);
+    }
     
 
     public boolean isOwnProfile(UUID userId) {

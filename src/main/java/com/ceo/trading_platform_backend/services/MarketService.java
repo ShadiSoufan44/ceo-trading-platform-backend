@@ -15,6 +15,7 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -41,14 +42,47 @@ public class MarketService {
 		this.apiKey = apiKey;
 	}
 
+	// gets price given the insturmenttype
+	public BigDecimal getPriceWithType(InstrumentType type, String symbol) {
+		if (type == InstrumentType.EQUITY) { 
+			return getEquityPrice(symbol);
+		} else if (type == InstrumentType.CRYPTO) {
+			return getCryptoPrice(symbol);
+		} else { // cash
+			return getCashPrice(symbol);
+		}
+	}
+
 	// Returns the latest numeric price for a single symbol.
-	public BigDecimal getPrice(String symbol) {
+	private BigDecimal getPrice(String symbol) {
+		System.out.println("Getting Price for " + symbol);
 		return getQuote(symbol).price();
+	}
+
+	// Returns the latest numeric price for an equity symbol.
+	private BigDecimal getEquityPrice(String symbol) {
+		return getPrice(normalizeEquitySymbol(symbol));
+	}
+
+	// Returns the latest numeric price for a crypto symbol.
+	private BigDecimal getCryptoPrice(String symbol) {
+		return getPrice(normalizeCryptoSymbol(symbol));
+	}
+
+	// Returns the latest numeric price for a cash/FX symbol.
+	private BigDecimal getCashPrice(String symbol) {
+		if (symbol == null) {
+			throw new IllegalArgumentException("Symbol is required");
+		}
+		if (symbol.equals("USD")) {
+			return BigDecimal.ONE;
+		}
+		return getPrice(normalizeCashSymbol(symbol));
 	}
 
 	// Fetches the full latest quote payload for a single symbol.
 	public QuoteData getQuote(String symbol) {
-		QuoteResponse response = getAndRead("/quotes/{symbol}", QuoteResponse.class, normalizeSymbol(symbol));
+		QuoteResponse response = getAndRead("/quotes/{symbol}", QuoteResponse.class, symbol);
 		return response.data();
 	}
 
@@ -76,11 +110,37 @@ public class MarketService {
 		return response.data().quotes();
 	}
 
-	// Fetches stored metadata for a symbol, including coverage dates and active status.
-	public SymbolMetadataData getSymbolMetadata(String symbol) {
-		SymbolMetadataResponse response = getAndRead("/symbols/{symbol}", SymbolMetadataResponse.class, normalizeSymbol(symbol));
+	public SymbolMetadataData getSymbolMetadataByType(String symbol, InstrumentType type) {
+		System.out.println("Getting Metadata for " + normalizeSymbolByType(symbol, type) + "; type: " + type);
+		SymbolMetadataResponse response = getAndRead("/symbols/{symbol}", SymbolMetadataResponse.class, normalizeSymbolByType(symbol, type));
 		return response.data();
 	}
+
+	// // Fetches stored metadata for a symbol, including coverage dates and active status.
+	// public SymbolMetadataData getSymbolMetadata(String symbol) {
+	// 	System.out.println("Getting Metadata for " + normalizeSymbol(symbol));
+	// 	SymbolMetadataResponse response = getAndRead("/symbols/{symbol}", SymbolMetadataResponse.class, normalizeSymbol(symbol));
+	// 	return response.data();
+	// }
+
+	// // Fetches metadata for an equity symbol.
+	// public SymbolMetadataData getEquityMetadata(String symbol) {
+	// 	System.out.println("getequity");
+	// 	return getSymbolMetadata(normalizeEquitySymbol(symbol));
+	// }
+
+	// // Fetches metadata for a crypto symbol.
+	// public SymbolMetadataData getCryptoMetadata(String symbol) {
+	// 	System.out.println("getcrypto");
+
+	// 	return getSymbolMetadata(normalizeCryptoSymbol(symbol));
+	// }
+
+	// // Fetches metadata for a cash/FX symbol.
+	// public SymbolMetadataData getCashMetadata(String symbol) {
+	// 	System.out.println("getcash");
+	// 	return getSymbolMetadata(normalizeCashSymbol(symbol));
+	// }
 
 	// Fetches daily candles for a symbol over an optional date range.
 	public List<Candle> getCandles(String symbol, LocalDate from, LocalDate to) {
@@ -103,8 +163,8 @@ public class MarketService {
 	}
 
 	// Convenience check to confirm the API still recognizes a symbol as active.
-	public boolean isActiveSymbol(String symbol) {
-		return Boolean.TRUE.equals(getSymbolMetadata(symbol).active());
+	public boolean isActiveSymbolByType(String symbol, InstrumentType type) {
+		return Boolean.TRUE.equals(getSymbolMetadataByType(symbol, type).active());
 	}
 
 	// Performs a simple GET request and deserializes a successful JSON response.
@@ -175,12 +235,46 @@ public class MarketService {
 		return fallbackMessage;
 	}
 
+
+	private String normalizeSymbolByType(String symbol, InstrumentType type) {
+		if (symbol.equals("USD")) {
+			return "USD";
+		}
+		if (type == InstrumentType.EQUITY) {
+			return normalizeEquitySymbol(symbol);
+		} else if (type == InstrumentType.CRYPTO) {
+			return normalizeCryptoSymbol(symbol);
+		} else {
+			return normalizeCashSymbol(symbol);
+		}
+	}
+
 	// Normalizes caller input to the uppercase symbols returned by the API.
 	private String normalizeSymbol(String symbol) {
 		if (symbol == null || symbol.isBlank()) {
 			throw new IllegalArgumentException("Symbol is required.");
 		}
 		return symbol.trim().toUpperCase();
+	}
+
+	private String normalizeEquitySymbol(String symbol) {
+		return normalizeSymbol(symbol);
+	}
+
+	private String normalizeCryptoSymbol(String symbol) {
+		String normalized = normalizeSymbol(symbol);
+		if (!normalized.startsWith("X:")) {
+			normalized = "X:" + normalized + "-USD";
+		}
+		return normalized;
+	}
+
+	private String normalizeCashSymbol(String symbol) {
+		String normalized = normalizeSymbol(symbol).replace("/", "");
+		if (!normalized.startsWith("FX:")) {
+			normalized = "FX:" + normalized + "USD";
+		}
+		return normalized;
 	}
 
 	// Ensures an API key is configured before any outbound request is attempted.

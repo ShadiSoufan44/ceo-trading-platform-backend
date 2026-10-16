@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.enums.Side;
 
 import jakarta.persistence.CascadeType;
@@ -30,8 +29,11 @@ public class Order {
     @Column(name = "order_id")
     private UUID orderId;
 
-    @Column(name = "instrument_id")
-    private UUID instrumentId;
+    @Column(name = "add_instrument_id")
+    private UUID addInstrumentId;
+
+    @Column(name = "subtract_instrument_id")
+    private UUID subtractInstrumentId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "side")
@@ -46,8 +48,8 @@ public class Order {
     @Column(name = "quote")
     private BigDecimal quote;
 
-    @Column(name = "increase_threshold")
-    private BigDecimal increaseThreshold;
+    @Column(name = "change_threshold")
+    private BigDecimal changeThreshold;
 
     @Column(name = "quantity")
     private BigDecimal quantity;
@@ -56,19 +58,25 @@ public class Order {
     @JoinColumn(name = "order_id")
     List<OrderStatusChange> orderHistory = new ArrayList<>();
 
+    @Column(name = "market")
+    private String market;
+
     protected Order() {
     }
 
-    public Order(UUID instrumentId, Side side, UUID portfolioId, UUID clientId,
-            BigDecimal quote, BigDecimal increaseThreshold, BigDecimal quantity) {
-        this.instrumentId = instrumentId;
+    public Order(UUID addInstrumentId, UUID subtractInstrumentId, 
+                Side side, UUID portfolioId, UUID clientId,
+                BigDecimal quote, BigDecimal changeThreshold, BigDecimal quantity, String market) {
+
+        this.addInstrumentId = addInstrumentId;
+        this.subtractInstrumentId = subtractInstrumentId;
         this.side = side;
         this.portfolioId = portfolioId;
         this.clientId = clientId;
         this.quote = quote;
-        this.increaseThreshold = increaseThreshold;
+        this.changeThreshold = changeThreshold;
         this.quantity = quantity;
-        Instant createdDate = Instant.now();
+        this.market = market;
         // this.orderHistory.add(new OrderStatusChange(
         //     OrderStatus.PENDING,
         //     "Order Created",
@@ -84,12 +92,20 @@ public class Order {
         return orderId;
     }
 
-    public UUID getInstrumentId() {
-        return instrumentId;
+    public UUID getAddInstrumentId() {
+        return addInstrumentId;
     }
 
-    public void setInstrumentId(UUID instrumentId) {
-        this.instrumentId = instrumentId;
+    public UUID getSubtractInstrumentId() {
+        return subtractInstrumentId;
+    }
+
+    public void setAddInstrumentId(UUID id) {
+        this.addInstrumentId = id;
+    }
+
+    public void setSubtractInstrumentId(UUID id) {
+        this.subtractInstrumentId = id;
     }
 
     public Side getSide() {
@@ -124,12 +140,12 @@ public class Order {
         this.quote = quote;
     }
 
-    public BigDecimal getIncreaseThreshold() {
-        return increaseThreshold;
+    public BigDecimal getChangeThreshold() {
+        return changeThreshold;
     }
 
-    public void setIncreaseThreshold(BigDecimal increaseThreshold) {
-        this.increaseThreshold = increaseThreshold;
+    public void setChangeThreshold(BigDecimal changeThreshold) {
+        this.changeThreshold = changeThreshold;
     }
 
     public Instant getCreatedDate() {
@@ -142,6 +158,10 @@ public class Order {
 
     public OrderStatusChange getCurrentOrderStatus() {
         return orderHistory.getLast();
+    }
+
+    public String getMarket() {
+        return market;
     }
 
 }

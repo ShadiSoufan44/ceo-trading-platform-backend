@@ -39,7 +39,7 @@
 //         this.wentUpTooMuchThreshold = wentUpTooMuchThreshold;   
 //         setPortfolioId(portfolioId);
 //         setQuote(BigDecimal.valueOf(quotedPrice));
-//         setIncreaseThreshold(BigDecimal.valueOf(wentUpTooMuchThreshold));
+//         setChangeThreshold(BigDecimal.valueOf(wentUpTooMuchThreshold));
 //         if (client != null) {
 //             // setUserId(client.userID);
 //         }
