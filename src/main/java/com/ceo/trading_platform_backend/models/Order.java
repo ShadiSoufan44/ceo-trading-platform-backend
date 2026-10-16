@@ -58,12 +58,15 @@ public class Order {
     @JoinColumn(name = "order_id")
     List<OrderStatusChange> orderHistory = new ArrayList<>();
 
+    @Column(name = "market")
+    private String market;
+
     protected Order() {
     }
 
     public Order(UUID addInstrumentId, UUID subtractInstrumentId, 
                 Side side, UUID portfolioId, UUID clientId,
-                BigDecimal quote, BigDecimal changeThreshold, BigDecimal quantity) {
+                BigDecimal quote, BigDecimal changeThreshold, BigDecimal quantity, String market) {
 
         this.addInstrumentId = addInstrumentId;
         this.subtractInstrumentId = subtractInstrumentId;
@@ -73,6 +76,7 @@ public class Order {
         this.quote = quote;
         this.changeThreshold = changeThreshold;
         this.quantity = quantity;
+        this.market = market;
         // this.orderHistory.add(new OrderStatusChange(
         //     OrderStatus.PENDING,
         //     "Order Created",
@@ -154,6 +158,10 @@ public class Order {
 
     public OrderStatusChange getCurrentOrderStatus() {
         return orderHistory.getLast();
+    }
+
+    public String getMarket() {
+        return market;
     }
 
 }

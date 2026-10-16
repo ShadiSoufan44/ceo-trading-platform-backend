@@ -34,6 +34,7 @@ CREATE TABLE public."order" (
   add_instrument_id uuid DEFAULT gen_random_uuid(),
   subtract_instrument_id uuid DEFAULT gen_random_uuid(),
   order_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  market text,
   CONSTRAINT order_pkey PRIMARY KEY (order_id),
   CONSTRAINT order_portfolio_id_fkey FOREIGN KEY (portfolio_id) REFERENCES public.portfolio(portfolio_id),
   CONSTRAINT order_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.user_account(user_id),

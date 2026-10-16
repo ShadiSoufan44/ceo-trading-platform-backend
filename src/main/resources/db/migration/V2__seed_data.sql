@@ -17,9 +17,9 @@ VALUES
     ('f795c0de-4e4c-4a63-9695-865b41856d25', 'AAPL', 'Apple, Inc.', 'EQUITY');
 
 -- Insert orders
-INSERT INTO public.order (order_id, client_id, add_instrument_id, subtract_instrument_id, portfolio_id, quantity, change_threshold, side)
+INSERT INTO public.order (order_id, client_id, add_instrument_id, subtract_instrument_id, portfolio_id, quantity, change_threshold, side, market)
 VALUES
-    ('fcd87c91-9e4e-403c-ab92-8f8da4722e4d', '2c522b92-7151-4daa-92db-81a2253c772a', '327636f8-36d0-4052-80be-0c3e58ed6c41', NULL, 'edda8da3-fab9-4b3c-b792-c833abe8e146', '1000000', '0', 'DEPOSIT');
+    ('fcd87c91-9e4e-403c-ab92-8f8da4722e4d', '2c522b92-7151-4daa-92db-81a2253c772a', '327636f8-36d0-4052-80be-0c3e58ed6c41', NULL, 'edda8da3-fab9-4b3c-b792-c833abe8e146', '1000000', '0', 'DEPOSIT', 'America/New_York');
 
 -- Insert holdings
 INSERT INTO public.holding (holding_id, order_id, portfolio_id, instrument_id, quantity, purchased_price)
