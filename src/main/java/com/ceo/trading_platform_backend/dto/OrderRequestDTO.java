@@ -17,5 +17,6 @@ public record OrderRequestDTO(
     BigDecimal quantity,
     BigDecimal quotedPrice,
     Side side,
-    BigDecimal changeThreshold
+    BigDecimal changeThreshold,
+    String market
 ) {}

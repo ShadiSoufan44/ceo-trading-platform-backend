@@ -241,7 +241,7 @@ components:
   schemas:
     OrderRequestDTO:
       type: object
-      required: [clientId, clientName, portfolioId, addInstrumentSymbol, addInstrumentType, subtractInstrumentSymbol, subtractInstrumentType, quantity, quotedPrice, side, changeThreshold]
+      required: [clientId, clientName, portfolioId, addInstrumentSymbol, addInstrumentType, subtractInstrumentSymbol, subtractInstrumentType, quantity, quotedPrice, side, changeThreshold, market]
       properties:
         clientId: { type: string, format: uuid }
         clientName: { type: string }
@@ -254,6 +254,7 @@ components:
         quotedPrice: { type: number, format: double }
         side: { $ref: '#/components/schemas/Side' }
         changeThreshold: { type: number, format: double }
+        market: { type: string }
     OrderResponseDTO:
       type: object
       properties:
@@ -317,6 +318,7 @@ components:
         quantity: { type: number, format: double }
         createdDate: { type: string, format: date-time }
         currentOrderStatus: { $ref: '#/components/schemas/OrderStatusChangeModel' }
+        model: { type: string }
     OrderStatusChangeModel:
       type: object
       properties:

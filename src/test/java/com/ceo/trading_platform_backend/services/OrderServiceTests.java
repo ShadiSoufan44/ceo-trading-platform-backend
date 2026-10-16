@@ -89,7 +89,8 @@ public class OrderServiceTests {
             null,
             new BigDecimal(2), 
             new BigDecimal(0.1), 
-            new BigDecimal(5)
+            new BigDecimal(5),
+            "America/New_York"
         );
         return order;
     }
@@ -103,7 +104,8 @@ public class OrderServiceTests {
             null, 
             BigDecimal.ONE, 
             new BigDecimal(0.1), 
-            BigDecimal.ONE
+            BigDecimal.ONE,
+            "America/New_York"
         );
         return order;
     }

@@ -39,6 +39,9 @@ public class OrderService {
     private final LocalTime OPEN_TIME_LOCAL = LocalTime.of(9, 30, 0); // shoudl these be find
     private final LocalTime CLOSE_TIME_LOCAL = LocalTime.of(16, 0, 0);
 
+    private final LocalTime OPEN_TIME_LOCAL_INDIA = LocalTime.of(9, 15, 0); 
+    private final LocalTime CLOSE_TIME_LOCAL_INDIA = LocalTime.of(15, 30, 0);
+
     public OrderService(OrderRepository repository, PortfolioService portfolioService, InstrumentService instrumentService, MarketService marketService) {
         this.repository = repository;
         this.portfolioService = portfolioService;
@@ -62,7 +65,8 @@ public class OrderService {
         BigDecimal quotedPrice = orderRequest.quotedPrice();
         Side side = orderRequest.side();
         BigDecimal changeThreshold = orderRequest.changeThreshold();
-        Order order = new Order(addInstrumentId, subtractInstrumentId, side, portfolioId, clientId, quotedPrice, changeThreshold, quantity);
+        String market = orderRequest.market();
+        Order order = new Order(addInstrumentId, subtractInstrumentId, side, portfolioId, clientId, quotedPrice, changeThreshold, quantity, market);
         order = this.repository.save(order);
         return order;
     }
@@ -204,21 +208,30 @@ public class OrderService {
 
     // check if given time stamp is out of hours of market (createdDate for validaiton, now for execution)
     private boolean outOfHours(Order order, Instant timestamp) {
-        ZoneId zone = ZoneId.of("America/New_York");
+        LocalTime open;
+        LocalTime close;
+        ZoneId zone = ZoneId.of(order.getMarket()); // market is aither "America/New_York" or "America/Kolkata"
+        if(zone == ZoneId.of("America/New_York")) {
+            open = OPEN_TIME_LOCAL;
+            close = CLOSE_TIME_LOCAL;
+        } else { // india
+            open = OPEN_TIME_LOCAL_INDIA;
+            close = CLOSE_TIME_LOCAL_INDIA;
+        }
         LocalDateTime dateTime = LocalDateTime.ofInstant(timestamp, zone);
         LocalTime time = dateTime.toLocalTime();
         boolean weekend = outOfHoursWeekend(order, timestamp);
         if (weekend) {
             return true;
         }
-        if (time.isBefore(OPEN_TIME_LOCAL) || time.isAfter(CLOSE_TIME_LOCAL)) { // submitted time shoudl be in request dto
+        if (time.isBefore(open) || time.isAfter(close)) { // submitted time shoudl be in request dto
             return true;
         }
         return false;
     }
 
     private boolean outOfHoursWeekend(Order order, Instant timestamp) {
-        ZoneId zone = ZoneId.of("America/New_York");
+        ZoneId zone = order.getMarket().equals("Anerica/New_York") ? ZoneId.of("America/New_York") : ZoneId.of("Asia/Kolkata");
         LocalDateTime dateTime = LocalDateTime.ofInstant(timestamp, zone);
         DayOfWeek day = dateTime.toLocalDate().getDayOfWeek();
         if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
