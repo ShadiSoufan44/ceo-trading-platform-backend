@@ -192,7 +192,35 @@ pipeline {
                             --env-file "$CLEAN_ENV" \
                             "$IMAGE_REPO:$BUILD_NUMBER"
 
-                        sleep 10
+                        echo "Checking application health..."
+
+                        HEALTHY=false
+
+                        for i in $(seq 1 30); do
+                            if curl --silent --show-error --fail \
+                                --max-time 3 \
+                                http://localhost:8081/actuator/health \
+                                | grep -q '"status":"UP"'; then
+
+                                HEALTHY=true
+                                break
+                            fi
+
+                            if [ "$(docker inspect -f '{{.State.Running}}' trading-platform-backend)" != "true" ]; then
+                                echo "Container has stopped"
+                                break
+                            fi
+
+                            sleep 2
+                        done
+
+                        if [ "$HEALTHY" != "true" ]; then
+                            echo "DEPLOYMENT FAILED: Application is unhealthy"
+                            docker logs --tail 100 trading-platform-backend
+                            exit 1
+                        fi
+
+                        echo "DEPLOYMENT SUCCESSFUL: Application is healthy"
 
                         docker ps --filter name=trading-platform-backend
                         docker logs --tail 50 trading-platform-backend
@@ -201,7 +229,7 @@ pipeline {
             }
         }
     }
-    
+
     post {
         success {
             echo '========== Pipeline completed successfully =========='
