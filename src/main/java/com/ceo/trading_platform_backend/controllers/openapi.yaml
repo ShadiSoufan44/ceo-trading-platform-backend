@@ -280,6 +280,9 @@ components:
         holdingId: { type: string, format: uuid }
         dateCreated: { type: string, format: date-time }
         instrumentId: { type: string, format: uuid }
+        instrumentSymbol: { type: string, format: string }
+        instrumentName: { type: string, format: string }
+        instrumentType: { $ref: '#/components/schemas/InstrumentType' }
         orderId: { type: string, format: uuid }
         purchasedPrice: { type: number, format: double }
         quantity: { type: number, format: double }
