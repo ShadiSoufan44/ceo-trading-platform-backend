@@ -3,7 +3,7 @@ package com.ceo.trading_platform_backend.controllers;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ceo.trading_platform_backend.dto.HoldingResponse;
+import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 import com.ceo.trading_platform_backend.dto.PortfolioResponse;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Portfolio;
@@ -71,18 +71,10 @@ public class PortfolioController {
     
 
     @GetMapping("/{portfolioId}/holdings")
-    public ResponseEntity<List<HoldingResponse>> getHoldingsByPortfolioId(
+    public ResponseEntity<List<HoldingSummaryResponse>> getHoldingsByPortfolioId(
         @PathVariable UUID portfolioId
     ) {
-        List<Holding> holdings = service.getHoldingsByPortfolioId(portfolioId);
-        if (holdings == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        List<HoldingResponse> response = new ArrayList<>();
-        for (Holding holding : holdings) {
-            response.add(createHoldingResponse(holding));
-        }
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.getHoldingSummariesByPortfolioId(portfolioId));
     }
     
     @GetMapping("/{portfolioId}")
@@ -108,15 +100,4 @@ public class PortfolioController {
         );
     }
 
-    private HoldingResponse createHoldingResponse(Holding holding) {
-        if (holding == null) return null;
-        return new HoldingResponse(
-            holding.getID(),
-            holding.getDateCreated(), 
-            holding.getInstrument().getID(),
-            holding.getOrder().getOrderId(),
-            holding.getPurchasedPrice(),
-            holding.getQuantity()
-        );
-    }
 }

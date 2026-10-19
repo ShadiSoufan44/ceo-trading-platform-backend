@@ -200,7 +200,7 @@ paths:
 
   /api/portfolio/{portfolioId}/holdings:
     get:
-      summary: Get portfolio holdings
+      summary: Get portfolio holdings with live market statistics
       operationId: getHoldingsByPortfolioId
       tags: [Portfolios]
       parameters: [{ $ref: '#/components/parameters/PortfolioId' }]
@@ -211,7 +211,7 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/HoldingResponse' }
+                items: { $ref: '#/components/schemas/HoldingSummaryResponse' }
         '404': { $ref: '#/components/responses/NotFound' }
 
   /api/portfolio/{portfolioId}:
@@ -345,15 +345,24 @@ components:
         createdDate: { type: string, format: date-time }
         resolvedDate: { type: string, format: date-time, nullable: true }
         currentStatus: { $ref: '#/components/schemas/OrderStatus' }
-    HoldingResponse:
+    HoldingSummaryResponse:
       type: object
+      description: Holding data from the database enriched with live market statistics.
       properties:
         holdingId: { type: string, format: uuid }
-        dateCreated: { type: string, format: date-time }
-        instrumentId: { type: string, format: uuid }
-        orderId: { type: string, format: uuid }
-        purchasedPrice: { type: number, format: double }
-        quantity: { type: number, format: double }
+        portfolioId: { type: string, format: uuid }
+        symbol: { type: string }
+        companyName: { type: string }
+        shares: { type: number, format: double }
+        avgCost: { type: number, format: double }
+        currentPrice: { type: number, format: double, description: Latest market price. }
+        dayChangeValue: { type: number, format: double, description: Latest market price change per share. }
+        percentChange:
+          type: object
+          additionalProperties: { type: number, format: double }
+          description: Live percentage change keyed by 1D, 5D, 1M, 6M, and 1Y.
+        weekLow52: { type: number, format: double, description: Lowest daily market price in the one-year candle range. }
+        weekHigh52: { type: number, format: double, description: Highest daily market price in the one-year candle range. }
     PortfolioResponse:
       type: object
       properties:

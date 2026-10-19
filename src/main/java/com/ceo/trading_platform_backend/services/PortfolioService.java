@@ -1,8 +1,12 @@
 package com.ceo.trading_platform_backend.services;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -13,6 +17,7 @@ import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
+import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 import com.ceo.trading_platform_backend.utils.MoneyUtilities;
 
@@ -86,6 +91,14 @@ public class PortfolioService {
         return portfolio.getHoldings();
     }
 
+    @Transactional
+    public List<HoldingSummaryResponse> getHoldingSummariesByPortfolioId(UUID portfolioId) {
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        return portfolio.getHoldings().stream()
+            .map((holding) -> toHoldingSummaryResponse(portfolioId, holding))
+            .toList();
+    }
+
     @Transactional 
     private void addDeposit(Portfolio portfolio, Order order, BigDecimal amount, String currency) {
         Holding depositHolding = new Holding(
@@ -156,6 +169,73 @@ public class PortfolioService {
         
 
         repository.save(portfolio);
+    }
+
+    private HoldingSummaryResponse toHoldingSummaryResponse(UUID portfolioId, Holding holding) {
+        Instrument instrument = holding.getInstrument();
+        String symbol = instrument.getSymbol();
+        MarketService.QuoteData quote = marketService.getQuote(symbol);
+        List<MarketService.Candle> candles = marketService.getCandles(symbol, LocalDate.now().minusYears(1), LocalDate.now());
+
+        BigDecimal weekLow52 = candles.stream()
+            .map(MarketService.Candle::low)
+            .min(Comparator.naturalOrder())
+            .orElse(quote.price());
+        BigDecimal weekHigh52 = candles.stream()
+            .map(MarketService.Candle::high)
+            .max(Comparator.naturalOrder())
+            .orElse(quote.price());
+
+        Map<String, BigDecimal> percentChange = new LinkedHashMap<>();
+        percentChange.put("1D", quote.changePercent());
+        percentChange.put("5D", computePercentChange(candles, 5));
+        percentChange.put("1M", computePercentChange(candles, 30));
+        percentChange.put("6M", computePercentChange(candles, 182));
+        percentChange.put("1Y", computePercentChange(candles, 365));
+
+        return new HoldingSummaryResponse(
+            holding.getID(),
+            portfolioId,
+            symbol,
+            instrument.getFullName(),
+            holding.getQuantity(),
+            holding.getPurchasedPrice(),
+            quote.price(),
+            quote.change(),
+            percentChange,
+            weekLow52,
+            weekHigh52
+        );
+    }
+
+    private BigDecimal computePercentChange(List<MarketService.Candle> candles, int daysBack) {
+        if (candles == null || candles.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        LocalDate cutoff = LocalDate.now().minusDays(daysBack);
+        List<MarketService.Candle> window = candles.stream()
+            .filter((candle) -> !candle.date().isBefore(cutoff))
+            .sorted(Comparator.comparing(MarketService.Candle::date))
+            .toList();
+
+        if (window.isEmpty()) {
+            window = candles.stream()
+                .sorted(Comparator.comparing(MarketService.Candle::date))
+                .toList();
+        }
+
+        if (window.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal start = window.get(0).close();
+        BigDecimal end = window.get(window.size() - 1).close();
+        if (start == null || start.compareTo(BigDecimal.ZERO) == 0 || end == null) {
+            return BigDecimal.ZERO;
+        }
+
+        return MoneyUtilities.safeDivide(end.subtract(start), start);
     }
 }
 
