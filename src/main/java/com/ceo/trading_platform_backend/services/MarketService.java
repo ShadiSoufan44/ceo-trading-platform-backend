@@ -33,7 +33,7 @@ public class MarketService {
 			RestClient.Builder restClientBuilder,
 			ObjectMapper objectMapper,
 			@Value("${market.api.base-url:https://y4t9nq2bqf.execute-api.eu-west-2.amazonaws.com/v1}") String baseUrl,
-			@Value("${api_key:}") String apiKey) {
+			@Value("${market.api.key:${api_key:}}") String apiKey) {
 		this.restClient = restClientBuilder
 				.baseUrl(baseUrl)
 				.defaultHeader("accept", "*/*")
