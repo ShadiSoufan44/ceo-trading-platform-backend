@@ -83,6 +83,7 @@ public class PortfolioServiceTests {
             null, 
             null, 
             null,
+            null,
             null
         );
         return order;
@@ -352,7 +353,7 @@ public class PortfolioServiceTests {
             portfolio.addHolding(createCashHolding(new BigDecimal("5000"), portfolio));
             portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
 
-            when(marketService.getPrice(stockInstrument.getSymbol()))
+            when(marketService.getPriceWithType(stockInstrument.getType(), stockInstrument.getSymbol()))
                 .thenReturn(new BigDecimal("150"));
             when(portfolioRepository.getReferenceById(uuid1))
                 .thenReturn(portfolio);
@@ -372,7 +373,7 @@ public class PortfolioServiceTests {
             portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
             portfolio.addHolding(createStockHolding(new BigDecimal("5"), new BigDecimal("200"), portfolio));
 
-            when(marketService.getPrice(stockInstrument.getSymbol()))
+            when(marketService.getPriceWithType(stockInstrument.getType(), stockInstrument.getSymbol()))
                 .thenReturn(new BigDecimal("150"))
                 .thenReturn(new BigDecimal("200"));
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
@@ -409,7 +410,8 @@ public class PortfolioServiceTests {
                 clientId,  // clientId
                 new BigDecimal("150"),  // quote
                 null,
-                new BigDecimal("10")  // quantity
+                new BigDecimal("10"),  // quantity
+                "America/New_York"
             );
             
             sellOrder = new Order(
@@ -420,7 +422,8 @@ public class PortfolioServiceTests {
                 clientId,  // clientId
                 new BigDecimal("200"),  // quote
                 null,
-                new BigDecimal("5")  // quantity
+                new BigDecimal("5"),  // quantity
+                "America/New_York"
             );
         }
 
@@ -614,7 +617,8 @@ public class PortfolioServiceTests {
                 clientId,  // clientId
                 new BigDecimal("125.0"),  // quote
                 null,
-                new BigDecimal("2.5")  // fractional quantity
+                new BigDecimal("2.5"),  // fractional quantity
+                "America/New_York"
             );
 
             when(portfolioRepository.getReferenceById(portfolioId))
@@ -648,7 +652,8 @@ public class PortfolioServiceTests {
                 clientId,  // clientId
                 new BigDecimal("200.75"),  // quote
                 null,
-                new BigDecimal("3.5")  // fractional quantity
+                new BigDecimal("3.5"),  // fractional quantity
+                "America/New_York"
             );
 
             when(portfolioRepository.getReferenceById(portfolioId)).thenReturn(portfolio);

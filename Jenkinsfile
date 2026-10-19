@@ -32,7 +32,7 @@ pipeline {
     }
 
     environment {
-        IMAGE_REPO = ''
+        IMAGE_REPO = 'docker.io/slimshadi4444/trading-platform-backend'
     }
 
     stages {
@@ -95,28 +95,16 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
+                echo '========== Running SonarQube analysis =========='
+
                 withSonarQubeEnv('SonarQube') {
                     sh '''
                         set +x
 
-                        if [ -z "$SONAR_AUTH_TOKEN" ]; then
-                            echo "ERROR: Jenkins did not inject a SonarQube token"
-                            exit 1
-                        fi
-
-                        echo "SonarQube token is present"
-
-                        STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
-                            -H "Authorization: Bearer $SONAR_AUTH_TOKEN" \
-                            "$SONAR_HOST_URL/api/authentication/validate")
-
-                        echo "Authentication endpoint HTTP status: $STATUS"
-
-                        [ "$STATUS" = "200" ] || exit 1
-
                         export SONAR_TOKEN="$SONAR_AUTH_TOKEN"
 
-                        mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar \
+                        mvn -B \
+                            org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar \
                             -Dsonar.projectKey=ceo-trading-platform-backend
                     '''
                 }
@@ -138,28 +126,16 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+       stage('Build Docker Image') {
             steps {
                 echo '========== Building Docker image =========='
 
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
-                    script {
-                        env.IMAGE_REPO = "${params.DOCKER_REGISTRY}/${env.DOCKER_USER}/${params.DOCKER_IMAGE_NAME}"
-                    }
-
-                    sh '''
-                        docker build \
-                            -t "$IMAGE_REPO:$DOCKER_IMAGE_TAG" \
-                            -t "$IMAGE_REPO:$BUILD_NUMBER" \
-                            -f Dockerfile .
-                    '''
-                }
+                sh '''
+                    docker build \
+                        -t "$IMAGE_REPO:$DOCKER_IMAGE_TAG" \
+                        -t "$IMAGE_REPO:$BUILD_NUMBER" \
+                        -f Dockerfile .
+                '''
             }
         }
 
@@ -167,21 +143,21 @@ pipeline {
             steps {
                 echo '========== Pushing Docker images =========='
 
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
                     sh '''
+                        set -eu
                         set +x
+
                         export DOCKER_CONFIG="$(mktemp -d)"
-                        trap 'docker logout "$DOCKER_REGISTRY" >/dev/null 2>&1 || true; rm -rf "$DOCKER_CONFIG"' EXIT
+                        trap 'rm -rf "$DOCKER_CONFIG"' EXIT
 
                         printf '%s' "$DOCKER_PASS" | docker login \
-                            -u "$DOCKER_USER" \
-                            --password-stdin "$DOCKER_REGISTRY"
+                            --username "$DOCKER_USER" \
+                            --password-stdin
 
                         docker push "$IMAGE_REPO:$DOCKER_IMAGE_TAG"
                         docker push "$IMAGE_REPO:$BUILD_NUMBER"
@@ -191,34 +167,65 @@ pipeline {
         }
 
         stage('Deploy') {
-            input {
-                message 'Deploy to production?'
-                ok 'Deploy'
-            }
-
             steps {
                 echo '========== Deploying application =========='
 
-                sh '''
-                    test -f .env || {
-                        echo "ERROR: .env file is missing"
-                        exit 1
-                    }
+                withCredentials([file(credentialsId: 'backend-env', variable: 'ENV_FILE')]) {
+                    sh '''
+                        set -eu
+                        set +x
 
-                    docker stop trading-platform-backend || true
-                    docker rm trading-platform-backend || true
+                        CLEAN_ENV=$(mktemp)
+                        chmod 600 "$CLEAN_ENV"
+                        trap 'rm -f "$CLEAN_ENV"' EXIT
 
-                    docker run -d \
-                        --name trading-platform-backend \
-                        --restart unless-stopped \
-                        -p 8081:8081 \
-                        --env-file .env \
-                        "$IMAGE_REPO:$BUILD_NUMBER"
+                        # Remove Windows CRLF line endings
+                        tr -d '\\r' < "$ENV_FILE" > "$CLEAN_ENV"
 
-                    sleep 10
-                    docker ps --filter name=trading-platform-backend
-                    docker logs trading-platform-backend
-                '''
+                        docker stop trading-platform-backend || true
+                        docker rm trading-platform-backend || true
+
+                        docker run -d \
+                            --name trading-platform-backend \
+                            --restart unless-stopped \
+                            -p 8081:8081 \
+                            --env-file "$CLEAN_ENV" \
+                            "$IMAGE_REPO:$BUILD_NUMBER"
+
+                        echo "Checking application health..."
+
+                        HEALTHY=false
+
+                        for i in $(seq 1 30); do
+                            if curl --silent --show-error --fail \
+                                --max-time 3 \
+                                http://localhost:8081/actuator/health \
+                                | grep -q '"status":"UP"'; then
+
+                                HEALTHY=true
+                                break
+                            fi
+
+                            if [ "$(docker inspect -f '{{.State.Running}}' trading-platform-backend)" != "true" ]; then
+                                echo "Container has stopped"
+                                break
+                            fi
+
+                            sleep 2
+                        done
+
+                        if [ "$HEALTHY" != "true" ]; then
+                            echo "DEPLOYMENT FAILED: Application is unhealthy"
+                            docker logs --tail 100 trading-platform-backend
+                            exit 1
+                        fi
+
+                        echo "DEPLOYMENT SUCCESSFUL: Application is healthy"
+
+                        docker ps --filter name=trading-platform-backend
+                        docker logs --tail 50 trading-platform-backend
+                    '''
+                }
             }
         }
     }
