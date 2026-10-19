@@ -31,7 +31,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
-  /order:
+  /api/order:
     get:
       summary: Get all orders
       operationId: getAllOrders
@@ -45,7 +45,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/OrderResponseDTO' }
 
-  /order/{orderID}:
+  /api/order/{orderID}:
     get:
       summary: Get an order by ID
       operationId: getOrder
@@ -59,7 +59,7 @@ paths:
               schema: { $ref: '#/components/schemas/OrderResponseDTO' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /order/by_client/{clientID}:
+  /api/order/by_client/{clientID}:
     get:
       summary: Get orders by client ID
       operationId: getClientOrders
@@ -74,7 +74,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/OrderResponseDTO' }
 
-  /order/new:
+  /api/order/new:
     post:
       summary: Submit a new order
       operationId: submitOrder
