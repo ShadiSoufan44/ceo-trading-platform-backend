@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.Side;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.models.Holding;
@@ -90,12 +91,12 @@ public class PortfolioService {
     }
 
     @Transactional 
-    private void addDeposit(Portfolio portfolio, Order order, BigDecimal amount, String currency) {
+    private void addDeposit(Portfolio portfolio, Order order, BigDecimal amount, String currency, InstrumentType type) {
         Holding depositHolding = new Holding(
             Instant.now(),
             BigDecimal.ONE,
             amount,
-            instrumentService.getInstrumentBySymbol(currency),
+            instrumentService.getInstrumentBySymbolAndType(currency, type),
             order,
             portfolio
         );

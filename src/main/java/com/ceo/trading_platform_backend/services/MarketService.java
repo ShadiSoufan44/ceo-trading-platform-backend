@@ -81,9 +81,14 @@ public class MarketService {
 	}
 
 	// Fetches the full latest quote payload for a single symbol.
-	public QuoteData getQuote(String symbol) {
+	private QuoteData getQuote(String symbol) {
 		QuoteResponse response = getAndRead("/quotes/{symbol}", QuoteResponse.class, symbol);
 		return response.data();
+	}
+
+	public QuoteData getQuoteByType(String symbol, InstrumentType type) {
+		symbol = normalizeSymbolByType(symbol, type);
+		return getQuote(symbol);
 	}
 
 	// Fetches quote data for up to 25 symbols in a single network call.

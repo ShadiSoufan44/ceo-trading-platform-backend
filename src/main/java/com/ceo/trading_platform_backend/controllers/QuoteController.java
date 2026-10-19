@@ -33,8 +33,7 @@ public class QuoteController {
         @PathVariable String symbol,
         @PathVariable InstrumentType type
     ) {
-        symbol = marketService.normalizeSymbolByType(symbol, type);
-        Object quote = marketService.getQuote(symbol);
+        Object quote = marketService.getQuoteByType(symbol, type);
         return ResponseEntity.ok(quote);
     }
 }
