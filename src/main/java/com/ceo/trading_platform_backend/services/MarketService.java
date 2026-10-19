@@ -236,7 +236,7 @@ public class MarketService {
 	}
 
 
-	private String normalizeSymbolByType(String symbol, InstrumentType type) {
+	public String normalizeSymbolByType(String symbol, InstrumentType type) {
 		if (symbol.equals("USD")) {
 			return "USD";
 		}
