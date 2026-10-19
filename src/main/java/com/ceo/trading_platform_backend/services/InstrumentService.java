@@ -29,8 +29,8 @@ public class InstrumentService {
     }
 
     @Transactional 
-    public Instrument getInstrumentBySymbol(String symbol) {
-        return repository.findBySymbol(symbol);
+    public Instrument getInstrumentBySymbolAndType(String symbol, InstrumentType type) {
+        return repository.findBySymbolAndType(symbol, type);
     }
     
     @Transactional 
@@ -46,7 +46,7 @@ public class InstrumentService {
 
     @Transactional 
     public Instrument getOrInsertInstrumentBySymbolAndType(String symbol, InstrumentType type) {
-        Instrument instrument = getInstrumentBySymbol(symbol);
+        Instrument instrument = getInstrumentBySymbolAndType(symbol, type);
         if (instrument == null) {
             // Fetch real instrument metadata from market service
             var metadata = marketService.getSymbolMetadataByType(symbol, type);
