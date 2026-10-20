@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,6 +28,7 @@ import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
+import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PortfolioService Tests")
@@ -254,6 +256,51 @@ public class PortfolioServiceTests {
                 .isNotNull()
                 .hasSize(3)
                 .allMatch(h -> h != null);
+        }
+    }
+
+    @Nested
+    @DisplayName("Test getHoldingSummariesByPortfolioId()")
+    class GetHoldingSummariesByPortfolioIdTests {
+        @Test
+        @DisplayName("Should enrich database holding values with live market data")
+        void shouldEnrichHoldingWithLiveMarketData() {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.getHoldings().clear();
+            portfolio.addHolding(createStockHolding(
+                new BigDecimal("10"), new BigDecimal("125"), portfolio
+            ));
+
+            MarketService.QuoteData quote = new MarketService.QuoteData(
+                "AAPL", new BigDecimal("151.50"), new BigDecimal("151.40"),
+                new BigDecimal("151.60"), new BigDecimal("13.20"), "USD",
+                new BigDecimal("1.50"), new BigDecimal("0.01"),
+                new BigDecimal("150.00"), Instant.now(), "OPEN"
+            );
+            LocalDate today = LocalDate.now();
+            List<MarketService.Candle> candles = List.of(
+                new MarketService.Candle(today.minusDays(4), new BigDecimal("140"), new BigDecimal("142"), new BigDecimal("139"), new BigDecimal("140"), null, 100L, false),
+                new MarketService.Candle(today, new BigDecimal("150"), new BigDecimal("152"), new BigDecimal("149"), new BigDecimal("150"), null, 100L, false)
+            );
+
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            when(marketService.getQuoteByType("AAPL", InstrumentType.EQUITY)).thenReturn(quote);
+            when(marketService.getCandles("AAPL", today.minusYears(1), today)).thenReturn(candles);
+
+            List<HoldingSummaryResponse> result = portfolioService.getHoldingSummariesByPortfolioId(uuid1);
+
+            assertThat(result).hasSize(1);
+            HoldingSummaryResponse summary = result.get(0);
+            assertThat(summary.portfolioId()).isEqualTo(uuid1);
+            assertThat(summary.symbol()).isEqualTo("AAPL");
+            assertThat(summary.shares()).isEqualByComparingTo("10");
+            assertThat(summary.avgCost()).isEqualByComparingTo("125");
+            assertThat(summary.currentPrice()).isEqualByComparingTo("151.50");
+            assertThat(summary.dayChangeValue()).isEqualByComparingTo("1.50");
+            assertThat(summary.percentChange().get("1D")).isEqualByComparingTo("0.01");
+            assertThat(summary.percentChange().get("5D")).isEqualByComparingTo("0.07142857");
+            assertThat(summary.weekLow52()).isEqualByComparingTo("139");
+            assertThat(summary.weekHigh52()).isEqualByComparingTo("152");
         }
     }
 
