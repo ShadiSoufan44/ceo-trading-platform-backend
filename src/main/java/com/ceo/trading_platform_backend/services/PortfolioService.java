@@ -178,7 +178,7 @@ public class PortfolioService {
     private HoldingSummaryResponse toHoldingSummaryResponse(UUID portfolioId, Holding holding) {
         Instrument instrument = holding.getInstrument();
         String symbol = instrument.getSymbol();
-        MarketService.QuoteData quote = marketService.getQuote(symbol);
+        MarketService.QuoteData quote = marketService.getQuoteByType(symbol, instrument.getType());
         List<MarketService.Candle> candles = marketService.getCandles(symbol, LocalDate.now().minusYears(1), LocalDate.now());
 
         BigDecimal weekLow52 = candles.stream()
@@ -202,6 +202,7 @@ public class PortfolioService {
             portfolioId,
             symbol,
             instrument.getFullName(),
+            instrument.getType(),
             holding.getQuantity(),
             holding.getPurchasedPrice(),
             quote.price(),

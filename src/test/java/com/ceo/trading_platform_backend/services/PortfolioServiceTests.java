@@ -284,7 +284,7 @@ public class PortfolioServiceTests {
             );
 
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
-            when(marketService.getQuote("AAPL")).thenReturn(quote);
+            when(marketService.getQuoteByType("AAPL", InstrumentType.EQUITY)).thenReturn(quote);
             when(marketService.getCandles("AAPL", today.minusYears(1), today)).thenReturn(candles);
 
             List<HoldingSummaryResponse> result = portfolioService.getHoldingSummariesByPortfolioId(uuid1);

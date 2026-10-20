@@ -87,6 +87,23 @@ public class MarketService {
 	}
 
 	public QuoteData getQuoteByType(String symbol, InstrumentType type) {
+		if(type == InstrumentType.CASH) {
+			// for cash just build the price directly without fetching a quote
+			QuoteData data = new QuoteData(
+				symbol,
+				getCashPrice(symbol),
+				null,
+				null,
+				null,
+				symbol,
+				null,
+				null,
+				null,
+				Instant.now(),
+				"OPEN"
+			);
+			return data;
+		}
 		symbol = normalizeSymbolByType(symbol, type);
 		return getQuote(symbol);
 	}
