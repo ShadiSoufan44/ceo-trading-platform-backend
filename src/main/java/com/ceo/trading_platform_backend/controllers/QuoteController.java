@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.services.MarketService;
 
 /**
@@ -26,10 +27,13 @@ public class QuoteController {
      * Get current stock quote (price) for a symbol.
      * Available to all authenticated users.
      */
-    @GetMapping("/{symbol}")
+    @GetMapping("/{symbol}/{type}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Object> getStockQuote(@PathVariable String symbol) {
-        Object quote = marketService.getQuote(symbol);
+    public ResponseEntity<Object> getStockQuote(
+        @PathVariable String symbol,
+        @PathVariable InstrumentType type
+    ) {
+        Object quote = marketService.getQuoteByType(symbol, type);
         return ResponseEntity.ok(quote);
     }
 }
