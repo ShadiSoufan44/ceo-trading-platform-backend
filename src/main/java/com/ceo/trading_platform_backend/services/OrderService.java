@@ -35,6 +35,7 @@ public class OrderService {
     private final PortfolioService portfolioService;
     private final InstrumentService instrumentService;
     private final MarketService marketService;
+    private final RealtimeEventPublisher realtimeEventPublisher;
 
     private final LocalTime OPEN_TIME_LOCAL_US = LocalTime.of(9, 30, 0); // shoudl these be find
     private final LocalTime CLOSE_TIME_LOCAL_US = LocalTime.of(16, 0, 0);
@@ -45,11 +46,18 @@ public class OrderService {
     private final String TIME_ZONE_STRING_INDIA = "Asia/Kolkata";
 
 
-    public OrderService(OrderRepository repository, PortfolioService portfolioService, InstrumentService instrumentService, MarketService marketService) {
+    public OrderService(
+        OrderRepository repository,
+        PortfolioService portfolioService,
+        InstrumentService instrumentService,
+        MarketService marketService,
+        RealtimeEventPublisher realtimeEventPublisher
+    ) {
         this.repository = repository;
         this.portfolioService = portfolioService;
         this.instrumentService = instrumentService;
         this.marketService = marketService;
+        this.realtimeEventPublisher = realtimeEventPublisher;
     }
 
     // TODO move to ordercontroller and orderservice only gets order objects?
@@ -90,7 +98,16 @@ public class OrderService {
     }
 
     public Order save(Order order) {
-        return repository.save(order);
+        Order savedOrder = repository.save(order);
+        if (savedOrder != null && savedOrder.getOrderId() != null) {
+            try {
+                savedOrder.getCurrentOrderStatus();
+                realtimeEventPublisher.publishOrderUpdate(savedOrder);
+            } catch (RuntimeException ignored) {
+                // No status history yet.
+            }
+        }
+        return savedOrder;
     }
 
     public void markRejected(UUID orderId, String message) {
@@ -100,7 +117,7 @@ public class OrderService {
                 message,
                 Instant.now()
             ));
-            repository.save(order);
+            save(order);
         });
     }
 

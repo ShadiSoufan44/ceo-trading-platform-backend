@@ -58,6 +58,8 @@ public class OrderServiceTests {
     private InstrumentService instrumentService;
     @Mock
     private PortfolioService portfolioService;
+    @Mock
+    private RealtimeEventPublisher realtimeEventPublisher;
 
     @InjectMocks
     private OrderService orderService;
@@ -378,7 +380,7 @@ public class OrderServiceTests {
                 var mockedInstant = Instant.now(clock);
                 MockedStatic<Instant> mockedStatic = Mockito.mockStatic(Instant.class, Mockito.CALLS_REAL_METHODS);
                 mockedStatic.when(Instant::now).thenReturn(mockedInstant);
-                OrderService orderService = new OrderService(orderRepository, portfolioService, instrumentService, marketService);
+                OrderService orderService = new OrderService(orderRepository, portfolioService, instrumentService, marketService, realtimeEventPublisher);
                 Order badOrder = createWorkingSellOrder(uuid1);
                 badOrder.setAddInstrumentId(uuid2);
                 LocalTime time = LocalTime.of(19, 0); // 7pm

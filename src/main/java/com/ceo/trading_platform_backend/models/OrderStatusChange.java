@@ -51,4 +51,8 @@ public class OrderStatusChange {
     public Instant getDate() {
         return this.date;
     }
+
+    public String getMessage() {
+        return this.message;
+    }
 }
