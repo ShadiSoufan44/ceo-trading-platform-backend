@@ -164,8 +164,15 @@ public class MarketService {
 	// 	return getSymbolMetadata(normalizeCashSymbol(symbol));
 	// }
 
+	public List<Candle> getCandlesByType(
+		String symbol, InstrumentType type, 
+		LocalDate from, LocalDate to
+	) {
+		return getCandles(normalizeSymbolByType(symbol, type), from, to);
+	}
+
 	// Fetches daily candles for a symbol over an optional date range.
-	public List<Candle> getCandles(String symbol, LocalDate from, LocalDate to) {
+	private List<Candle> getCandles(String symbol, LocalDate from, LocalDate to) {
 		CandlesResponse response = restClient.get()
 				.uri(uriBuilder -> {
 					var builder = uriBuilder.path("/candles/{symbol}")
