@@ -14,11 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ceo.trading_platform_backend.dto.CreateUserRequest;
+import com.ceo.trading_platform_backend.enums.UserRole;
 import com.ceo.trading_platform_backend.exception.DuplicateResourceException;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
-import com.ceo.trading_platform_backend.models.Administrator;
-import com.ceo.trading_platform_backend.models.Analyst;
-import com.ceo.trading_platform_backend.models.Client;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.User;
 import com.ceo.trading_platform_backend.repositories.OrderRepository;
@@ -106,22 +104,16 @@ public class AdminService {
             throw new DuplicateResourceException("Email already registered: " + request.email());
         }
 
-        User user;
         Instant now = Instant.now();
         String encodedPassword = passwordEncoder.encode(request.password());
 
-        switch (role.toUpperCase()) {
-            case "ADMIN":
-                user = new Administrator(request.fullName(), request.email(), encodedPassword, now);
-                break;
-            case "ANALYST":
-                user = new Analyst(request.fullName(), request.email(), encodedPassword, now);
-                break;
-            case "CLIENT":
-            default:
-                user = new Client(request.fullName(), request.email(), encodedPassword, now);
-                break;
-        }
+        User user = new User(
+                request.fullName(),
+                request.email(),
+                encodedPassword,
+                now,
+                UserRole.valueOf(role.toUpperCase())
+        );
 
         return userRepository.save(user);
     }
@@ -196,3 +188,12 @@ public class AdminService {
         return List.of();
     }
 }
+
+  // TODO: Administrator-specific capabilities
+    // - getAllTrades() - Complete trade history across all clients
+    // - auditTradeDisputeTradeLookup(Integer tradeId) - Get exact trade details
+    // - viewAuditLog(Integer userId) - See all user actions
+    // - suspendUser(Integer userId) - Deactivate accounts
+    // - getUserManagement() - Create/update/delete users
+    // - systemMetrics() - View overall system health
+    // - canViewUser(Integer userId) - Can view any user's data

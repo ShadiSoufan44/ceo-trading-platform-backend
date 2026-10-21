@@ -12,6 +12,74 @@ servers:
     description: Production server
 
 paths:
+  /api/users:
+    post:
+      summary: Create a user account
+      description: Creates a new user account with the CLIENT role by default.
+      operationId: createUser
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+      responses:
+        '201':
+          description: User account created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: Email is already registered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/users/{userId}:
+    get:
+      summary: Get a user profile
+      operationId: getUser
+      tags: [Users]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      summary: Update user profile information
+      description: Updates the supplied name and/or email fields.
+      operationId: updateUser
+      tags: [Users]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateInfoRequest' }
+      responses:
+        '200':
+          description: User profile updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Email is already registered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
   /api/users/{userId}/portfolios:
     get:
       summary: Get all portfolios for a user
@@ -239,6 +307,29 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
   schemas:
+    CreateUserRequest:
+      type: object
+      required: [fullName, email, password]
+      properties:
+        fullName: { type: string }
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+    UpdateInfoRequest:
+      type: object
+      description: At least one field should be supplied.
+      properties:
+        newName: { type: string }
+        newEmail: { type: string, format: email }
+    UserResponse:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        joinDate: { type: string, format: date-time }
+        role:
+          type: string
+          enum: [CLIENT, ANALYST, ADMIN]
     OrderRequestDTO:
       type: object
       required: [clientId, clientName, portfolioId, addInstrumentSymbol, addInstrumentType, subtractInstrumentSymbol, subtractInstrumentType, quantity, quotedPrice, side, changeThreshold, market]

@@ -25,4 +25,13 @@ public class AnalystService {
     public List<MarketService.Candle> getHistoricalData(String symbol) {
         return marketService.getCandles(symbol, null, null);
     }
+
+      // TODO: Analyst-specific capabilities
+    // - getHistoricalData(DateRange range) - Query historical trades
+    // - generateVolumeReport(Month month) - Trading volume metrics
+    // - generateActivityReport(Month month) - Client activity metrics
+    // - canViewTradeHistory() - Read-only access to all trades
+    // - canViewAggregatedMetrics() - High-level statistics only
+    // - cannotPlaceOrders() - No execution capability
+    // - canViewUser(Integer userId) - Can view any user's aggregated data (no PII)
 }

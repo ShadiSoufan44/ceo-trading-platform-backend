@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.ceo.trading_platform_backend.dto.UpdateInfoRequest;
+import org.springframework.web.bind.annotation.PatchMapping;
 
 /**
  * UserController handles shared user authentication and profile endpoints.
@@ -73,21 +75,26 @@ public class UserController {
     }
 
 
-
-    /**
-     * Change user password.
-     * Users can change their own password; ADMIN can change any user's password.
-     * 
-     * @param userId the user ID
-     * @param request ChangePasswordRequest with oldPassword and newPassword
-     * @return 200 OK
-     */
-    @PostMapping("/{userId}/change-password")
-    @PreAuthorize("hasRole('ADMIN') or @userService.isOwnProfile(#userId)")
-    public ResponseEntity<Void> changePassword(
-            @PathVariable UUID userId,
-            @Valid @RequestBody ChangePasswordRequest request) {
-        passwordService.changePassword(userId, request);
-        return ResponseEntity.ok().build();
+    @PatchMapping("/{userId}")
+    public ResponseEntity<UserResponse> updateUser(@PathVariable UUID userId,@Valid @RequestBody UpdateInfoRequest request) {
+        UserResponse response = userService.updateInfo(userId, request);
+        return ResponseEntity.ok(response);
     }
+
+    // /**
+    //  * Change user password.
+    //  * Users can change their own password; ADMIN can change any user's password.
+    //  * 
+    //  * @param userId the user ID
+    //  * @param request ChangePasswordRequest with oldPassword and newPassword
+    //  * @return 200 OK
+    //  */
+    // @PostMapping("/{userId}/change-password")
+    // @PreAuthorize("hasRole('ADMIN') or @userService.isOwnProfile(#userId)")
+    // public ResponseEntity<Void> changePassword(
+    //         @PathVariable UUID userId,
+    //         @Valid @RequestBody ChangePasswordRequest request) {
+    //     passwordService.changePassword(userId, request);
+    //     return ResponseEntity.ok().build();
+    // }
 } 
