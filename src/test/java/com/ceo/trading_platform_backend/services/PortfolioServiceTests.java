@@ -293,7 +293,7 @@ public class PortfolioServiceTests {
             HoldingSummaryResponse summary = result.get(0);
             assertThat(summary.portfolioId()).isEqualTo(uuid1);
             assertThat(summary.symbol()).isEqualTo("AAPL");
-            assertThat(summary.shares()).isEqualByComparingTo("10");
+            assertThat(summary.quantity()).isEqualByComparingTo("10");
             assertThat(summary.avgCost()).isEqualByComparingTo("125");
             assertThat(summary.currentPrice()).isEqualByComparingTo("151.50");
             assertThat(summary.dayChangeValue()).isEqualByComparingTo("1.50");
