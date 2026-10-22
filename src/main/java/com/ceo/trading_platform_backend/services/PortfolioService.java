@@ -61,13 +61,15 @@ public class PortfolioService {
 
     @Transactional 
     private BigDecimal getPortfolioTotalValue(Portfolio portfolio) {
-        List<QuoteData> quotes = getQuotesOfOwnedInstruments(portfolio.getPortfolioId());
-        BigDecimal value = new BigDecimal(0);
-        for (QuoteData quote : quotes) {
-            value = value.add(quote.price());
+        List<QuoteData> quotes = getQuotesOfOwnedInstruments(portfolio);
+        List<Holding> holdings = portfolio.getHoldings();
+        BigDecimal totalValue = new BigDecimal(0);
+        for (int i = 0; i < quotes.size(); i++) {
+            System.out.println("Price: " + quotes.get(i).price() + ", Quantity:" + holdings.get(i).getQuantity());
+            BigDecimal value = quotes.get(i).price().multiply(holdings.get(i).getQuantity());
+            totalValue = totalValue.add(value);
         }
-
-        return value;
+        return totalValue;
     }
 
     public Portfolio getPortfolioById(UUID portfolioId) {
@@ -84,6 +86,7 @@ public class PortfolioService {
         return getPortfolioBuyingPower(portfolio);
     }
 
+    @Transactional 
     public BigDecimal getTotalValueByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         return getPortfolioTotalValue(portfolio);
@@ -95,8 +98,7 @@ public class PortfolioService {
         return portfolio.getHoldings();
     }
 
-    private List<QuoteData> getQuotesOfOwnedInstruments(UUID portfolioId) {
-        Portfolio portfolio = getPortfolioById(portfolioId);
+    private List<QuoteData> getQuotesOfOwnedInstruments(Portfolio portfolio) {
         List<Holding> holdings = portfolio.getHoldings();
 
         int counter = 1;
@@ -138,7 +140,7 @@ public class PortfolioService {
     public List<HoldingSummaryResponse> getHoldingSummariesByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         List<Holding> holdings = portfolio.getHoldings();
-        List<QuoteData> fullQuotesList = getQuotesOfOwnedInstruments(portfolioId);
+        List<QuoteData> fullQuotesList = getQuotesOfOwnedInstruments(portfolio);
 
         List<HoldingSummaryResponse> summaries = new ArrayList<>();
 
