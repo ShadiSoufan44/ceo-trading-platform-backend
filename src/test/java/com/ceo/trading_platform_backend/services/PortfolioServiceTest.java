@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,6 +26,7 @@ import com.ceo.trading_platform_backend.enums.Side;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
+import com.ceo.trading_platform_backend.models.InstrumentCandle;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
@@ -32,7 +34,7 @@ import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PortfolioService Tests")
-public class PortfolioServiceTests {
+public class PortfolioServiceTest {
     @Mock 
     private PortfolioRepository portfolioRepository;
 
@@ -41,6 +43,9 @@ public class PortfolioServiceTests {
 
     @Mock
     private MarketService marketService;
+
+    @Mock
+    private InstrumentCacheService instrumentCacheService;
 
     private PortfolioService portfolioService;
 
@@ -62,6 +67,7 @@ public class PortfolioServiceTests {
         portfolioService = new PortfolioService(
             portfolioRepository, 
             instrumentService,
+            instrumentCacheService,
             marketService
         );
         
@@ -278,14 +284,29 @@ public class PortfolioServiceTests {
                 new BigDecimal("150.00"), Instant.now(), "OPEN"
             );
             LocalDate today = LocalDate.now();
-            List<MarketService.Candle> candles = List.of(
-                new MarketService.Candle(today.minusDays(4), new BigDecimal("140"), new BigDecimal("142"), new BigDecimal("139"), new BigDecimal("140"), null, 100L, false),
-                new MarketService.Candle(today, new BigDecimal("150"), new BigDecimal("152"), new BigDecimal("149"), new BigDecimal("150"), null, 100L, false)
+            List<InstrumentCandle> candles = List.of(
+                new InstrumentCandle(
+                    stockInstrument,
+                    today.minusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant(),
+                    new BigDecimal("140"), new BigDecimal("142"), new BigDecimal("139"),
+                    new BigDecimal("140"), null, new BigDecimal("100"), false
+                ),
+                new InstrumentCandle(
+                    stockInstrument,
+                    today.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                    new BigDecimal("150"), new BigDecimal("152"), new BigDecimal("149"),
+                    new BigDecimal("150"), null, new BigDecimal("100"), false
+                )
             );
 
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
-            when(marketService.getQuoteByType("AAPL", InstrumentType.EQUITY)).thenReturn(quote);
-            when(marketService.getCandles("AAPL", today.minusYears(1), today)).thenReturn(candles);
+            when(marketService.normalizeSymbolByType("AAPL", InstrumentType.EQUITY)).thenReturn("AAPL");
+            when(marketService.getQuotes(List.of("AAPL"))).thenReturn(List.of(
+                new MarketService.BatchQuoteResult("AAPL", "test", false, quote, null)
+            ));
+            when(instrumentCacheService.findOrInsertCandles(
+                "AAPL", InstrumentType.EQUITY, today.minusYears(1), today
+            )).thenReturn(candles);
 
             List<HoldingSummaryResponse> result = portfolioService.getHoldingSummariesByPortfolioId(uuid1);
 

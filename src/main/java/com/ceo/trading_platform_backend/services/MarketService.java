@@ -11,13 +11,15 @@ import com.ceo.trading_platform_backend.enums.InstrumentType;
 public interface MarketService {
 
     // public methods
-    BigDecimal getPriceWithType(InstrumentType type, String symbol);
-    QuoteData getQuoteByType(String symbol, InstrumentType type);
-    List<BatchQuoteResult> getQuotes(List<String> symbols);
-    SymbolMetadataData getSymbolMetadataByType(String symbol, InstrumentType type);
-    List<Candle> getCandles(String symbol, LocalDate from, LocalDate to);
-    boolean isActiveSymbolByType(String symbol, InstrumentType type);
-    String normalizeSymbolByType(String symbol, InstrumentType type);
+    public BigDecimal getPriceWithType(InstrumentType type, String symbol);
+    public QuoteData getQuoteByType(String symbol, InstrumentType type);
+    public List<BatchQuoteResult> getQuotes(List<String> symbols);
+    public SymbolMetadataData getSymbolMetadataByType(String symbol, InstrumentType type);
+    public boolean isActiveSymbolByType(String symbol, InstrumentType type);
+    public String normalizeSymbolByType(String symbol, InstrumentType type);
+	public List<Candle> getCandlesByType(String symbol, InstrumentType type, LocalDate from, LocalDate to);
+    // List<Candle> getCandles(String symbol, LocalDate from, LocalDate to);
+
 
     record QuoteData(
         String symbol,

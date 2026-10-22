@@ -30,23 +30,6 @@ public class PortfolioController {
         this.service = portfolioService;
     }
 
-    // TODO: move this to a ClientController.java
-    // @GetMapping("/getall/{client_id}")
-    // public ResponseEntity<List<PortfolioResponse>> getPortfoliosByClientId(
-    //     @PathVariable int clientId
-    // ) {
-    //     List<Portfolio> portfolios = service.getPortfoliosByClientId(clientId);
-    //     if (portfolios == null) {
-    //         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-    //     }
-    //     List<PortfolioResponse> response = new ArrayList<>();
-    //     for (Portfolio portfolio : portfolios) {
-    //         response.add(createPortfolioResponse(portfolio));
-    //     }
-        
-    //     return ResponseEntity.ok(response);
-    // }
-
     @GetMapping("/{portfolioId}/buying_power")
     public ResponseEntity<BigDecimal> getBuyingPowerByPortfolioId(
         @PathVariable UUID portfolioId
@@ -68,7 +51,6 @@ public class PortfolioController {
         }
         return ResponseEntity.ok(response);
     }
-    
 
     @GetMapping("/{portfolioId}/holdings")
     public ResponseEntity<List<HoldingSummaryResponse>> getHoldingsByPortfolioId(

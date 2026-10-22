@@ -83,7 +83,11 @@ public class MockMarketService implements com.ceo.trading_platform_backend.servi
         return metadata;
     }
 
-    public List<Candle> getCandles(String symbol, LocalDate from, LocalDate to) {
+    public List<Candle> getCandlesByType(String symbol, InstrumentType instrumentType, LocalDate from, LocalDate to) {
+        return getCandles(normalizeSymbolByType(symbol, instrumentType), from, to);
+    }
+
+    private List<Candle> getCandles(String symbol, LocalDate from, LocalDate to) {
         List<Candle> candles = new ArrayList<>();
         LocalDate current = from;
         while (!current.isAfter(to)) {
