@@ -29,7 +29,7 @@ public class QuoteController {
      */
     @GetMapping("/{symbol}/{type}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Object> getStockQuote(
+    public ResponseEntity<Object> getQuote(
         @PathVariable String symbol,
         @PathVariable InstrumentType type
     ) {

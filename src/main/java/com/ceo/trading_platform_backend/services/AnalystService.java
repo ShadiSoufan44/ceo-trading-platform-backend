@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ceo.trading_platform_backend.dto.ClientActivityTrendPoint;
 import com.ceo.trading_platform_backend.dto.TopInstrumentInsight;
 import com.ceo.trading_platform_backend.dto.TradingVolumeInsight;
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.repositories.AnalystReportingRepository;
 
 /**
@@ -35,16 +36,16 @@ public class AnalystService {
      * Get historical price data for a symbol.
      */
     @Transactional(readOnly = true)
-    public List<MarketService.Candle> getHistoricalData(String symbol) {
-        return marketService.getCandles(symbol, null, null);
+    public List<MarketService.Candle> getHistoricalData(String symbol, InstrumentType type) {
+        return marketService.getCandlesByType(symbol, type, null, null);
     }
 
     /**
      * Get historical price data for a symbol with an optional date range.
      */
     @Transactional(readOnly = true)
-    public List<MarketService.Candle> getHistoricalData(String symbol, LocalDate from, LocalDate to) {
-        return marketService.getCandles(symbol, from, to);
+    public List<MarketService.Candle> getHistoricalData(String symbol, InstrumentType type, LocalDate from, LocalDate to) {
+        return marketService.getCandlesByType(symbol, type, from, to);
     }
 
     /**

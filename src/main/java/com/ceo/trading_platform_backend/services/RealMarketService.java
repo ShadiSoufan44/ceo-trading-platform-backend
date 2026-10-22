@@ -144,34 +144,12 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 		return response.data();
 	}
 
-	// // Fetches stored metadata for a symbol, including coverage dates and active status.
-	// public SymbolMetadataData getSymbolMetadata(String symbol) {
-	// 	System.out.println("Getting Metadata for " + normalizeSymbol(symbol));
-	// 	SymbolMetadataResponse response = getAndRead("/symbols/{symbol}", SymbolMetadataResponse.class, normalizeSymbol(symbol));
-	// 	return response.data();
-	// }
-
-	// // Fetches metadata for an equity symbol.
-	// public SymbolMetadataData getEquityMetadata(String symbol) {
-	// 	System.out.println("getequity");
-	// 	return getSymbolMetadata(normalizeEquitySymbol(symbol));
-	// }
-
-	// // Fetches metadata for a crypto symbol.
-	// public SymbolMetadataData getCryptoMetadata(String symbol) {
-	// 	System.out.println("getcrypto");
-
-	// 	return getSymbolMetadata(normalizeCryptoSymbol(symbol));
-	// }
-
-	// // Fetches metadata for a cash/FX symbol.
-	// public SymbolMetadataData getCashMetadata(String symbol) {
-	// 	System.out.println("getcash");
-	// 	return getSymbolMetadata(normalizeCashSymbol(symbol));
-	// }
+	public List<Candle> getCandlesByType(String symbol, InstrumentType type, LocalDate from, LocalDate to) {
+		return getCandles(normalizeSymbolByType(symbol, type), from, to);
+	}
 
 	// Fetches daily candles for a symbol over an optional date range.
-	public List<Candle> getCandles(String symbol, LocalDate from, LocalDate to) {
+	private List<Candle> getCandles(String symbol, LocalDate from, LocalDate to) {
 		CandlesResponse response = restClient.get()
 				.uri(uriBuilder -> {
 					var builder = uriBuilder.path("/candles/{symbol}")
