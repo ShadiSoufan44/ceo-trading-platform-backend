@@ -7,6 +7,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,13 +26,15 @@ import com.ceo.trading_platform_backend.enums.Side;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
+import com.ceo.trading_platform_backend.models.InstrumentCandle;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
+import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PortfolioService Tests")
-public class PortfolioServiceTests {
+public class PortfolioServiceTest {
     @Mock 
     private PortfolioRepository portfolioRepository;
 
@@ -39,6 +43,9 @@ public class PortfolioServiceTests {
 
     @Mock
     private MarketService marketService;
+
+    @Mock
+    private InstrumentCacheService instrumentCacheService;
 
     private PortfolioService portfolioService;
 
@@ -60,6 +67,7 @@ public class PortfolioServiceTests {
         portfolioService = new PortfolioService(
             portfolioRepository, 
             instrumentService,
+            instrumentCacheService,
             marketService
         );
         
@@ -254,6 +262,66 @@ public class PortfolioServiceTests {
                 .isNotNull()
                 .hasSize(3)
                 .allMatch(h -> h != null);
+        }
+    }
+
+    @Nested
+    @DisplayName("Test getHoldingSummariesByPortfolioId()")
+    class GetHoldingSummariesByPortfolioIdTests {
+        @Test
+        @DisplayName("Should enrich database holding values with live market data")
+        void shouldEnrichHoldingWithLiveMarketData() {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.getHoldings().clear();
+            portfolio.addHolding(createStockHolding(
+                new BigDecimal("10"), new BigDecimal("125"), portfolio
+            ));
+
+            MarketService.QuoteData quote = new MarketService.QuoteData(
+                "AAPL", new BigDecimal("151.50"), new BigDecimal("151.40"),
+                new BigDecimal("151.60"), new BigDecimal("13.20"), "USD",
+                new BigDecimal("1.50"), new BigDecimal("0.01"),
+                new BigDecimal("150.00"), Instant.now(), "OPEN"
+            );
+            LocalDate today = LocalDate.now();
+            List<InstrumentCandle> candles = List.of(
+                new InstrumentCandle(
+                    stockInstrument,
+                    today.minusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant(),
+                    new BigDecimal("140"), new BigDecimal("142"), new BigDecimal("139"),
+                    new BigDecimal("140"), null, new BigDecimal("100"), false
+                ),
+                new InstrumentCandle(
+                    stockInstrument,
+                    today.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                    new BigDecimal("150"), new BigDecimal("152"), new BigDecimal("149"),
+                    new BigDecimal("150"), null, new BigDecimal("100"), false
+                )
+            );
+
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            when(marketService.normalizeSymbolByType("AAPL", InstrumentType.EQUITY)).thenReturn("AAPL");
+            when(marketService.getQuotes(List.of("AAPL"))).thenReturn(List.of(
+                new MarketService.BatchQuoteResult("AAPL", "test", false, quote, null)
+            ));
+            when(instrumentCacheService.findOrInsertCandles(
+                "AAPL", InstrumentType.EQUITY, today.minusYears(1), today
+            )).thenReturn(candles);
+
+            List<HoldingSummaryResponse> result = portfolioService.getHoldingSummariesByPortfolioId(uuid1);
+
+            assertThat(result).hasSize(1);
+            HoldingSummaryResponse summary = result.get(0);
+            assertThat(summary.portfolioId()).isEqualTo(uuid1);
+            assertThat(summary.symbol()).isEqualTo("AAPL");
+            assertThat(summary.quantity()).isEqualByComparingTo("10");
+            assertThat(summary.avgCost()).isEqualByComparingTo("125");
+            assertThat(summary.currentPrice()).isEqualByComparingTo("151.50");
+            assertThat(summary.dayChangeValue()).isEqualByComparingTo("1.50");
+            assertThat(summary.percentChange().get("1D")).isEqualByComparingTo("0.01");
+            assertThat(summary.percentChange().get("5D")).isEqualByComparingTo("0.07142857");
+            assertThat(summary.weekLow52()).isEqualByComparingTo("139");
+            assertThat(summary.weekHigh52()).isEqualByComparingTo("152");
         }
     }
 

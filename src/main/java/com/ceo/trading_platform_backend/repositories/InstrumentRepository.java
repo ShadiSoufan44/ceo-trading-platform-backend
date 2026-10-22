@@ -13,4 +13,5 @@ public interface InstrumentRepository extends JpaRepository<Instrument, UUID> {
     public Instrument findBySymbol(String symbol);
 
     List<Instrument> findByType(InstrumentType type);
+    Instrument findBySymbolAndType(String symbol, InstrumentType type);
 }

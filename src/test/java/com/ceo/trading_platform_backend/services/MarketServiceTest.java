@@ -27,7 +27,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 public class MarketServiceTest {
 
-    private MarketService marketService;
+    private RealMarketService marketService;
     private ObjectMapper objectMapper;
     private String apiKey;
     private String baseUrl = "https://y4t9nq2bqf.execute-api.eu-west-2.amazonaws.com/v1";
@@ -46,7 +46,7 @@ public class MarketServiceTest {
         }
         
         // Create MarketService with the API key
-        marketService = new MarketService(
+        marketService = new RealMarketService(
             RestClient.builder(),
             objectMapper,
             baseUrl,
@@ -122,7 +122,7 @@ public class MarketServiceTest {
 
     @Test
     void testGetPriceWithTypeThrowsExceptionWhenApiKeyMissing() {
-        MarketService noKeyMarketService = new MarketService(
+        RealMarketService noKeyMarketService = new RealMarketService(
             RestClient.builder(),
             objectMapper,
             baseUrl,
@@ -136,7 +136,7 @@ public class MarketServiceTest {
 
     @Test
     void testGetSymbolMetadataThrowsExceptionWhenApiKeyMissing() {
-        MarketService noKeyMarketService = new MarketService(
+        RealMarketService noKeyMarketService = new RealMarketService(
             RestClient.builder(),
             objectMapper,
             baseUrl,
@@ -234,7 +234,7 @@ public class MarketServiceTest {
             System.out.println("Using API Key: " + (apiKey != null && !apiKey.isEmpty() ? "***CONFIGURED***" : "NOT CONFIGURED"));
             
             // Attempt to get a quote for a valid symbol
-            QuoteData quote = marketService.getQuote("AAPL");
+            QuoteData quote = marketService.getQuoteByType("AAPL", InstrumentType.EQUITY);
             
             assertNotNull(quote);
             assertNotNull(quote.symbol());

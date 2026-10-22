@@ -67,11 +67,12 @@ public class InstrumentServiceTest {
     public void testGetInstrumentBySymbol() {
         // Arrange
         String symbol = "AAPL";
-        Instrument expectedInstrument = new Instrument("AAPL", InstrumentType.EQUITY, "Apple Inc.");
-        when(mockRepository.findBySymbol(symbol)).thenReturn(expectedInstrument);
+        InstrumentType type = InstrumentType.EQUITY;
+        Instrument expectedInstrument = new Instrument("AAPL", type, "Apple Inc.");
+        when(mockRepository.findBySymbolAndType(symbol, type)).thenReturn(expectedInstrument);
         
         // Act
-        Instrument result = instrumentService.getInstrumentBySymbol(symbol);
+        Instrument result = instrumentService.getInstrumentBySymbolAndType(symbol, type);
         
         // Print retrieved data
         System.out.println("\n[testGetInstrumentBySymbol] Retrieved: Symbol=" + result.getSymbol() + 
@@ -82,7 +83,7 @@ public class InstrumentServiceTest {
         assertNotNull(result);
         assertEquals("AAPL", result.getSymbol());
         assertEquals(InstrumentType.EQUITY, result.getType());
-        verify(mockRepository, times(1)).findBySymbol(symbol);
+        verify(mockRepository, times(1)).findBySymbolAndType(symbol, type);
     }
     
     /**
@@ -123,7 +124,7 @@ public class InstrumentServiceTest {
         String symbol = "AAPL";
         InstrumentType type = InstrumentType.EQUITY;
         Instrument existingInstrument = new Instrument("AAPL", InstrumentType.EQUITY, "Apple Inc.");
-        when(mockRepository.findBySymbol(symbol)).thenReturn(existingInstrument);
+        when(mockRepository.findBySymbolAndType(symbol, type)).thenReturn(existingInstrument);
         
         // Act
         Instrument result = instrumentService.getOrInsertInstrumentBySymbolAndType(symbol, type);
@@ -147,7 +148,7 @@ public class InstrumentServiceTest {
         // Arrange - instrument doesn't exist, need to fetch from MarketService
         String symbol = "GOOGL";
         InstrumentType type = InstrumentType.EQUITY;
-        when(mockRepository.findBySymbol(symbol)).thenReturn(null);
+        when(mockRepository.findBySymbolAndType(symbol, type)).thenReturn(null);
         
         // Create mock metadata from MarketService
         MarketService.SymbolMetadataData mockMetadata = createMockMetadata("GOOGL", "EQUITY", "Alphabet Inc.");

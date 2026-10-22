@@ -17,6 +17,7 @@ import com.ceo.trading_platform_backend.dto.ClientActivityTrendPoint;
 import com.ceo.trading_platform_backend.dto.TopInstrumentInsight;
 import com.ceo.trading_platform_backend.dto.TopMover;
 import com.ceo.trading_platform_backend.dto.TradingVolumeInsight;
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.services.AnalystService;
 
 
@@ -67,11 +68,12 @@ public class AnalystController {
         return ResponseEntity.ok(analystService.getClientActivityTrend(fromUtc, toExclusiveUtc, clientSegment));
     }
 
-    @GetMapping("/candles/{symbol}")
+    @GetMapping("/candles/{symbol}/{type}")
     public ResponseEntity<Object> getCandles(
             @PathVariable String symbol,
+            @PathVariable InstrumentType type,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        return ResponseEntity.ok(analystService.getHistoricalData(symbol, from, to));
+        return ResponseEntity.ok(analystService.getHistoricalData(symbol, type, from, to));
     }
 }
