@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
 import com.ceo.trading_platform_backend.dto.OrderResponseDTO;
@@ -31,6 +32,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/order")
+@PreAuthorize("hasAnyRole('CLIENT', 'ADMIN')")
 public class OrderController {
 
     private final OrderService orderService;
@@ -57,6 +59,7 @@ public class OrderController {
     
     //get orders absed off client id
     @GetMapping("/by_client/{clientID}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('CLIENT') and @userService.isOwnProfile(#clientID))")
     public List <OrderResponseDTO> getClientOrders(@PathVariable UUID clientID) { 
         List<Order> allOrders = orderService.getClientOrders(clientID);
         List<OrderResponseDTO> allResponses = new ArrayList<OrderResponseDTO>();
@@ -67,19 +70,47 @@ public class OrderController {
     }
 
     @GetMapping("/{orderID}")
+    @PreAuthorize("hasAnyRole('CLIENT', 'ADMIN')")
     public OrderResponseDTO getOrder(@PathVariable UUID orderID) {
+        orderService.assertCanAccess(orderID);
         Optional<Order> order = orderService.getOrderById(orderID);
         OrderResponseDTO response = createOrderResponse(order.orElseThrow(() -> new ResourceNotFoundException("order id " + orderID + " not foudn in DB")));
         return response;
     }
 
     @PostMapping("/new")
+    @PreAuthorize("hasAnyRole('CLIENT', 'ADMIN')")
     public ResponseEntity<OrderResponseDTO> submitOrder(@Valid @RequestBody OrderRequestDTO request) {
+        if (!isAdmin()) {
+            if (!"CLIENT".equals(currentRole()) || !request.clientId().toString().equals(currentUserId())) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "You can only submit orders for your own client account");
+            }
+        }
         // Order order = orderService.submit(request);
         Order order = orderService.createOrder(request);
         producers.submit(order);
         OrderResponseDTO response = createOrderResponse(order);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    private String currentUserId() {
+        return org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .getAuthentication().getName();
+    }
+
+    private String currentRole() {
+        return org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .getAuthentication().getAuthorities().stream()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring(5))
+                .findFirst()
+                .orElse("");
+    }
+
+    private boolean isAdmin() {
+        return currentRole().equals("ADMIN");
     }
     
     public OrderResponseDTO createOrderResponse(Order order) {

@@ -70,12 +70,14 @@ public class UserController {
      * @return 200 OK with UserResponse
      */
     @GetMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or @userService.isOwnProfile(#userId)")
     public ResponseEntity<UserResponse> getUser(@PathVariable UUID userId) {
         return ResponseEntity.ok(userService.getUser(userId));
     }
 
 
     @PatchMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or @userService.isOwnProfile(#userId)")
     public ResponseEntity<UserResponse> updateUser(@PathVariable UUID userId,@Valid @RequestBody UpdateInfoRequest request) {
         UserResponse response = userService.updateInfo(userId, request);
         return ResponseEntity.ok(response);

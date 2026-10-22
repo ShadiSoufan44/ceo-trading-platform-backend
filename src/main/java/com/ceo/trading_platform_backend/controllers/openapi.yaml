@@ -12,6 +12,101 @@ servers:
     description: Production server
 
 paths:
+  /api/auth/login:
+    post:
+      summary: Log in
+      description: Authenticates a user and returns an access token and refresh token.
+      operationId: login
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401':
+          description: Invalid email or password
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/auth/refresh:
+    post:
+      summary: Refresh authentication tokens
+      description: Rotates the valid HttpOnly refresh-token cookie and returns a new access token. The response sets a replacement refresh-token cookie.
+      operationId: refreshTokens
+      tags: [Authentication]
+      responses:
+        '200':
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401':
+          description: Invalid, expired, or revoked refresh token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/auth/logout:
+    post:
+      summary: Log out
+      description: Revokes the refresh-token cookie and clears it.
+      operationId: logout
+      tags: [Authentication]
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LogoutResponse' }
+
+  /api/auth/change-password:
+    post:
+      summary: Change the current user's password
+      description: Verifies the current password and replaces it with a new BCrypt hash.
+      operationId: changePassword
+      tags: [Authentication]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChangePasswordResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401':
+          description: Authentication required or current password is incorrect
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/auth/me:
+    get:
+      summary: Get the current authenticated user
+      operationId: getCurrentUser
+      tags: [Authentication]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   /api/users:
     post:
       summary: Create a user account
@@ -307,6 +402,47 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
   schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword, confirmNewPassword]
+      properties:
+        currentPassword: { type: string, format: password }
+        newPassword: { type: string, format: password, minLength: 8 }
+        confirmNewPassword: { type: string, format: password, minLength: 8 }
+    ChangePasswordResponse:
+      type: object
+      properties:
+        message: { type: string }
+        changedAt: { type: string, format: date-time }
+    LogoutResponse:
+      type: object
+      properties:
+        message: { type: string }
+        loggedOutAt: { type: string, format: date-time }
+    LoginResponse:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        email: { type: string, format: email }
+        accessToken: { type: string }
+        expiresIn:
+          type: integer
+          format: int64
+          description: Access-token lifetime in milliseconds.
+        role:
+          type: string
+          enum: [CLIENT, ANALYST, ADMIN]
     CreateUserRequest:
       type: object
       required: [fullName, email, password]

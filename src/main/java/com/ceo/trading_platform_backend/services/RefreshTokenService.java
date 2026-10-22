@@ -14,15 +14,20 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final long refreshTokenExpirationSeconds;
 
-    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository) {
+    public RefreshTokenService(
+            RefreshTokenRepository refreshTokenRepository,
+            @Value("${jwt.refresh-token-expiration}") long refreshTokenExpirationSeconds) {
         this.refreshTokenRepository = refreshTokenRepository;
+        this.refreshTokenExpirationSeconds = refreshTokenExpirationSeconds;
     }
 
     @Transactional
@@ -34,7 +39,7 @@ public class RefreshTokenService {
         RefreshToken refreshToken = new RefreshToken(
                 user,
                 hashToken(rawToken),
-                Instant.now().plus(30, ChronoUnit.DAYS),
+                Instant.now().plusSeconds(refreshTokenExpirationSeconds),
                 Instant.now()
         );
         refreshTokenRepository.save(refreshToken);
@@ -43,6 +48,10 @@ public class RefreshTokenService {
 
     @Transactional(readOnly = true)
     public User validateRefreshToken(String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            throw new ResourceNotFoundException("Invalid refresh token");
+        }
+
         RefreshToken refreshToken = refreshTokenRepository.findByTokenHash(hashToken(rawToken))
                 .orElseThrow(() -> new ResourceNotFoundException("Invalid refresh token"));
 

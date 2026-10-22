@@ -1,6 +1,8 @@
 package com.ceo.trading_platform_backend.services;
 
 import com.ceo.trading_platform_backend.dto.ChangePasswordRequest;
+import com.ceo.trading_platform_backend.exception.InvalidCredentialsException;
+import com.ceo.trading_platform_backend.exception.PasswordValidationException;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.models.User;
 import com.ceo.trading_platform_backend.repositories.UserRepository;
@@ -35,5 +37,16 @@ public class PasswordService {
         
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new InvalidCredentialsException("Current password is incorrect");
+        }
+
+        if (!request.newPassword().equals(request.confirmNewPassword())) {
+            throw new PasswordValidationException("New passwords do not match");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
     }
 }

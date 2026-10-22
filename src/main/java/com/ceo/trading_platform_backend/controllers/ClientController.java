@@ -28,7 +28,7 @@ public class ClientController {
      * Get all portfolios for a client.
      */
     @GetMapping("/portfolios")
-    @PreAuthorize("@userService.isOwnProfile(#userId)")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('CLIENT') and @userService.isOwnProfile(#userId))")
     public ResponseEntity<List<Portfolio>> getPortfolios(@PathVariable UUID userId) {
         List<Portfolio> portfolios = clientService.getPortfolios(userId);
         return ResponseEntity.ok(portfolios);

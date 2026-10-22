@@ -2,6 +2,7 @@ package com.ceo.trading_platform_backend.controllers;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.ceo.trading_platform_backend.services.AnalystService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController 
 @RequestMapping("/api/candles/{symbol}")
+@PreAuthorize("hasRole('ANALYST')")
 public class AnalystController {
     
     private final AnalystService analystService;
