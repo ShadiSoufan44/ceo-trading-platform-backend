@@ -75,5 +75,6 @@ CREATE TABLE public.instrument_candle (
   close numeric,
   adj_close numeric,
   volume numeric,
-  CONSTRAINT instrument_candle_instrument_id_fkey FOREIGN KEY (instrument_id) REFERENCES public.instrument(instrument_id),
-)
+  synthetic boolean,
+  CONSTRAINT instrument_candle_instrument_id_fkey FOREIGN KEY (instrument_id) REFERENCES public.instrument(instrument_id)
+);

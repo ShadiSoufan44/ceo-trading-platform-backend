@@ -33,7 +33,7 @@ public class InstrumentCandleService {
     
     private Optional<InstrumentCandle> findCandleByDate(UUID instrumentId, LocalDate date) {
 
-        List<InstrumentCandle> candles = instrumentCandleRepository.findByInstrumentIdAndCandleDate(
+        List<InstrumentCandle> candles = instrumentCandleRepository.findByInstrumentIDAndCandleDate(
             instrumentId, Instant.from(date)
         );
         if (candles.size() == 0) {

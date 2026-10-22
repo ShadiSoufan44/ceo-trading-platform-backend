@@ -27,5 +27,5 @@ public interface InstrumentCandleRepository
             @Param("toDate") Instant toDate
     );
 
-    List<InstrumentCandle> findByInstrumentIdAndCandleDate(UUID instrumentId, Instant candleDate);
+    List<InstrumentCandle> findByInstrumentIDAndCandleDate(UUID instrumentId, Instant candleDate);
 }
