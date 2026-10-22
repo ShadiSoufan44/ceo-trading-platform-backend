@@ -138,32 +138,6 @@ public class MarketService {
 		return response.data();
 	}
 
-	// // Fetches stored metadata for a symbol, including coverage dates and active status.
-	// public SymbolMetadataData getSymbolMetadata(String symbol) {
-	// 	System.out.println("Getting Metadata for " + normalizeSymbol(symbol));
-	// 	SymbolMetadataResponse response = getAndRead("/symbols/{symbol}", SymbolMetadataResponse.class, normalizeSymbol(symbol));
-	// 	return response.data();
-	// }
-
-	// // Fetches metadata for an equity symbol.
-	// public SymbolMetadataData getEquityMetadata(String symbol) {
-	// 	System.out.println("getequity");
-	// 	return getSymbolMetadata(normalizeEquitySymbol(symbol));
-	// }
-
-	// // Fetches metadata for a crypto symbol.
-	// public SymbolMetadataData getCryptoMetadata(String symbol) {
-	// 	System.out.println("getcrypto");
-
-	// 	return getSymbolMetadata(normalizeCryptoSymbol(symbol));
-	// }
-
-	// // Fetches metadata for a cash/FX symbol.
-	// public SymbolMetadataData getCashMetadata(String symbol) {
-	// 	System.out.println("getcash");
-	// 	return getSymbolMetadata(normalizeCashSymbol(symbol));
-	// }
-
 	public List<Candle> getCandlesByType(
 		String symbol, InstrumentType type, 
 		LocalDate from, LocalDate to
