@@ -25,7 +25,7 @@ import com.ceo.trading_platform_backend.services.MarketService.SymbolMetadataDat
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-//@Service // UNCOMMMENT THIS FOR REAL MARKET SERVICE AND COMMENT IN MOCK
+@Service // UNCOMMMENT THIS FOR REAL MARKET SERVICE AND COMMENT IN MOCK
 public class RealMarketService implements com.ceo.trading_platform_backend.services.MarketService {
 
 	private static final int MAX_BATCH_QUOTES = 25;
@@ -94,10 +94,14 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 
 	public QuoteData getQuoteByType(String symbol, InstrumentType type) {
 		if(type == InstrumentType.CASH) {
+			BigDecimal price = getCashPrice(symbol);
+			if (symbol.equals("USD")) {
+				price = BigDecimal.ONE;
+			}
 			// for cash just build the price directly without fetching a quote
 			QuoteData data = new QuoteData(
 				symbol,
-				getCashPrice(symbol),
+				price,
 				null,
 				null,
 				null,
@@ -243,7 +247,7 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 
 
 	public String normalizeSymbolByType(String symbol, InstrumentType type) {
-		if (symbol.equals("USD")) {
+		if (symbol.equals("USD") && type.equals(InstrumentType.CASH)) {
 			return "USD";
 		}
 		if (type == InstrumentType.EQUITY) {

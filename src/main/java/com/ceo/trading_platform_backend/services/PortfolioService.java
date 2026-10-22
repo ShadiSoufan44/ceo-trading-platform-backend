@@ -59,21 +59,14 @@ public class PortfolioService {
         return totalValue;
     }
 
+    @Transactional 
     private BigDecimal getPortfolioTotalValue(Portfolio portfolio) {
+        List<QuoteData> quotes = getQuotesOfOwnedInstruments(portfolio.getPortfolioId());
         BigDecimal value = new BigDecimal(0);
-
-        for (Holding holding : portfolio.getHoldings()) {
-            BigDecimal price;
-            if (holding.getInstrument().getSymbol().equals(US_CURRENCY_SYMBOL)) {
-                price = new BigDecimal(1);
-            } else {
-                Instrument instrument = holding.getInstrument();
-                price = marketService.getPriceWithType(
-                    instrument.getType(), instrument.getSymbol()
-                );
-            }
-            value = value.add(price.multiply(holding.getQuantity()));
+        for (QuoteData quote : quotes) {
+            value = value.add(quote.price());
         }
+
         return value;
     }
 
@@ -102,9 +95,7 @@ public class PortfolioService {
         return portfolio.getHoldings();
     }
 
-    @Transactional
-    public List<HoldingSummaryResponse> getHoldingSummariesByPortfolioId(UUID portfolioId) {
-
+    private List<QuoteData> getQuotesOfOwnedInstruments(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         List<Holding> holdings = portfolio.getHoldings();
 
@@ -140,6 +131,14 @@ public class PortfolioService {
                     .toList();
             fullQuotesList.addAll(quotes);
         }
+        return fullQuotesList;
+    }
+
+    @Transactional
+    public List<HoldingSummaryResponse> getHoldingSummariesByPortfolioId(UUID portfolioId) {
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        List<Holding> holdings = portfolio.getHoldings();
+        List<QuoteData> fullQuotesList = getQuotesOfOwnedInstruments(portfolioId);
 
         List<HoldingSummaryResponse> summaries = new ArrayList<>();
 
