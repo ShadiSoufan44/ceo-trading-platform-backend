@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
+import com.ceo.trading_platform_backend.dto.PerformanceResponse;
 import com.ceo.trading_platform_backend.dto.PortfolioResponse;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Portfolio;
@@ -84,6 +85,15 @@ public class PortfolioController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
         PortfolioResponse response = createPortfolioResponse(portfolio);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{portfolioId}/{timeframe}")
+    public ResponseEntity<List<PerformanceResponse>> getPortfolioPerformance(@PathVariable UUID portfolioId, @PathVariable String timeframe) {
+        List<PerformanceResponse> response = service.getPortfolioPerformance(portfolioId, timeframe);
+        if (response == null || response.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
         return ResponseEntity.ok(response);
     }
 

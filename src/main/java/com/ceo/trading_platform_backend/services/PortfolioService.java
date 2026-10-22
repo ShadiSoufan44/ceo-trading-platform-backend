@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.UUID;
@@ -19,6 +20,7 @@ import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
+import com.ceo.trading_platform_backend.dto.PerformanceResponse;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 import com.ceo.trading_platform_backend.utils.MoneyUtilities;
 
@@ -70,6 +72,24 @@ public class PortfolioService {
         return value;
     }
 
+    private BigDecimal getPortfolioTotalValueAtTime(Portfolio portfolio, LocalDate date) {
+        BigDecimal value = new BigDecimal(0);
+
+        for (Holding holding : portfolio.getHoldings()) {
+            BigDecimal price;
+            if (holding.getInstrument().getSymbol().equals(US_CURRENCY_SYMBOL)) {
+                price = new BigDecimal(1);
+            } else {
+                Instrument instrument = holding.getInstrument();
+                price = candleService.getPriceWithTypeAtDate( // candle service will return price for that instrument at that time
+                    instrument.getType(), instrument.getSymbol(), date
+                );
+            }
+            value = value.add(price.multiply(holding.getQuantity()));
+        }
+        return value;
+    }
+
     public Portfolio getPortfolioById(UUID portfolioId) {
         try {
             Portfolio portfolio = repository.getReferenceById(portfolioId);
@@ -101,6 +121,39 @@ public class PortfolioService {
         return portfolio.getHoldings().stream()
             .map((holding) -> toHoldingSummaryResponse(portfolioId, holding))
             .toList();
+    }
+
+    @Transactional
+    public List<PerformanceResponse> getPortfolioPerformance(UUID portfolioId, String timeframe) {
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        List<PerformanceResponse> performanceResponses = new ArrayList<>();
+
+        for (Holding holding : portfolio.getHoldings()) {
+            Instrument instrument = holding.getInstrument();
+            List<MarketService.Candle> candles = marketService.getCandles(instrument.getSymbol(), calculateStartDate(timeframe), LocalDate.now()); // to candles in marketservci,e should pull from cache
+            for (MarketService.Candle candle : candles) {
+                performanceResponses.add(toPerformanceResponse(portfolioId, candle));
+            }
+        }
+        return performanceResponses;
+    }
+       
+    private LocalDate calculateStartDate(String timeframe) {
+        if ("1D".equals(timeframe)) { // no one day
+            return LocalDate.now().minusDays(1);
+        } else if ("1W".equals(timeframe)) {
+            return LocalDate.now().minusWeeks(1);
+        } else if ("1M".equals(timeframe)) {
+            return LocalDate.now().minusMonths(1);
+        } else if ("3M".equals(timeframe)) {
+            return LocalDate.now().minusMonths(3);
+        } else if ("1Y".equals(timeframe)) {
+            return LocalDate.now().minusYears(1);
+        } else if ("5Y".equals(timeframe)) {
+            return LocalDate.now().minusYears(5);
+        } else {
+            throw new IllegalArgumentException("Invalid timeframe: " + timeframe);
+        }
     }
 
     @Transactional 
@@ -211,6 +264,13 @@ public class PortfolioService {
             weekLow52,
             weekHigh52
         );
+    }
+
+    private PerformanceResponse toPerformanceResponse(UUID portfolioId, MarketService.Candle candle) {
+        String date = candle.date().toString(); // Candle has LocalDate, convert to stirng
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        BigDecimal balance = getPortfolioTotalValueAtTime(portfolio, candle.date()); // get portfolio value at specific time
+        return new PerformanceResponse(date, balance); 
     }
 
     private BigDecimal computePercentChange(List<MarketService.Candle> candles, int daysBack) {
