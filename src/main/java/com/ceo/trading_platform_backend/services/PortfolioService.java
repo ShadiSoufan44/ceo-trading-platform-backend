@@ -87,8 +87,8 @@ public class PortfolioService {
                 price = new BigDecimal(1);
             } else {
                 Instrument instrument = holding.getInstrument();
-                price = candleService.getPriceWithTypeAtDate( // candle service will return price for that instrument at that time
-                    instrument.getType(), instrument.getSymbol(), date
+                price = instrumentCacheService.getPriceWithTypeAtDate( // candle service will return price for that instrument at that time
+                    instrument.getSymbol(), instrument.getType(), date
                 );
             }
             value = value.add(price.multiply(holding.getQuantity()));
@@ -172,6 +172,37 @@ public class PortfolioService {
         }
 
         return summaries;
+    }
+
+    @Transactional
+    public List<PerformanceResponse> getPortfolioPerformance(UUID portfolioId, String timeframe) {
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        List<PerformanceResponse> performanceResponses = new ArrayList<>();
+
+        for (Holding holding : portfolio.getHoldings()) {
+            Instrument instrument = holding.getInstrument();
+            List<InstrumentCandle> candles = instrumentCacheService.findOrInsertCandles(instrument.getSymbol(), instrument.getType(),calculateStartDate(timeframe), LocalDate.now()); // to candles in marketservci,e should pull from cache
+            for (InstrumentCandle candle : candles) {
+                performanceResponses.add(toPerformanceResponse(portfolioId, candle));
+            }
+        }
+        return performanceResponses;
+    }
+       
+    private LocalDate calculateStartDate(String timeframe) {
+        if ("1W".equals(timeframe)) {
+            return LocalDate.now().minusWeeks(1);
+        } else if ("1M".equals(timeframe)) {
+            return LocalDate.now().minusMonths(1);
+        } else if ("3M".equals(timeframe)) {
+            return LocalDate.now().minusMonths(3);
+        } else if ("1Y".equals(timeframe)) {
+            return LocalDate.now().minusYears(1);
+        } else if ("5Y".equals(timeframe)) {
+            return LocalDate.now().minusYears(5);
+        } else {
+            throw new IllegalArgumentException("Invalid timeframe: " + timeframe);
+        }
     }
 
     @Transactional 
@@ -286,6 +317,14 @@ public class PortfolioService {
             weekHigh52
         );
     }
+
+    private PerformanceResponse toPerformanceResponse(UUID portfolioId, InstrumentCandle candle) {
+        String date = candle.getCandleDate().toString(); // Candle has LocalDate, convert to stirng
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        BigDecimal balance = getPortfolioTotalValueAtTime(portfolio, LocalDate.from(candle.getCandleDate().atZone(ZoneOffset.UTC))); // get portfolio value at specific time
+        return new PerformanceResponse(date, balance); 
+    }
+
 
     private BigDecimal computePercentChange(List<InstrumentCandle> candles, int daysBack) {
         if (candles == null || candles.isEmpty()) {

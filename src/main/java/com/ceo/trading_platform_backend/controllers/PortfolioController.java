@@ -70,7 +70,7 @@ public class PortfolioController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{portfolioId}/{timeframe}")
+    @GetMapping("/{portfolioId}/performance/{timeframe}")
     public ResponseEntity<List<PerformanceResponse>> getPortfolioPerformance(@PathVariable UUID portfolioId, @PathVariable String timeframe) {
         List<PerformanceResponse> response = service.getPortfolioPerformance(portfolioId, timeframe);
         if (response == null || response.isEmpty()) {
