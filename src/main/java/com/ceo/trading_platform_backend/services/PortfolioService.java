@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -71,24 +73,6 @@ public class PortfolioService {
                 Instrument instrument = holding.getInstrument();
                 price = marketService.getPriceWithType(
                     instrument.getType(), instrument.getSymbol()
-                );
-            }
-            value = value.add(price.multiply(holding.getQuantity()));
-        }
-        return value;
-    }
-
-    private BigDecimal getPortfolioTotalValueAtTime(Portfolio portfolio, LocalDate date) {
-        BigDecimal value = new BigDecimal(0);
-
-        for (Holding holding : portfolio.getHoldings()) {
-            BigDecimal price;
-            if (holding.getInstrument().getSymbol().equals(US_CURRENCY_SYMBOL)) {
-                price = new BigDecimal(1);
-            } else {
-                Instrument instrument = holding.getInstrument();
-                price = instrumentCacheService.getPriceWithTypeAtDate( // candle service will return price for that instrument at that time
-                    instrument.getSymbol(), instrument.getType(), date
                 );
             }
             value = value.add(price.multiply(holding.getQuantity()));
@@ -176,30 +160,88 @@ public class PortfolioService {
 
     @Transactional
     public List<PerformanceResponse> getPortfolioPerformance(UUID portfolioId, String timeframe) {
+        LocalDate end = LocalDate.now();
+        LocalDate start = calculateStartDate(timeframe, end);
         Portfolio portfolio = getPortfolioById(portfolioId);
-        List<PerformanceResponse> performanceResponses = new ArrayList<>();
+        if (portfolio.getHoldings().isEmpty()) {
+            return List.of();
+        }
 
+        // Preserve current-position valuation while consolidating repeated holding rows.
+        Map<PerformanceInstrument, BigDecimal> quantities = new LinkedHashMap<>();
         for (Holding holding : portfolio.getHoldings()) {
             Instrument instrument = holding.getInstrument();
-            List<InstrumentCandle> candles = instrumentCacheService.findOrInsertCandles(instrument.getSymbol(), instrument.getType(),calculateStartDate(timeframe), LocalDate.now()); // to candles in marketservci,e should pull from cache
+            PerformanceInstrument key = new PerformanceInstrument(instrument.getSymbol(), instrument.getType());
+            quantities.merge(key, holding.getQuantity(), BigDecimal::add);
+        }
+
+        Map<PerformanceInstrument, NavigableMap<LocalDate, BigDecimal>> prices = new LinkedHashMap<>();
+        for (var position : quantities.entrySet()) {
+            PerformanceInstrument instrument = position.getKey();
+            if (position.getValue().signum() == 0 || isPerformanceUsd(instrument)) {
+                continue;
+            }
+            NavigableMap<LocalDate, BigDecimal> closes = new TreeMap<>();
+            List<InstrumentCandle> candles = instrumentCacheService.findOrInsertCandles(
+                instrument.symbol(), instrument.type(), start, end
+            );
             for (InstrumentCandle candle : candles) {
-                performanceResponses.add(toPerformanceResponse(portfolioId, candle));
+                if (candle.getClose() != null) {
+                    closes.put(candle.getCandleDate().atZone(ZoneOffset.UTC).toLocalDate(), candle.getClose());
+                }
+            }
+            prices.put(instrument, closes);
+        }
+
+        List<PerformanceResponse> performanceResponses = new ArrayList<>();
+        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            BigDecimal balance = BigDecimal.ZERO;
+            boolean complete = true;
+            for (var position : quantities.entrySet()) {
+                if (position.getValue().signum() == 0) {
+                    continue;
+                }
+                PerformanceInstrument instrument = position.getKey();
+                BigDecimal price = BigDecimal.ONE;
+                if (!isPerformanceUsd(instrument)) {
+                    // Use the latest known close, never a future price, on non-trading days.
+                    var close = prices.get(instrument).floorEntry(date);
+                    if (close == null) {
+                        complete = false;
+                        break;
+                    }
+                    price = close.getValue();
+                }
+                balance = balance.add(price.multiply(position.getValue()));
+            }
+            // A range may begin before its first trading day. Do not invent missing prices.
+            if (complete) {
+                performanceResponses.add(new PerformanceResponse(
+                    date.atStartOfDay(ZoneOffset.UTC).toInstant().toString(), balance
+                ));
             }
         }
         return performanceResponses;
     }
-       
-    private LocalDate calculateStartDate(String timeframe) {
+
+    private record PerformanceInstrument(String symbol, InstrumentType type) {
+    }
+
+    private boolean isPerformanceUsd(PerformanceInstrument instrument) {
+        return instrument.type() == InstrumentType.CASH && US_CURRENCY_SYMBOL.equals(instrument.symbol());
+    }
+
+    private LocalDate calculateStartDate(String timeframe, LocalDate end) {
         if ("1W".equals(timeframe)) {
-            return LocalDate.now().minusWeeks(1);
+            return end.minusWeeks(1);
         } else if ("1M".equals(timeframe)) {
-            return LocalDate.now().minusMonths(1);
+            return end.minusMonths(1);
         } else if ("3M".equals(timeframe)) {
-            return LocalDate.now().minusMonths(3);
+            return end.minusMonths(3);
         } else if ("1Y".equals(timeframe)) {
-            return LocalDate.now().minusYears(1);
+            return end.minusYears(1);
         } else if ("5Y".equals(timeframe)) {
-            return LocalDate.now().minusYears(5);
+            return end.minusYears(5);
         } else {
             throw new IllegalArgumentException("Invalid timeframe: " + timeframe);
         }
@@ -317,14 +359,6 @@ public class PortfolioService {
             weekHigh52
         );
     }
-
-    private PerformanceResponse toPerformanceResponse(UUID portfolioId, InstrumentCandle candle) {
-        String date = candle.getCandleDate().toString(); // Candle has LocalDate, convert to stirng
-        Portfolio portfolio = getPortfolioById(portfolioId);
-        BigDecimal balance = getPortfolioTotalValueAtTime(portfolio, LocalDate.from(candle.getCandleDate().atZone(ZoneOffset.UTC))); // get portfolio value at specific time
-        return new PerformanceResponse(date, balance); 
-    }
-
 
     private BigDecimal computePercentChange(List<InstrumentCandle> candles, int daysBack) {
         if (candles == null || candles.isEmpty()) {
