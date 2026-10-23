@@ -6,7 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.AbstractAggregateRoot;
+
 import com.ceo.trading_platform_backend.enums.Side;
+import com.ceo.trading_platform_backend.messaging.OrderStatusChangedEvent;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -22,7 +25,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "\"order\"")
-public class Order {
+public class Order extends AbstractAggregateRoot<Order> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -84,8 +87,15 @@ public class Order {
         // ));
     }
 
+    // the registered event is published by Spring Data on the next repository.save(order)
     public void addOrderStatusChange(OrderStatusChange orderStatusChange) {
         orderHistory.add(orderStatusChange);
+        registerEvent(new OrderStatusChangedEvent(
+            orderId,
+            orderStatusChange.getStatus(),
+            orderStatusChange.getMessage(),
+            orderStatusChange.getDate()
+        ));
     }
 
     public UUID getOrderId() {

@@ -1,6 +1,7 @@
 package com.ceo.trading_platform_backend.services;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -9,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -305,7 +307,7 @@ public class PortfolioServiceTest {
                 new MarketService.BatchQuoteResult("AAPL", "test", false, quote, null)
             ));
             when(instrumentCacheService.findOrInsertCandles(
-                "AAPL", InstrumentType.EQUITY, today.minusYears(1), today
+                "AAPL", InstrumentType.EQUITY, today.minusYears(1).minusDays(7), today
             )).thenReturn(candles);
 
             List<HoldingSummaryResponse> result = portfolioService.getHoldingSummariesByPortfolioId(uuid1);
@@ -319,15 +321,143 @@ public class PortfolioServiceTest {
             assertThat(summary.currentPrice()).isEqualByComparingTo("151.50");
             assertThat(summary.dayChangeValue()).isEqualByComparingTo("1.50");
             assertThat(summary.percentChange().get("1D")).isEqualByComparingTo("0.01");
-            assertThat(summary.percentChange().get("5D")).isEqualByComparingTo("0.07142857");
             assertThat(summary.weekLow52()).isEqualByComparingTo("139");
             assertThat(summary.weekHigh52()).isEqualByComparingTo("152");
+        }
+
+        // AAPL on Thu 2026-10-22 (real API data): live price 348.22, previous close 343.99,
+        // and the API's changePercent is in percent (1.2297 = 1.23%)
+        private final Instant asOf = Instant.parse("2026-10-22T20:00:01Z");
+
+        private MarketService.QuoteData aaplQuote() {
+            return new MarketService.QuoteData(
+                "AAPL", new BigDecimal("348.22"), new BigDecimal("348.18"),
+                new BigDecimal("348.26"), new BigDecimal("1.8467"), "USD",
+                new BigDecimal("4.23"), new BigDecimal("1.2296869095031833"),
+                new BigDecimal("343.99"), asOf, "unknown"
+            );
+        }
+
+        private InstrumentCandle candle(String date, String close) {
+            BigDecimal price = new BigDecimal(close);
+            return new InstrumentCandle(
+                stockInstrument, LocalDate.parse(date).atStartOfDay(ZoneOffset.UTC).toInstant(),
+                price, price, price, price, null, new BigDecimal("100"), false
+            );
+        }
+
+        private HoldingSummaryResponse summaryFor(List<InstrumentCandle> candles) {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.getHoldings().clear();
+            portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("125"), portfolio));
+            LocalDate today = LocalDate.now();
+
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            when(marketService.normalizeSymbolByType("AAPL", InstrumentType.EQUITY)).thenReturn("AAPL");
+            when(marketService.getQuotes(List.of("AAPL"))).thenReturn(List.of(
+                new MarketService.BatchQuoteResult("AAPL", "test", false, aaplQuote(), null)
+            ));
+            when(instrumentCacheService.findOrInsertCandles(
+                "AAPL", InstrumentType.EQUITY, today.minusYears(1).minusDays(7), today
+            )).thenReturn(candles);
+
+            return portfolioService.getHoldingSummariesByPortfolioId(uuid1).get(0);
+        }
+
+        // real daily closes, including today's partial candle which must be ignored
+        private final List<InstrumentCandle> recentCandles = List.of(
+            candle("2026-10-12", "340.97"),
+            candle("2026-10-13", "341.27"),
+            candle("2026-10-14", "342.96"),
+            candle("2026-10-15", "342.00"),
+            candle("2026-10-16", "343.46"),
+            candle("2026-10-19", "342.94"),
+            candle("2026-10-20", "339.50"),
+            candle("2026-10-21", "343.99"),
+            candle("2026-10-22", "343.03")
+        );
+
+        @Test
+        @DisplayName("1D is a fraction worked out from the previous close, not the API's percent value")
+        void shouldReturnOneDayChangeAsFraction() {
+            HoldingSummaryResponse summary = summaryFor(recentCandles);
+
+            // (348.22 - 343.99) / 343.99
+            assertThat(summary.percentChange().get("1D")).isEqualByComparingTo("0.01229687");
+        }
+
+        @Test
+        @DisplayName("5D starts from the close five trading sessions back and ends at the live price")
+        void shouldMeasureFiveDaysInTradingSessions() {
+            HoldingSummaryResponse summary = summaryFor(recentCandles);
+
+            // Thu 10-22 vs the close on Thu 10-15 (342.00), skipping the weekend and today's partial candle
+            assertThat(summary.percentChange().get("5D")).isEqualByComparingTo("0.01818713");
+        }
+
+        @Test
+        @DisplayName("Month periods start from the last close on or before that calendar date")
+        void shouldStartMonthPeriodsFromLastCloseOnOrBeforeDate() {
+            List<InstrumentCandle> candles = new java.util.ArrayList<>(List.of(
+                candle("2025-10-17", "200.00"),   // Fri, last close on or before Wed 2025-10-22 -> 1Y start
+                candle("2025-10-23", "999.00"),
+                candle("2026-04-22", "300.00"),   // 6M start, on the date itself
+                candle("2026-09-21", "330.00"),   // Mon, last close on or before Tue 2026-09-22 -> 1M start
+                candle("2026-09-23", "999.00")
+            ));
+            candles.addAll(recentCandles);
+
+            HoldingSummaryResponse summary = summaryFor(candles);
+
+            assertThat(summary.percentChange().get("1M")).isEqualByComparingTo("0.05521212");   // 348.22 / 330 - 1
+            assertThat(summary.percentChange().get("6M")).isEqualByComparingTo("0.16073333");   // 348.22 / 300 - 1
+            assertThat(summary.percentChange().get("1Y")).isEqualByComparingTo("0.74110000");   // 348.22 / 200 - 1
+        }
+
+        @Test
+        @DisplayName("Periods without enough history are null instead of a made-up number")
+        void shouldReturnNullWhenHistoryIsTooShort() {
+            HoldingSummaryResponse summary = summaryFor(recentCandles);
+
+            assertThat(summary.percentChange().get("1M")).isNull();
+            assertThat(summary.percentChange().get("6M")).isNull();
+            assertThat(summary.percentChange().get("1Y")).isNull();
+        }
+
+        @Test
+        @DisplayName("52-week range ignores the extra lookback candles older than a year")
+        void shouldLimitFiftyTwoWeekRangeToOneYear() {
+            List<InstrumentCandle> candles = new java.util.ArrayList<>(recentCandles);
+            candles.add(candle("2025-10-17", "100.00"));
+
+            HoldingSummaryResponse summary = summaryFor(candles);
+
+            assertThat(summary.weekLow52()).isEqualByComparingTo("339.50");
         }
     }
 
     @Nested
     @DisplayName("Test getTotalValueByPortfolioId()")
     class GetTotalValueByPortfolioIdTests {
+        private void mockHoldingQuotes(Portfolio portfolio, String... prices) {
+            assertThat(prices).hasSize(portfolio.getHoldings().size());
+            List<String> symbols = new ArrayList<>();
+            List<MarketService.BatchQuoteResult> quotes = new ArrayList<>();
+            for (int i = 0; i < prices.length; i++) {
+                Instrument instrument = portfolio.getHoldings().get(i).getInstrument();
+                String symbol = instrument.getSymbol();
+                when(marketService.normalizeSymbolByType(symbol, instrument.getType()))
+                    .thenReturn(symbol);
+                symbols.add(symbol);
+                MarketService.QuoteData quote = new MarketService.QuoteData(
+                    symbol, new BigDecimal(prices[i]), null, null, null, "USD",
+                    null, null, null, Instant.now(), "OPEN"
+                );
+                quotes.add(new MarketService.BatchQuoteResult(symbol, "test", false, quote, null));
+            }
+            when(marketService.getQuotes(symbols)).thenReturn(quotes);
+        }
+
         @Test
         @DisplayName("Should throw ResourceNotFoundException when portfolio ID doesn't exist")
         void shouldThrowExceptionWhenPortfolioNotExists() {
@@ -345,10 +475,15 @@ public class PortfolioServiceTest {
             portfolio.getHoldings().clear();
             
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            mockHoldingQuotes(portfolio);
 
             BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
 
             assertThat(result).isEqualTo(BigDecimal.ZERO);
+            verify(portfolioRepository).getReferenceById(uuid1);
+            verifyNoMoreInteractions(portfolioRepository);
+            verify(marketService).getQuotes(List.of());
+            verifyNoMoreInteractions(marketService);
         }
 
         @Test
@@ -360,10 +495,12 @@ public class PortfolioServiceTest {
             portfolio.addHolding(createCashHolding(new BigDecimal("3000"), portfolio));
             
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            mockHoldingQuotes(portfolio, "1", "1");
 
             BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
 
             assertThat(result).isEqualByComparingTo(new BigDecimal("8000"));
+            verify(marketService).getQuotes(List.of("USD", "USD"));
         }
 
         @Test
@@ -374,8 +511,7 @@ public class PortfolioServiceTest {
             portfolio.addHolding(createCashHolding(new BigDecimal("5000"), portfolio));
             portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
 
-            when(marketService.getPriceWithType(stockInstrument.getType(), stockInstrument.getSymbol()))
-                .thenReturn(new BigDecimal("150"));
+            mockHoldingQuotes(portfolio, "1", "150");
             when(portfolioRepository.getReferenceById(uuid1))
                 .thenReturn(portfolio);
 
@@ -394,15 +530,47 @@ public class PortfolioServiceTest {
             portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
             portfolio.addHolding(createStockHolding(new BigDecimal("5"), new BigDecimal("200"), portfolio));
 
-            when(marketService.getPriceWithType(stockInstrument.getType(), stockInstrument.getSymbol()))
-                .thenReturn(new BigDecimal("150"))
-                .thenReturn(new BigDecimal("200"));
+            mockHoldingQuotes(portfolio, "1", "150", "200");
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
 
             BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
 
             // Total = 5000 + (1 * 10 * 150) + (1 * 5 * 200) = 7500
             assertThat(result).isEqualByComparingTo(new BigDecimal("7500"));
+        }
+
+        @Test
+        @DisplayName("Should value fractional holdings at current market prices")
+        void shouldValueFractionalHoldingsAtCurrentMarketPrices() {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.addHolding(createCashHolding(new BigDecimal("100.25"), portfolio));
+            portfolio.addHolding(createStockHolding(new BigDecimal("2.5"), new BigDecimal("100"), portfolio));
+
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            mockHoldingQuotes(portfolio, "1", "150.50");
+
+            BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
+
+            assertThat(result).isEqualByComparingTo("476.50");
+            verify(portfolioRepository).getReferenceById(uuid1);
+            verifyNoMoreInteractions(portfolioRepository);
+        }
+
+        @Test
+        @DisplayName("Should subtract negative cash and stock holdings")
+        void shouldSubtractNegativeHoldings() {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.addHolding(createCashHolding(new BigDecimal("5000"), portfolio));
+            portfolio.addHolding(createCashHolding(new BigDecimal("-1000"), portfolio));
+            portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("100"), portfolio));
+            portfolio.addHolding(createStockHolding(new BigDecimal("-4"), new BigDecimal("125"), portfolio));
+
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            mockHoldingQuotes(portfolio, "1", "1", "150", "150");
+
+            BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
+
+            assertThat(result).isEqualByComparingTo("4900");
         }
     }
 

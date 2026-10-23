@@ -1,13 +1,20 @@
 package com.ceo.trading_platform_backend;
 
 import java.time.Instant;
+import java.time.Clock;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 
 
 @SpringBootApplication
 public class TradingPlatformBackendApplication {
+
+	@Bean
+	public Clock clock() {
+		return Clock.systemUTC();
+	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(TradingPlatformBackendApplication.class, args);

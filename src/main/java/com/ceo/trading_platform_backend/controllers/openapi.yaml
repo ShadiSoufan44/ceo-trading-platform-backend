@@ -423,6 +423,34 @@ paths:
         '500':
           description: Internal server error.
 
+  /api/analytics/top-movers:
+    get:
+      summary: Get instruments with the largest current percentage price moves
+      operationId: getTopMovers
+      tags:
+        - Analyst Analytics
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of movers to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 25
+            default: 5
+      responses:
+        '200':
+          description: Current market movers ranked by absolute percentage change.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TopMover'
+        '500':
+          description: Market data service error.
+
   /api/analytics/client-activity-trends:
     get:
       summary: Get client activity trends
@@ -691,6 +719,26 @@ components:
         executedTrades:
           type: integer
           format: int64
+
+    TopMover:
+      type: object
+      required:
+        - symbol
+        - currentPrice
+        - previousClose
+        - percentageChange
+      properties:
+        symbol:
+          type: string
+        currentPrice:
+          type: number
+          format: double
+        previousClose:
+          type: number
+          format: double
+        percentageChange:
+          type: number
+          format: double
 
     ClientActivityTrendPoint:
       type: object

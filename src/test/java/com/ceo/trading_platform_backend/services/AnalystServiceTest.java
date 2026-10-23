@@ -19,8 +19,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.ceo.trading_platform_backend.dto.ClientActivityTrendPoint;
 import com.ceo.trading_platform_backend.dto.TopInstrumentInsight;
+import com.ceo.trading_platform_backend.dto.TopMover;
 import com.ceo.trading_platform_backend.dto.TradingVolumeInsight;
+import com.ceo.trading_platform_backend.enums.InstrumentType;
+import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.repositories.AnalystReportingRepository;
+import com.ceo.trading_platform_backend.repositories.InstrumentRepository;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AnalystService Tests")
@@ -32,11 +36,14 @@ class AnalystServiceTest {
     @Mock
     private AnalystReportingRepository reportingRepository;
 
+    @Mock
+    private InstrumentRepository instrumentRepository;
+
     private AnalystService analystService;
 
     @BeforeEach
     void setUp() {
-        analystService = new AnalystService(marketService, reportingRepository);
+        analystService = new AnalystService(marketService, reportingRepository, instrumentRepository);
     }
 
     @Test
@@ -91,6 +98,28 @@ class AnalystServiceTest {
         assertThat(insights.get(0).symbol()).isEqualTo("AAPL");
         assertThat(insights.get(0).executedTrades()).isEqualTo(10L);
     }
+
+        @Test
+        @DisplayName("getTopMovers ranks quotes by absolute percentage change")
+        void getTopMoversRanksQuotesByAbsolutePercentageChange() {
+        when(instrumentRepository.findByType(InstrumentType.EQUITY)).thenReturn(List.of(
+            new Instrument("AAPL", InstrumentType.EQUITY, "Apple"),
+            new Instrument("TSLA", InstrumentType.EQUITY, "Tesla")));
+        when(marketService.getQuotes(List.of("AAPL", "TSLA"))).thenReturn(List.of(
+            new MarketService.BatchQuoteResult("AAPL", "market", false,
+                new MarketService.QuoteData("AAPL", new BigDecimal("200"), null, null, null, "USD",
+                    null, new BigDecimal("-2.5"), new BigDecimal("205"), null, null),
+                null),
+            new MarketService.BatchQuoteResult("TSLA", "market", false,
+                new MarketService.QuoteData("TSLA", new BigDecimal("300"), null, null, null, "USD",
+                    null, new BigDecimal("4.2"), new BigDecimal("288"), null, null),
+                null)));
+
+        List<TopMover> movers = analystService.getTopMovers(5);
+
+        assertThat(movers).extracting(TopMover::symbol).containsExactly("TSLA", "AAPL");
+        assertThat(movers.get(0).percentageChange()).isEqualByComparingTo("4.2");
+        }
 
     @Test
     @DisplayName("getClientActivityTrend returns daily trend points")

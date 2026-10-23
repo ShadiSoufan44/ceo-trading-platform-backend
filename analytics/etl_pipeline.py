@@ -27,8 +27,9 @@ def extract_fulfilled_trades_from_db(db_url: str) -> pd.DataFrame:
             fulfilled.change_date AS executed_at,
             o.client_id,
             ua.client_segment,
-            o.instrument_id,
-            i.symbol,
+            o.add_instrument_id AS instrument_id,
+            add_instrument.symbol,
+            o.subtract_instrument_id AS subtract_instrument_id,
             o.side,
             o.quantity,
             COALESCE(o.quote, 0) AS price
@@ -41,7 +42,10 @@ def extract_fulfilled_trades_from_db(db_url: str) -> pd.DataFrame:
             WHERE status = 'FULFILLED'
             ORDER BY order_id, change_date DESC
         ) fulfilled ON fulfilled.order_id = o.order_id
-        INNER JOIN public.instrument i ON i.instrument_id = o.instrument_id
+        INNER JOIN public.instrument add_instrument
+            ON add_instrument.instrument_id = o.add_instrument_id
+        LEFT JOIN public.instrument subtract_instrument
+            ON subtract_instrument.instrument_id = o.subtract_instrument_id
         INNER JOIN public.user_account ua ON ua.user_id = o.client_id
         '''
     )

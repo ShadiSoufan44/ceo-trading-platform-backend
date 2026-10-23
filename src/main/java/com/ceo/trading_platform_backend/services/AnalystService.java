@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -12,9 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ceo.trading_platform_backend.dto.ClientActivityTrendPoint;
 import com.ceo.trading_platform_backend.dto.TopInstrumentInsight;
+import com.ceo.trading_platform_backend.dto.TopMover;
 import com.ceo.trading_platform_backend.dto.TradingVolumeInsight;
 import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.repositories.AnalystReportingRepository;
+import com.ceo.trading_platform_backend.repositories.InstrumentRepository;
 
 /**
  * AnalystService handles analyst-specific reporting and market data operations.
@@ -26,10 +29,13 @@ public class AnalystService {
 
     private final MarketService marketService;
     private final AnalystReportingRepository reportingRepository;
+    private final InstrumentRepository instrumentRepository;
 
-    public AnalystService(MarketService marketService, AnalystReportingRepository reportingRepository) {
+    public AnalystService(MarketService marketService, AnalystReportingRepository reportingRepository,
+            InstrumentRepository instrumentRepository) {
         this.marketService = marketService;
         this.reportingRepository = reportingRepository;
+        this.instrumentRepository = instrumentRepository;
     }
 
     /**
@@ -80,6 +86,32 @@ public class AnalystService {
                 .toList();
     }
 
+            /**
+             * Return stored equity instruments ranked by the magnitude of their latest percentage price change.
+             */
+            @Transactional(readOnly = true)
+            public List<TopMover> getTopMovers(int limit) {
+            int cappedLimit = Math.max(1, Math.min(limit, 25));
+            List<String> symbols = instrumentRepository.findByType(InstrumentType.EQUITY).stream()
+                .map(instrument -> instrument.getSymbol())
+                .distinct()
+                .limit(25)
+                .toList();
+
+            if (symbols.isEmpty()) {
+                return List.of();
+            }
+
+            return marketService.getQuotes(symbols).stream()
+                .map(MarketService.BatchQuoteResult::quote)
+                .filter(quote -> quote != null && quote.price() != null && quote.previousClose() != null
+                    && quote.changePercent() != null)
+                .map(quote -> new TopMover(quote.symbol(), quote.price(), quote.previousClose(), quote.changePercent()))
+                .sorted(Comparator.comparing((TopMover mover) -> mover.percentageChange().abs()).reversed())
+                .limit(cappedLimit)
+                .toList();
+            }
+
     /**
      * Return per-day client activity trend points.
      */
@@ -127,7 +159,7 @@ public class AnalystService {
             return null;
         }
         String trimmed = value.trim();
-        if (trimmed.isEmpty()) {
+        if (trimmed.isEmpty() || trimmed.equalsIgnoreCase(DEFAULT_FILTER_VALUE)) {
             return null;
         }
         return trimmed.toUpperCase();
