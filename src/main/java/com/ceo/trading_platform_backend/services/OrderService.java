@@ -163,14 +163,14 @@ public class OrderService {
             // forex or equity cannot occure on weekends
             if (outOfHoursWeekend(order, order.getCreatedDate())) {
                 Instant today = clock.instant();
-                OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+                OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
                 order.addOrderStatusChange(rejectedOrderStatus);
                 return order;
             }
             if (isEquityTransaction(order)) {
                 if (outOfHours(order, order.getCreatedDate())) {
                     Instant today = clock.instant();
-                    OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+                    OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
                     order.addOrderStatusChange(rejectedOrderStatus);
                     return order; // early return, don't validate --> this functionality may change depending on if allowing extra hours
                 }
@@ -224,7 +224,7 @@ public class OrderService {
             (isForexTransaction(order) && outOfHoursWeekend(order, now))
         ) {
             Instant today = clock.instant();
-            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
             order.addOrderStatusChange(rejectedOrderStatus);
             return order; // early return, don't execute
         }
@@ -262,7 +262,7 @@ public class OrderService {
         LocalTime open;
         LocalTime close;
         ZoneId zone = ZoneId.of(order.getMarket()); // market is aither "America/New_York" or "America/Kolkata"
-        if(zone == ZoneId.of(TIME_ZONE_STRING_US)) {
+        if(zone.equals(ZoneId.of(TIME_ZONE_STRING_US))) {
             open = OPEN_TIME_LOCAL_US;
             close = CLOSE_TIME_LOCAL_US;
         } else { // india
