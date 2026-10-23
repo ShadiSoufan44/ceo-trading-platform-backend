@@ -112,15 +112,21 @@ public class PortfolioService {
         List<Holding> holdings = portfolio.getHoldings();
 
         Set<Instrument> instrumentsToLookup = new HashSet<>();
+        Map<Instrument, QuoteData> fullQuotesMap = new HashMap<>();
 
         for (Holding holding : holdings) {
             Instrument instrument = holding.getInstrument();
             if (
                 instrument.getSymbol().equals(US_CURRENCY_SYMBOL) && 
                 (instrument.getType() == InstrumentType.CASH)) {
+                fullQuotesMap.put(instrument, getUsdCashQuote());
                 continue;
             }
             instrumentsToLookup.add(instrument);
+        }
+
+        if (instrumentsToLookup.isEmpty()) {
+            return fullQuotesMap;
         }
 
         int counter = 1;
@@ -136,11 +142,9 @@ public class PortfolioService {
             chunk.add(instrument);
             counter++;   
         }
-        if (counter != 0) {
+        if (!chunk.isEmpty()) {
             chunkedInstruments.add(chunk);
         }
-
-        Map<Instrument, QuoteData> fullQuotesMap = new HashMap<>();
 
         for (List<Instrument> instrumentChunk : chunkedInstruments) {
             List<String> symbols = instrumentChunk
@@ -150,15 +154,38 @@ public class PortfolioService {
                     ))
                     .toList();
             
-            List<QuoteData> quotes = marketService.getQuotes(symbols)
-                    .stream().map((val) -> val.quote())
-                    .toList();
+            List<MarketService.BatchQuoteResult> quotes = marketService.getQuotes(symbols);
+            if (quotes.size() != instrumentChunk.size()) {
+                throw new IllegalStateException(
+                    "Market API returned " + quotes.size() + " quotes for " + instrumentChunk.size() + " requested instruments."
+                );
+            }
 
             for (int i = 0; i < symbols.size(); i++) {
-                fullQuotesMap.put(instrumentChunk.get(i), quotes.get(i));
+                MarketService.BatchQuoteResult quoteResult = quotes.get(i);
+                if (quoteResult == null || quoteResult.quote() == null) {
+                    throw new IllegalStateException("Market API did not return a quote for " + symbols.get(i) + ".");
+                }
+                fullQuotesMap.put(instrumentChunk.get(i), quoteResult.quote());
             }
         }
         return fullQuotesMap;
+    }
+
+    private QuoteData getUsdCashQuote() {
+        return new QuoteData(
+            US_CURRENCY_SYMBOL,
+            BigDecimal.ONE,
+            BigDecimal.ONE,
+            BigDecimal.ONE,
+            BigDecimal.ZERO,
+            US_CURRENCY_SYMBOL,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            BigDecimal.ONE,
+            Instant.now(),
+            "OPEN"
+        );
     }
 
     @Transactional
