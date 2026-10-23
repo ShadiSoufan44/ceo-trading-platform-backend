@@ -103,19 +103,21 @@ public class InstrumentCacheService {
                 continue;
             }
             Instant candleDate = startOfDay(candle.date());
+            // synthetic candles (the API filling a gap) come without a volume
+            BigDecimal volume = candle.volume() == null ? null : new BigDecimal(candle.volume());
+            boolean synthetic = Boolean.TRUE.equals(candle.synthetic());
             InstrumentCandle stored = cachedByDate.get(candleDate);
             if (stored == null) {
                 stored = new InstrumentCandle(
                     instrument, candleDate,
                     candle.open(), candle.high(), candle.low(), candle.close(), candle.adjclose(),
-                    new BigDecimal(candle.volume()),
-                    candle.synthetic().booleanValue()
+                    volume, synthetic
                 );
             }
             // also repairs candles that were cached before their day ended
             stored.refresh(
                 candle.open(), candle.high(), candle.low(), candle.close(), candle.adjclose(),
-                new BigDecimal(candle.volume()), candle.synthetic().booleanValue(), now
+                volume, synthetic, now
             );
             candles.add(stored);
         }

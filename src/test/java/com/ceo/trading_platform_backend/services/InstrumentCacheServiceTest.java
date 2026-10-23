@@ -96,6 +96,24 @@ class InstrumentCacheServiceTest {
     }
 
     @Test
+    void storesSyntheticCandleThatHasNoVolume() {
+        // the API fills gaps with synthetic candles whose volume is null
+        BigDecimal price = new BigDecimal("79.51");
+        givenCached(List.of());
+        when(marketService.getCandlesByType(SYMBOL, TYPE, FROM, LAST_FINISHED_DAY)).thenReturn(List.of(
+            new MarketService.Candle(LocalDate.of(2026, 1, 2), price, price, price, price, price, null, true)
+        ));
+        givenSaveAllReturnsInput();
+
+        List<InstrumentCandle> result = instrumentCacheService.findOrInsertCandles(SYMBOL, TYPE, FROM, TODAY);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getVolume()).isNull();
+        assertThat(result.get(0).getSynthetic()).isTrue();
+        assertThat(result.get(0).getClose()).isEqualByComparingTo("79.51");
+    }
+
+    @Test
     void overwritesCandleThatWasCachedBeforeItsDayEnded() {
         LocalDate day = LocalDate.of(2026, 1, 2);
         InstrumentCandle partial = candle(day, "100", Instant.parse("2026-01-02T15:00:00Z"));
