@@ -33,6 +33,9 @@ import com.ceo.trading_platform_backend.services.MarketService.QuoteData;
 import com.ceo.trading_platform_backend.utils.MoneyUtilities;
 
 import jakarta.transaction.Transactional;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service 
 public class PortfolioService {
@@ -91,6 +94,24 @@ public class PortfolioService {
             return portfolio;
         } catch (Exception e) {
             throw new ResourceNotFoundException("Portfolio not found with id " + portfolioId);
+        }
+    }
+
+    public void assertCanAccess(UUID portfolioId) {
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("Authentication is required");
+        }
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+        boolean isOwner = portfolio.getClient() != null
+                && portfolio.getClient().getUserId().toString().equals(authentication.getName());
+
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException("You cannot access this portfolio");
         }
     }
     

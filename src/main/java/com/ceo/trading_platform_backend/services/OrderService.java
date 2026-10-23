@@ -6,6 +6,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -103,6 +106,25 @@ public class OrderService {
         return order;
     }
 
+    public void assertCanAccess(UUID orderId) {
+        Order order = getOrderById(orderId)
+                .orElseThrow(() -> new com.ceo.trading_platform_backend.exception.ResourceNotFoundException(
+                        "Order not found: " + orderId));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("Authentication is required");
+        }
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+        boolean isOwner = order.getClientId() != null
+                && order.getClientId().toString().equals(authentication.getName());
+
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException("You cannot access this order");
+        }
+    }
     // read-only tx so the lazy order history loads outside a web request (STOMP subscribe)
     @Transactional(readOnly = true)
     public OrderStatusUpdateDTO getCurrentStatusUpdate(UUID orderId) {

@@ -19,10 +19,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 
 @RestController 
 @RequestMapping("/api/portfolio")
+@PreAuthorize("hasAnyRole('CLIENT', 'ADMIN')")
 public class PortfolioController {
     
     PortfolioService service;
@@ -35,6 +37,7 @@ public class PortfolioController {
     public ResponseEntity<BigDecimal> getBuyingPowerByPortfolioId(
         @PathVariable UUID portfolioId
     ) {
+        service.assertCanAccess(portfolioId);
         BigDecimal response = service.getBuyingPowerByPortfolioId(portfolioId);
         if (response == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -46,6 +49,7 @@ public class PortfolioController {
     public ResponseEntity<BigDecimal> getTotalValueByPortfolioId(
         @PathVariable UUID portfolioId
     ) {
+        service.assertCanAccess(portfolioId);
         BigDecimal response = service.getTotalValueByPortfolioId(portfolioId);
         if (response == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -57,11 +61,13 @@ public class PortfolioController {
     public ResponseEntity<List<HoldingSummaryResponse>> getHoldingsByPortfolioId(
         @PathVariable UUID portfolioId
     ) {
+        service.assertCanAccess(portfolioId);
         return ResponseEntity.ok(service.getHoldingSummariesByPortfolioId(portfolioId));
     }
     
     @GetMapping("/{portfolioId}")
     public ResponseEntity<PortfolioResponse> getPortfolioById(@PathVariable UUID portfolioId) {
+        service.assertCanAccess(portfolioId);
         Portfolio portfolio = service.getPortfolioById(portfolioId);
         if (portfolio == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);

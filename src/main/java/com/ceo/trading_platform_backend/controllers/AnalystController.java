@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.ceo.trading_platform_backend.dto.ClientActivityTrendPoint;
 import com.ceo.trading_platform_backend.dto.TopInstrumentInsight;
@@ -21,8 +22,9 @@ import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.services.AnalystService;
 
 
-@RestController
+@RestController 
 @RequestMapping("/api/analytics")
+@PreAuthorize("hasRole('ANALYST')")
 public class AnalystController {
 
     private final AnalystService analystService;
