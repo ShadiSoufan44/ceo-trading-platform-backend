@@ -161,7 +161,7 @@ public class PortfolioService {
     @Transactional
     public List<PerformanceResponse> getPortfolioPerformance(UUID portfolioId, String timeframe) {
         LocalDate end = LocalDate.now();
-        LocalDate start = calculateStartDate(timeframe, end);
+        LocalDate start = calculateStartDate(timeframe, end); // all instrument candles share the start date, calculate once
         Portfolio portfolio = getPortfolioById(portfolioId);
         if (portfolio.getHoldings().isEmpty()) {
             return List.of();
