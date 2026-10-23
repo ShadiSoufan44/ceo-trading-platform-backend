@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.models.Order;
@@ -38,14 +40,27 @@ public class OrderConsumers {
             order = orderService.validate(order);
             orderService.save(order);
             if (order.getCurrentOrderStatus().getStatus() == OrderStatus.ACCEPTED) {
-                kafka.send(
-                    "orders.unexecuted", Objects.requireNonNull(order.getOrderId())
-                ).join();
+                sendAfterCommit("orders.unexecuted", Objects.requireNonNull(order.getOrderId()));
             }
         } catch (RuntimeException exception) {
             orderService.markRejected(orderId, "order validation failed: " + exception.getMessage());
         }
 
+    }
+
+    // the executor re-reads the order and skips it unless it is ACCEPTED, so it must not get the id
+    // before ACCEPTED is committed, otherwise it sees PENDING and the order is stuck at ACCEPTED
+    private void sendAfterCommit(String topic, UUID orderId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            kafka.send(topic, orderId).join();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                kafka.send(topic, orderId).join();
+            }
+        });
     }
 
     @KafkaListener(topics = "orders.unexecuted", groupId = "executors")

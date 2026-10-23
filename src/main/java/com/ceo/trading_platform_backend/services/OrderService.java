@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 // import java.time.LocalDate;
@@ -22,9 +23,13 @@ import com.ceo.trading_platform_backend.models.OrderStatusChange;
 
 import com.ceo.trading_platform_backend.repositories.OrderRepository; // waiting for implementation
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
+import com.ceo.trading_platform_backend.dto.OrderStatusUpdateDTO;
 import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.enums.Side;
+import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
+import com.ceo.trading_platform_backend.messaging.OrderStatusChangedEvent;
+import com.ceo.trading_platform_backend.messaging.OrderStatusNotifier;
 
 @Service
 public class OrderService {
@@ -87,6 +92,17 @@ public class OrderService {
     public Optional<Order> getOrderById(UUID orderId) {
         Optional<Order> order = this.repository.findById(orderId); // shoudl throw error if not found?
         return order;
+    }
+
+    // read-only tx so the lazy order history loads outside a web request (STOMP subscribe)
+    @Transactional(readOnly = true)
+    public OrderStatusUpdateDTO getCurrentStatusUpdate(UUID orderId) {
+        Order order = repository.findById(orderId)
+            .orElseThrow(() -> new ResourceNotFoundException("order id " + orderId + " not found in DB"));
+        OrderStatusChange current = order.getCurrentOrderStatus();
+        return OrderStatusNotifier.toUpdate(new OrderStatusChangedEvent(
+            orderId, current.getStatus(), current.getMessage(), current.getDate()
+        ));
     }
 
     public Order save(Order order) {
