@@ -1,6 +1,7 @@
 package com.ceo.trading_platform_backend.services;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -325,6 +326,29 @@ public class PortfolioServiceTest {
             assertThat(summary.weekHigh52()).isEqualByComparingTo("152");
         }
 
+        @Test
+        @DisplayName("Should include USD cash holdings without requesting a market quote")
+        void shouldSummarizeUsdCashHoldingWithoutMarketQuote() {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.getHoldings().clear();
+            portfolio.addHolding(createCashHolding(new BigDecimal("5000"), portfolio));
+            LocalDate today = LocalDate.now();
+
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            when(instrumentCacheService.findOrInsertCandles(
+                "USD", InstrumentType.CASH, today.minusYears(1).minusDays(7), today
+            )).thenReturn(List.of());
+
+            List<HoldingSummaryResponse> result = portfolioService.getHoldingSummariesByPortfolioId(uuid1);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).symbol()).isEqualTo("USD");
+            assertThat(result.get(0).currentPrice()).isEqualByComparingTo(BigDecimal.ONE);
+            assertThat(result.get(0).weekLow52()).isEqualByComparingTo(BigDecimal.ONE);
+            assertThat(result.get(0).weekHigh52()).isEqualByComparingTo(BigDecimal.ONE);
+            verifyNoInteractions(marketService);
+        }
+
         // AAPL on Thu 2026-10-22 (real API data): live price 348.22, previous close 343.99,
         // and the API's changePercent is in percent (1.2297 = 1.23%)
         private final Instant asOf = Instant.parse("2026-10-22T20:00:01Z");
@@ -445,7 +469,13 @@ public class PortfolioServiceTest {
             List<MarketService.BatchQuoteResult> quotes = new ArrayList<>();
             for (int i = 0; i < prices.length; i++) {
                 Instrument instrument = portfolio.getHoldings().get(i).getInstrument();
+                if (instrument.getType() == InstrumentType.CASH && instrument.getSymbol().equals("USD")) {
+                    continue;
+                }
                 String symbol = instrument.getSymbol();
+                if (symbols.contains(symbol)) {
+                    continue;
+                }
                 when(marketService.normalizeSymbolByType(symbol, instrument.getType()))
                     .thenReturn(symbol);
                 symbols.add(symbol);
@@ -455,7 +485,9 @@ public class PortfolioServiceTest {
                 );
                 quotes.add(new MarketService.BatchQuoteResult(symbol, "test", false, quote, null));
             }
-            when(marketService.getQuotes(symbols)).thenReturn(quotes);
+            if (!symbols.isEmpty()) {
+                when(marketService.getQuotes(symbols)).thenReturn(quotes);
+            }
         }
 
         @Test
@@ -482,7 +514,6 @@ public class PortfolioServiceTest {
             assertThat(result).isEqualTo(BigDecimal.ZERO);
             verify(portfolioRepository).getReferenceById(uuid1);
             verifyNoMoreInteractions(portfolioRepository);
-            verify(marketService).getQuotes(List.of());
             verifyNoMoreInteractions(marketService);
         }
 
@@ -500,7 +531,7 @@ public class PortfolioServiceTest {
             BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
 
             assertThat(result).isEqualByComparingTo(new BigDecimal("8000"));
-            verify(marketService).getQuotes(List.of("USD", "USD"));
+            verifyNoInteractions(marketService);
         }
 
         @Test
@@ -530,13 +561,13 @@ public class PortfolioServiceTest {
             portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
             portfolio.addHolding(createStockHolding(new BigDecimal("5"), new BigDecimal("200"), portfolio));
 
-            mockHoldingQuotes(portfolio, "1", "150", "200");
+            mockHoldingQuotes(portfolio, "1", "150", "150");
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
 
             BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
 
-            // Total = 5000 + (1 * 10 * 150) + (1 * 5 * 200) = 7500
-            assertThat(result).isEqualByComparingTo(new BigDecimal("7500"));
+            // Both holdings refer to the same instrument, so they share its current quote.
+            assertThat(result).isEqualByComparingTo(new BigDecimal("7250"));
         }
 
         @Test

@@ -6,8 +6,11 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -65,12 +68,18 @@ public class PortfolioService {
 
     @Transactional 
     private BigDecimal getPortfolioTotalValue(Portfolio portfolio) {
-        List<QuoteData> quotes = getQuotesOfOwnedInstruments(portfolio);
+        Map<Instrument, QuoteData> quotes = getQuotesOfOwnedInstruments(portfolio);
         List<Holding> holdings = portfolio.getHoldings();
         BigDecimal totalValue = new BigDecimal(0);
-        for (int i = 0; i < quotes.size(); i++) {
-            System.out.println("Price: " + quotes.get(i).price() + ", Quantity:" + holdings.get(i).getQuantity());
-            BigDecimal value = quotes.get(i).price().multiply(holdings.get(i).getQuantity());
+        for (Holding holding : holdings) {
+            System.out.println("Price: " + quotes.get(holding.getInstrument()).price() + ", Quantity:" + holding.getQuantity());
+            BigDecimal value;
+            if (holding.getInstrument().getSymbol().equals(US_CURRENCY_SYMBOL) 
+                && holding.getInstrument().getType() == InstrumentType.CASH) {
+                value = holding.getQuantity();
+            } else {
+                value = quotes.get(holding.getInstrument()).price().multiply(holding.getQuantity());
+            }
             totalValue = totalValue.add(value);
         }
         return totalValue;
@@ -102,57 +111,99 @@ public class PortfolioService {
         return portfolio.getHoldings();
     }
 
-    private List<QuoteData> getQuotesOfOwnedInstruments(Portfolio portfolio) {
+    private Map<Instrument, QuoteData> getQuotesOfOwnedInstruments(Portfolio portfolio) {
         List<Holding> holdings = portfolio.getHoldings();
 
-        int counter = 1;
-        List<List<Holding>> chunkedHoldings = new ArrayList<>();
-        List<Holding> chunk = new ArrayList<>();
+        Set<Instrument> instrumentsToLookup = new HashSet<>();
+        Map<Instrument, QuoteData> fullQuotesMap = new HashMap<>();
 
         for (Holding holding : holdings) {
+            Instrument instrument = holding.getInstrument();
+            if (
+                instrument.getSymbol().equals(US_CURRENCY_SYMBOL) && 
+                (instrument.getType() == InstrumentType.CASH)) {
+                fullQuotesMap.put(instrument, getUsdCashQuote());
+                continue;
+            }
+            instrumentsToLookup.add(instrument);
+        }
+
+        if (instrumentsToLookup.isEmpty()) {
+            return fullQuotesMap;
+        }
+
+        int counter = 1;
+        List<List<Instrument>> chunkedInstruments = new ArrayList<>();
+        List<Instrument> chunk = new ArrayList<>();
+
+        for (Instrument instrument : instrumentsToLookup) {
             if (counter >= 25) {
                 counter = 1;
-                chunkedHoldings.add(chunk);
+                chunkedInstruments.add(chunk);
                 chunk = new ArrayList<>();
             }
-            chunk.add(holding);
+            chunk.add(instrument);
             counter++;   
         }
-        if (counter != 0) {
-            chunkedHoldings.add(chunk);
+        if (!chunk.isEmpty()) {
+            chunkedInstruments.add(chunk);
         }
 
-        List<QuoteData> fullQuotesList = new ArrayList<>();
-
-        for (List<Holding> holdingChunk : chunkedHoldings) {
-            List<String> symbols = holdingChunk
+        for (List<Instrument> instrumentChunk : chunkedInstruments) {
+            List<String> symbols = instrumentChunk
                     .stream()
-                    .map((Holding holding) -> marketService.normalizeSymbolByType(
-                        holding.getInstrument().getSymbol(), holding.getInstrument().getType()
+                    .map((Instrument instrument) -> marketService.normalizeSymbolByType(
+                        instrument.getSymbol(), instrument.getType()
                     ))
                     .toList();
             
-            List<QuoteData> quotes = marketService.getQuotes(symbols)
-                    .stream().map((val) -> val.quote())
-                    .toList();
-            fullQuotesList.addAll(quotes);
+            List<MarketService.BatchQuoteResult> quotes = marketService.getQuotes(symbols);
+            if (quotes.size() != instrumentChunk.size()) {
+                throw new IllegalStateException(
+                    "Market API returned " + quotes.size() + " quotes for " + instrumentChunk.size() + " requested instruments."
+                );
+            }
+
+            for (int i = 0; i < symbols.size(); i++) {
+                MarketService.BatchQuoteResult quoteResult = quotes.get(i);
+                if (quoteResult == null || quoteResult.quote() == null) {
+                    throw new IllegalStateException("Market API did not return a quote for " + symbols.get(i) + ".");
+                }
+                fullQuotesMap.put(instrumentChunk.get(i), quoteResult.quote());
+            }
         }
-        return fullQuotesList;
+        return fullQuotesMap;
+    }
+
+    private QuoteData getUsdCashQuote() {
+        return new QuoteData(
+            US_CURRENCY_SYMBOL,
+            BigDecimal.ONE,
+            BigDecimal.ONE,
+            BigDecimal.ONE,
+            BigDecimal.ZERO,
+            US_CURRENCY_SYMBOL,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            BigDecimal.ONE,
+            Instant.now(),
+            "OPEN"
+        );
     }
 
     @Transactional
     public List<HoldingSummaryResponse> getHoldingSummariesByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         List<Holding> holdings = portfolio.getHoldings();
-        List<QuoteData> fullQuotesList = getQuotesOfOwnedInstruments(portfolio);
+        Map<Instrument, QuoteData> fullQuotesList = getQuotesOfOwnedInstruments(portfolio);
 
         List<HoldingSummaryResponse> summaries = new ArrayList<>();
 
-        for (int i = 0; i < fullQuotesList.size(); i++) {
+        for (Holding holding : holdings) {
             HoldingSummaryResponse summary = toHoldingSummaryResponse(
                 portfolioId,
-                holdings.get(i),
-                fullQuotesList.get(i)
+                holding,
+                fullQuotesList.get(holding.getInstrument())
             );
             summaries.add(summary);
         }
@@ -317,7 +368,6 @@ public class PortfolioService {
             portfolio.addHolding(subHolding);
         }
         
-
         repository.save(portfolio);
     }
 
