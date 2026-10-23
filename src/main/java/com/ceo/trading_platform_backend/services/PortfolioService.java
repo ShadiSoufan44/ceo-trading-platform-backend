@@ -59,22 +59,17 @@ public class PortfolioService {
         return totalValue;
     }
 
+    @Transactional 
     private BigDecimal getPortfolioTotalValue(Portfolio portfolio) {
-        BigDecimal value = new BigDecimal(0);
-
-        for (Holding holding : portfolio.getHoldings()) {
-            BigDecimal price;
-            if (holding.getInstrument().getSymbol().equals(US_CURRENCY_SYMBOL)) {
-                price = new BigDecimal(1);
-            } else {
-                Instrument instrument = holding.getInstrument();
-                price = marketService.getPriceWithType(
-                    instrument.getType(), instrument.getSymbol()
-                );
-            }
-            value = value.add(price.multiply(holding.getQuantity()));
+        List<QuoteData> quotes = getQuotesOfOwnedInstruments(portfolio);
+        List<Holding> holdings = portfolio.getHoldings();
+        BigDecimal totalValue = new BigDecimal(0);
+        for (int i = 0; i < quotes.size(); i++) {
+            System.out.println("Price: " + quotes.get(i).price() + ", Quantity:" + holdings.get(i).getQuantity());
+            BigDecimal value = quotes.get(i).price().multiply(holdings.get(i).getQuantity());
+            totalValue = totalValue.add(value);
         }
-        return value;
+        return totalValue;
     }
 
     public Portfolio getPortfolioById(UUID portfolioId) {
@@ -91,6 +86,7 @@ public class PortfolioService {
         return getPortfolioBuyingPower(portfolio);
     }
 
+    @Transactional 
     public BigDecimal getTotalValueByPortfolioId(UUID portfolioId) {
         Portfolio portfolio = getPortfolioById(portfolioId);
         return getPortfolioTotalValue(portfolio);
@@ -102,10 +98,7 @@ public class PortfolioService {
         return portfolio.getHoldings();
     }
 
-    @Transactional
-    public List<HoldingSummaryResponse> getHoldingSummariesByPortfolioId(UUID portfolioId) {
-
-        Portfolio portfolio = getPortfolioById(portfolioId);
+    private List<QuoteData> getQuotesOfOwnedInstruments(Portfolio portfolio) {
         List<Holding> holdings = portfolio.getHoldings();
 
         int counter = 1;
@@ -140,6 +133,14 @@ public class PortfolioService {
                     .toList();
             fullQuotesList.addAll(quotes);
         }
+        return fullQuotesList;
+    }
+
+    @Transactional
+    public List<HoldingSummaryResponse> getHoldingSummariesByPortfolioId(UUID portfolioId) {
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        List<Holding> holdings = portfolio.getHoldings();
+        List<QuoteData> fullQuotesList = getQuotesOfOwnedInstruments(portfolio);
 
         List<HoldingSummaryResponse> summaries = new ArrayList<>();
 

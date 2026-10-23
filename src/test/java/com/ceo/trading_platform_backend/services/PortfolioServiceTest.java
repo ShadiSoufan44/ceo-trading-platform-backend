@@ -1,6 +1,7 @@
 package com.ceo.trading_platform_backend.services;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -9,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -328,6 +330,25 @@ public class PortfolioServiceTest {
     @Nested
     @DisplayName("Test getTotalValueByPortfolioId()")
     class GetTotalValueByPortfolioIdTests {
+        private void mockHoldingQuotes(Portfolio portfolio, String... prices) {
+            assertThat(prices).hasSize(portfolio.getHoldings().size());
+            List<String> symbols = new ArrayList<>();
+            List<MarketService.BatchQuoteResult> quotes = new ArrayList<>();
+            for (int i = 0; i < prices.length; i++) {
+                Instrument instrument = portfolio.getHoldings().get(i).getInstrument();
+                String symbol = instrument.getSymbol();
+                when(marketService.normalizeSymbolByType(symbol, instrument.getType()))
+                    .thenReturn(symbol);
+                symbols.add(symbol);
+                MarketService.QuoteData quote = new MarketService.QuoteData(
+                    symbol, new BigDecimal(prices[i]), null, null, null, "USD",
+                    null, null, null, Instant.now(), "OPEN"
+                );
+                quotes.add(new MarketService.BatchQuoteResult(symbol, "test", false, quote, null));
+            }
+            when(marketService.getQuotes(symbols)).thenReturn(quotes);
+        }
+
         @Test
         @DisplayName("Should throw ResourceNotFoundException when portfolio ID doesn't exist")
         void shouldThrowExceptionWhenPortfolioNotExists() {
@@ -345,10 +366,15 @@ public class PortfolioServiceTest {
             portfolio.getHoldings().clear();
             
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            mockHoldingQuotes(portfolio);
 
             BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
 
             assertThat(result).isEqualTo(BigDecimal.ZERO);
+            verify(portfolioRepository).getReferenceById(uuid1);
+            verifyNoMoreInteractions(portfolioRepository);
+            verify(marketService).getQuotes(List.of());
+            verifyNoMoreInteractions(marketService);
         }
 
         @Test
@@ -360,10 +386,12 @@ public class PortfolioServiceTest {
             portfolio.addHolding(createCashHolding(new BigDecimal("3000"), portfolio));
             
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            mockHoldingQuotes(portfolio, "1", "1");
 
             BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
 
             assertThat(result).isEqualByComparingTo(new BigDecimal("8000"));
+            verify(marketService).getQuotes(List.of("USD", "USD"));
         }
 
         @Test
@@ -374,8 +402,7 @@ public class PortfolioServiceTest {
             portfolio.addHolding(createCashHolding(new BigDecimal("5000"), portfolio));
             portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
 
-            when(marketService.getPriceWithType(stockInstrument.getType(), stockInstrument.getSymbol()))
-                .thenReturn(new BigDecimal("150"));
+            mockHoldingQuotes(portfolio, "1", "150");
             when(portfolioRepository.getReferenceById(uuid1))
                 .thenReturn(portfolio);
 
@@ -394,15 +421,47 @@ public class PortfolioServiceTest {
             portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("150"), portfolio));
             portfolio.addHolding(createStockHolding(new BigDecimal("5"), new BigDecimal("200"), portfolio));
 
-            when(marketService.getPriceWithType(stockInstrument.getType(), stockInstrument.getSymbol()))
-                .thenReturn(new BigDecimal("150"))
-                .thenReturn(new BigDecimal("200"));
+            mockHoldingQuotes(portfolio, "1", "150", "200");
             when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
 
             BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
 
             // Total = 5000 + (1 * 10 * 150) + (1 * 5 * 200) = 7500
             assertThat(result).isEqualByComparingTo(new BigDecimal("7500"));
+        }
+
+        @Test
+        @DisplayName("Should value fractional holdings at current market prices")
+        void shouldValueFractionalHoldingsAtCurrentMarketPrices() {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.addHolding(createCashHolding(new BigDecimal("100.25"), portfolio));
+            portfolio.addHolding(createStockHolding(new BigDecimal("2.5"), new BigDecimal("100"), portfolio));
+
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            mockHoldingQuotes(portfolio, "1", "150.50");
+
+            BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
+
+            assertThat(result).isEqualByComparingTo("476.50");
+            verify(portfolioRepository).getReferenceById(uuid1);
+            verifyNoMoreInteractions(portfolioRepository);
+        }
+
+        @Test
+        @DisplayName("Should subtract negative cash and stock holdings")
+        void shouldSubtractNegativeHoldings() {
+            Portfolio portfolio = createTestPortfolio(uuid1, PortfolioType.BROKERAGE);
+            portfolio.addHolding(createCashHolding(new BigDecimal("5000"), portfolio));
+            portfolio.addHolding(createCashHolding(new BigDecimal("-1000"), portfolio));
+            portfolio.addHolding(createStockHolding(new BigDecimal("10"), new BigDecimal("100"), portfolio));
+            portfolio.addHolding(createStockHolding(new BigDecimal("-4"), new BigDecimal("125"), portfolio));
+
+            when(portfolioRepository.getReferenceById(uuid1)).thenReturn(portfolio);
+            mockHoldingQuotes(portfolio, "1", "1", "150", "150");
+
+            BigDecimal result = portfolioService.getTotalValueByPortfolioId(uuid1);
+
+            assertThat(result).isEqualByComparingTo("4900");
         }
     }
 
