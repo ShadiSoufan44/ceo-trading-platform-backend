@@ -194,7 +194,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
-  /order:
+  /api/order:
     get:
       summary: Get all orders
       operationId: getAllOrders
@@ -208,7 +208,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/OrderResponseDTO' }
 
-  /order/{orderID}:
+  /api/order/{orderID}:
     get:
       summary: Get an order by ID
       operationId: getOrder
@@ -222,7 +222,7 @@ paths:
               schema: { $ref: '#/components/schemas/OrderResponseDTO' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  /order/by_client/{clientID}:
+  /api/order/by_client/{clientID}:
     get:
       summary: Get orders by client ID
       operationId: getClientOrders
@@ -237,7 +237,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/OrderResponseDTO' }
 
-  /order/new:
+  /api/order/new:
     post:
       summary: Submit a new order
       operationId: submitOrder
@@ -285,7 +285,7 @@ paths:
 
   /api/portfolio/{portfolioId}/holdings:
     get:
-      summary: Get portfolio holdings
+      summary: Get portfolio holdings with live market statistics
       operationId: getHoldingsByPortfolioId
       tags: [Portfolios]
       parameters: [{ $ref: '#/components/parameters/PortfolioId' }]
@@ -296,7 +296,7 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/HoldingResponse' }
+                items: { $ref: '#/components/schemas/HoldingSummaryResponse' }
         '404': { $ref: '#/components/responses/NotFound' }
 
   /api/portfolio/{portfolioId}:
@@ -354,38 +354,211 @@ paths:
             text/plain:
               schema: { type: string }
 
+  /api/analytics/volume:
+    get:
+      summary: Get trading volume
+      description: Returns fulfilled trading volume for a date range, optionally filtered by instrument and client segment.
+      operationId: getTradingVolume
+      tags:
+        - Analyst Analytics
+      parameters:
+        - $ref: '#/components/parameters/FromDate'
+        - $ref: '#/components/parameters/ToDate'
+        - name: symbol
+          in: query
+          required: false
+          description: Instrument symbol filter.
+          schema:
+            type: string
+          example: AAPL
+        - name: clientSegment
+          in: query
+          required: false
+          description: Client segment filter.
+          schema:
+            type: string
+            enum: [RETAIL, HIGH_NET_WORTH, INSTITUTIONAL]
+      responses:
+        '200':
+          description: Aggregated fulfilled trading volume.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingVolumeInsight'
+        '400':
+          description: Invalid date range or filter.
+        '500':
+          description: Internal server error.
+
+  /api/analytics/top-instruments:
+    get:
+      summary: Get most actively traded instruments
+      description: Returns instruments ranked by fulfilled trading notional for a date range.
+      operationId: getTopInstruments
+      tags:
+        - Analyst Analytics
+      parameters:
+        - $ref: '#/components/parameters/FromDate'
+        - $ref: '#/components/parameters/ToDate'
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of instruments to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 5
+      responses:
+        '200':
+          description: Ranked instrument insights.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TopInstrumentInsight'
+        '400':
+          description: Invalid date range or limit.
+        '500':
+          description: Internal server error.
+
+  /api/analytics/client-activity-trends:
+    get:
+      summary: Get client activity trends
+      description: Returns daily fulfilled trading activity grouped by client segment.
+      operationId: getClientActivityTrends
+      tags:
+        - Analyst Analytics
+      parameters:
+        - $ref: '#/components/parameters/FromDate'
+        - $ref: '#/components/parameters/ToDate'
+        - name: clientSegment
+          in: query
+          required: false
+          description: Client segment filter.
+          schema:
+            type: string
+            enum: [RETAIL, HIGH_NET_WORTH, INSTITUTIONAL]
+      responses:
+        '200':
+          description: Client activity trend points.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClientActivityTrendPoint'
+        '400':
+          description: Invalid date range or segment.
+        '500':
+          description: Internal server error.
+
+  /api/analytics/candles/{symbol}:
+    get:
+      summary: Get historical candles
+      description: Returns historical daily market candles for an instrument.
+      operationId: getHistoricalCandles
+      tags:
+        - Analyst Analytics
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          description: Instrument symbol.
+          schema:
+            type: string
+          example: AAPL
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Historical daily candles.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Candle'
+        '400':
+          description: Invalid date range or symbol.
+        '500':
+          description: Internal server error.
+
+
+
+
+
+          
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
   parameters:
+    FromDate:
+      name: from
+      in: query
+      required: true
+      description: Inclusive start date for the analytics period.
+      schema:
+        type: string
+        format: date
+      example: '2026-01-01'
+
+    ToDate:
+      name: to
+      in: query
+      required: true
+      description: Inclusive end date for the analytics period.
+      schema:
+        type: string
+        format: date
+      example: '2026-10-15'
+
     UserId:
       name: userId
       in: path
       required: true
       schema: { type: string, format: uuid }
+
     ClientId:
       name: clientID
       in: path
       required: true
       schema: { type: string, format: uuid }
+
     PortfolioId:
       name: portfolioId
       in: path
       required: true
       schema: { type: string, format: uuid }
+
     OrderId:
       name: orderId
       in: path
       required: true
       schema: { type: string, format: uuid }
+
     OrderID:
       name: orderID
       in: path
       required: true
       schema: { type: string, format: uuid }
+
   responses:
     BadRequest:
       description: Invalid request
@@ -401,6 +574,8 @@ components:
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  
   schemas:
     LoginRequest:
       type: object
@@ -466,6 +641,107 @@ components:
         role:
           type: string
           enum: [CLIENT, ANALYST, ADMIN]
+    TradingVolumeInsight:
+      type: object
+      required:
+        - from
+        - to
+        - symbol
+        - clientSegment
+        - totalNotional
+        - totalQuantity
+        - executedTrades
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        symbol:
+          type: string
+        clientSegment:
+          type: string
+        totalNotional:
+          type: number
+          format: double
+        totalQuantity:
+          type: number
+          format: double
+        executedTrades:
+          type: integer
+          format: int64
+
+    TopInstrumentInsight:
+      type: object
+      required:
+        - symbol
+        - totalNotional
+        - totalQuantity
+        - executedTrades
+      properties:
+        symbol:
+          type: string
+        totalNotional:
+          type: number
+          format: double
+        totalQuantity:
+          type: number
+          format: double
+        executedTrades:
+          type: integer
+          format: int64
+
+    ClientActivityTrendPoint:
+      type: object
+      required:
+        - periodStart
+        - clientSegment
+        - totalNotional
+        - totalQuantity
+        - executedTrades
+      properties:
+        periodStart:
+          type: string
+          format: date-time
+        clientSegment:
+          type: string
+        totalNotional:
+          type: number
+          format: double
+        totalQuantity:
+          type: number
+          format: double
+        executedTrades:
+          type: integer
+          format: int64
+
+    Candle:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        open:
+          type: number
+          format: double
+        high:
+          type: number
+          format: double
+        low:
+          type: number
+          format: double
+        close:
+          type: number
+          format: double
+        adjclose:
+          type: number
+          format: double
+        volume:
+          type: integer
+          format: int64
+        synthetic:
+          type: boolean
     OrderRequestDTO:
       type: object
       required: [clientId, clientName, portfolioId, addInstrumentSymbol, addInstrumentType, subtractInstrumentSymbol, subtractInstrumentType, quantity, quotedPrice, side, changeThreshold, market]
@@ -501,15 +777,24 @@ components:
         createdDate: { type: string }
         resolvedDate: { type: string }
         currentStatus: { $ref: '#/components/schemas/OrderStatus' }
-    HoldingResponse:
+    HoldingSummaryResponse:
       type: object
+      description: Holding data from the database enriched with live market statistics.
       properties:
         holdingId: { type: string, format: uuid }
-        dateCreated: { type: string, format: date-time }
-        instrumentId: { type: string, format: uuid }
-        orderId: { type: string, format: uuid }
-        purchasedPrice: { type: number, format: double }
-        quantity: { type: number, format: double }
+        portfolioId: { type: string, format: uuid }
+        symbol: { type: string }
+        companyName: { type: string }
+        shares: { type: number, format: double }
+        avgCost: { type: number, format: double }
+        currentPrice: { type: number, format: double, description: Latest market price. }
+        dayChangeValue: { type: number, format: double, description: Latest market price change per share. }
+        percentChange:
+          type: object
+          additionalProperties: { type: number, format: double }
+          description: Live percentage change keyed by 1D, 5D, 1M, 6M, and 1Y.
+        weekLow52: { type: number, format: double, description: Lowest daily market price in the one-year candle range. }
+        weekHigh52: { type: number, format: double, description: Highest daily market price in the one-year candle range. }
     PortfolioResponse:
       type: object
       properties:
@@ -597,5 +882,8 @@ tags:
   - name: Users
   - name: Client
   - name: Orders
+    description: Order management operations
+  - name: Analyst Analytics
+    description: Read-only trading analytics for analyst users
   - name: Portfolios
   - name: Market Data

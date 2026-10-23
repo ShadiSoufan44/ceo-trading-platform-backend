@@ -51,24 +51,18 @@ public class OrderConsumers {
     @KafkaListener(topics = "orders.unexecuted", groupId = "executors")
     @Transactional 
     public void execute(UUID orderId) {
-        System.out.println("UNEXECUTED: " + orderId);
+        System.out.println("Executing order " + orderId + "...");
         try {
             Order order = orderService.getOrderById(orderId).orElseThrow();
             if (order.getCurrentOrderStatus().getStatus() != OrderStatus.ACCEPTED) {
                 return;
             }
-            System.out.println("UNEXECUTED2: " + orderId);
             order = orderService.execute(order);
             orderService.save(order);
+            System.out.println("Executed order " + orderId + "!");
         } catch (RuntimeException exception) {
             System.out.println("Execution Failed! " + exception.getMessage());
             orderService.markRejected(orderId, "order execution failed: " + exception.getMessage());
         }
     }
 }
-
-
-
-
-//b1d23821-511c-47ab-a283-5ec10ef02614
-//b1d23821-511c-47ab-a283-5ec10ef02614

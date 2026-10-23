@@ -77,3 +77,17 @@ CREATE TABLE public.order_status_change (
   CONSTRAINT order_status_change_pkey PRIMARY KEY (order_status_change_id),
   CONSTRAINT order_status_change_order_id_fkey FOREIGN KEY (order_id) REFERENCES public."order"(order_id)
 );
+
+CREATE TABLE public.instrument_candle (
+  instrument_candle_id uuid DEFAULT gen_random_uuid(),
+  instrument_id uuid NOT NULL,
+  candle_date timestamp with time zone,
+  open numeric,
+  high numeric,
+  low numeric,
+  close numeric,
+  adj_close numeric,
+  volume numeric,
+  synthetic boolean,
+  CONSTRAINT instrument_candle_instrument_id_fkey FOREIGN KEY (instrument_id) REFERENCES public.instrument(instrument_id)
+);

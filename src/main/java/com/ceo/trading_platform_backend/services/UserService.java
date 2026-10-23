@@ -79,21 +79,15 @@ public class UserService {
     }
     
 
-    // public boolean isOwnProfile(UUID userId) {
-    //     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    //     if (auth == null || !auth.isAuthenticated()) {
-    //         return false;
-    //     }
-        
-    //     // Get the authenticated user's ID (assumes principal is User object or string ID)
-    //     // This will be set properly once JWT authentication is implemented
-    //     try {
-    //         String principal = auth.getName();
-    //         return principal.equals(userId.toString());
-    //     } catch (Exception e) {
-    //         return false;
-    //     }
-    // }
+        public boolean isOwnProfile(UUID userId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return userId != null
+            && authentication != null
+            && authentication.isAuthenticated()
+            && authentication.getAuthorities().stream()
+                .anyMatch(authority -> !authority.getAuthority().equals("ROLE_ANONYMOUS"))
+            && userId.toString().equals(authentication.getName());
+        }
 
     private UserResponse toResponse(User user) {
         return new UserResponse(

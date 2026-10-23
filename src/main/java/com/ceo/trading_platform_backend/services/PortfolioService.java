@@ -1,19 +1,29 @@
 package com.ceo.trading_platform_backend.services;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.Side;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
+import com.ceo.trading_platform_backend.models.InstrumentCandle;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
+import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
+import com.ceo.trading_platform_backend.services.MarketService.QuoteData;
 import com.ceo.trading_platform_backend.utils.MoneyUtilities;
 
 import jakarta.transaction.Transactional;
@@ -23,6 +33,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service 
 public class PortfolioService {
+    private final InstrumentCacheService instrumentCacheService;
     private final PortfolioRepository repository;
     private final InstrumentService instrumentService;
     private final MarketService marketService;
@@ -31,11 +42,13 @@ public class PortfolioService {
 
     public PortfolioService(
         PortfolioRepository repository,
-        InstrumentService instrumentService,
+        InstrumentService instrumentService, 
+        InstrumentCacheService instrumentCacheService,
         MarketService marketService
     ) {
         this.repository = repository;
         this.instrumentService = instrumentService;
+        this.instrumentCacheService = instrumentCacheService;
         this.marketService = marketService;
     }
 
@@ -110,13 +123,66 @@ public class PortfolioService {
         return portfolio.getHoldings();
     }
 
+    @Transactional
+    public List<HoldingSummaryResponse> getHoldingSummariesByPortfolioId(UUID portfolioId) {
+
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        List<Holding> holdings = portfolio.getHoldings();
+
+        int counter = 1;
+        List<List<Holding>> chunkedHoldings = new ArrayList<>();
+        List<Holding> chunk = new ArrayList<>();
+
+        for (Holding holding : holdings) {
+            if (counter >= 25) {
+                counter = 1;
+                chunkedHoldings.add(chunk);
+                chunk = new ArrayList<>();
+            }
+            chunk.add(holding);
+            counter++;   
+        }
+        if (counter != 0) {
+            chunkedHoldings.add(chunk);
+        }
+
+        List<QuoteData> fullQuotesList = new ArrayList<>();
+
+        for (List<Holding> holdingChunk : chunkedHoldings) {
+            List<String> symbols = holdingChunk
+                    .stream()
+                    .map((Holding holding) -> marketService.normalizeSymbolByType(
+                        holding.getInstrument().getSymbol(), holding.getInstrument().getType()
+                    ))
+                    .toList();
+            
+            List<QuoteData> quotes = marketService.getQuotes(symbols)
+                    .stream().map((val) -> val.quote())
+                    .toList();
+            fullQuotesList.addAll(quotes);
+        }
+
+        List<HoldingSummaryResponse> summaries = new ArrayList<>();
+
+        for (int i = 0; i < fullQuotesList.size(); i++) {
+            HoldingSummaryResponse summary = toHoldingSummaryResponse(
+                portfolioId,
+                holdings.get(i),
+                fullQuotesList.get(i)
+            );
+            summaries.add(summary);
+        }
+
+        return summaries;
+    }
+
     @Transactional 
-    private void addDeposit(Portfolio portfolio, Order order, BigDecimal amount, String currency) {
+    private void addDeposit(Portfolio portfolio, Order order, BigDecimal amount, String currency, InstrumentType type) {
         Holding depositHolding = new Holding(
             Instant.now(),
             BigDecimal.ONE,
             amount,
-            instrumentService.getInstrumentBySymbol(currency),
+            instrumentService.getInstrumentBySymbolAndType(currency, type),
             order,
             portfolio
         );
@@ -181,24 +247,75 @@ public class PortfolioService {
 
         repository.save(portfolio);
     }
-}
 
-// BUY US Equity: negative USD, positive US equity
-// SELL US Equity: positive USD, negative US equity
-    // 9:00 to 4:30 NY Time
-    // Can only use USD
-// BUY Indian Equity: negative INR, positive Indian equity
-// SELL Indian Equity: positive INR, negative Indian equity
-    // 9:15 to 3:30 IST
-    // Can only use USD or INR
-// DEPOSIT: positive money
-    // Any time
-    // USD or INR maybe (???)
-// BUY Crypto: negative money, positive crypto
-// SELL Crypto: positive money, negative crypto
-    // Any time
-    // Can use any currency to buy and sell crypto (???)
-// BUY Forex: negative USD, positive other currency
-// SELL Forex: positive USD, negative other currency
-    // Any time
-    // Can trade any currency for any other
+
+    private HoldingSummaryResponse toHoldingSummaryResponse(UUID portfolioId, Holding holding, QuoteData quote) {
+        Instrument instrument = holding.getInstrument();
+        String symbol = instrument.getSymbol();
+        InstrumentType type = instrument.getType();
+        List<InstrumentCandle> candles = instrumentCacheService.findOrInsertCandles(
+            symbol, type, LocalDate.now().minusYears(1), LocalDate.now()
+        );
+
+        BigDecimal weekLow52 = candles.stream()
+            .map(InstrumentCandle::getLow)
+            .min(Comparator.naturalOrder())
+            .orElse(quote.price());
+        BigDecimal weekHigh52 = candles.stream()
+            .map(InstrumentCandle::getHigh)
+            .max(Comparator.naturalOrder())
+            .orElse(quote.price());
+
+        Map<String, BigDecimal> percentChange = new LinkedHashMap<>();
+        percentChange.put("1D", quote.changePercent());
+        percentChange.put("5D", computePercentChange(candles, 5));
+        percentChange.put("1M", computePercentChange(candles, 30));
+        percentChange.put("6M", computePercentChange(candles, 182));
+        percentChange.put("1Y", computePercentChange(candles, 365));
+
+        return new HoldingSummaryResponse(
+            holding.getID(),
+            portfolioId,
+            symbol,
+            instrument.getFullName(),
+            instrument.getType(),
+            holding.getQuantity(),
+            holding.getPurchasedPrice(),
+            quote.price(),
+            quote.change(),
+            percentChange,
+            weekLow52,
+            weekHigh52
+        );
+    }
+
+    private BigDecimal computePercentChange(List<InstrumentCandle> candles, int daysBack) {
+        if (candles == null || candles.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        LocalDate cutoff = LocalDate.now().minusDays(daysBack);
+        List<InstrumentCandle> window = candles.stream()
+            .filter((candle) -> !candle.getCandleDate().atZone(ZoneOffset.UTC).toLocalDate().isBefore(cutoff))
+            .sorted(Comparator.comparing(InstrumentCandle::getCandleDate))
+            .toList();
+
+        if (window.isEmpty()) {
+            window = candles.stream()
+                .sorted(Comparator.comparing(InstrumentCandle::getCandleDate))
+                .toList();
+        }
+
+        if (window.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal start = window.get(0).getClose();
+        BigDecimal end = window.get(window.size() - 1).getClose();
+        if (start == null || start.compareTo(BigDecimal.ZERO) == 0 || end == null) {
+            return BigDecimal.ZERO;
+        }
+
+        return MoneyUtilities.safeDivide(end.subtract(start), start);
+    }
+}

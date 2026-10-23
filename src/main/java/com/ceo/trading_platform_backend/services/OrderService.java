@@ -39,11 +39,14 @@ public class OrderService {
     private final InstrumentService instrumentService;
     private final MarketService marketService;
 
-    private final LocalTime OPEN_TIME_LOCAL = LocalTime.of(9, 30, 0); // shoudl these be find
-    private final LocalTime CLOSE_TIME_LOCAL = LocalTime.of(16, 0, 0);
+    private final LocalTime OPEN_TIME_LOCAL_US = LocalTime.of(9, 30, 0); // shoudl these be find
+    private final LocalTime CLOSE_TIME_LOCAL_US = LocalTime.of(16, 0, 0);
+    private final String TIME_ZONE_STRING_US = "America/New_York";
 
     private final LocalTime OPEN_TIME_LOCAL_INDIA = LocalTime.of(9, 15, 0); 
     private final LocalTime CLOSE_TIME_LOCAL_INDIA = LocalTime.of(15, 30, 0);
+    private final String TIME_ZONE_STRING_INDIA = "Asia/Kolkata";
+
 
     public OrderService(OrderRepository repository, PortfolioService portfolioService, InstrumentService instrumentService, MarketService marketService) {
         this.repository = repository;
@@ -234,9 +237,9 @@ public class OrderService {
         LocalTime open;
         LocalTime close;
         ZoneId zone = ZoneId.of(order.getMarket()); // market is aither "America/New_York" or "America/Kolkata"
-        if(zone == ZoneId.of("America/New_York")) {
-            open = OPEN_TIME_LOCAL;
-            close = CLOSE_TIME_LOCAL;
+        if(zone == ZoneId.of(TIME_ZONE_STRING_US)) {
+            open = OPEN_TIME_LOCAL_US;
+            close = CLOSE_TIME_LOCAL_US;
         } else { // india
             open = OPEN_TIME_LOCAL_INDIA;
             close = CLOSE_TIME_LOCAL_INDIA;
@@ -254,7 +257,7 @@ public class OrderService {
     }
 
     private boolean outOfHoursWeekend(Order order, Instant timestamp) {
-        ZoneId zone = order.getMarket().equals("Anerica/New_York") ? ZoneId.of("America/New_York") : ZoneId.of("Asia/Kolkata");
+        ZoneId zone = order.getMarket().equals(TIME_ZONE_STRING_US) ? ZoneId.of(TIME_ZONE_STRING_US) : ZoneId.of(TIME_ZONE_STRING_INDIA);
         LocalDateTime dateTime = LocalDateTime.ofInstant(timestamp, zone);
         DayOfWeek day = dateTime.toLocalDate().getDayOfWeek();
         if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {

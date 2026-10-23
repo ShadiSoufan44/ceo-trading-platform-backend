@@ -3,7 +3,7 @@ package com.ceo.trading_platform_backend.controllers;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ceo.trading_platform_backend.dto.HoldingResponse;
+import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 import com.ceo.trading_platform_backend.dto.PortfolioResponse;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Portfolio;
@@ -32,23 +32,6 @@ public class PortfolioController {
         this.service = portfolioService;
     }
 
-    // TODO: move this to a ClientController.java
-    // @GetMapping("/getall/{client_id}")
-    // public ResponseEntity<List<PortfolioResponse>> getPortfoliosByClientId(
-    //     @PathVariable int clientId
-    // ) {
-    //     List<Portfolio> portfolios = service.getPortfoliosByClientId(clientId);
-    //     if (portfolios == null) {
-    //         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-    //     }
-    //     List<PortfolioResponse> response = new ArrayList<>();
-    //     for (Portfolio portfolio : portfolios) {
-    //         response.add(createPortfolioResponse(portfolio));
-    //     }
-        
-    //     return ResponseEntity.ok(response);
-    // }
-
     @GetMapping("/{portfolioId}/buying_power")
     public ResponseEntity<BigDecimal> getBuyingPowerByPortfolioId(
         @PathVariable UUID portfolioId
@@ -72,22 +55,13 @@ public class PortfolioController {
         }
         return ResponseEntity.ok(response);
     }
-    
 
     @GetMapping("/{portfolioId}/holdings")
-    public ResponseEntity<List<HoldingResponse>> getHoldingsByPortfolioId(
+    public ResponseEntity<List<HoldingSummaryResponse>> getHoldingsByPortfolioId(
         @PathVariable UUID portfolioId
     ) {
         service.assertCanAccess(portfolioId);
-        List<Holding> holdings = service.getHoldingsByPortfolioId(portfolioId);
-        if (holdings == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        List<HoldingResponse> response = new ArrayList<>();
-        for (Holding holding : holdings) {
-            response.add(createHoldingResponse(holding));
-        }
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.getHoldingSummariesByPortfolioId(portfolioId));
     }
     
     @GetMapping("/{portfolioId}")
@@ -114,15 +88,4 @@ public class PortfolioController {
         );
     }
 
-    private HoldingResponse createHoldingResponse(Holding holding) {
-        if (holding == null) return null;
-        return new HoldingResponse(
-            holding.getID(),
-            holding.getDateCreated(), 
-            holding.getInstrument().getID(),
-            holding.getOrder().getOrderId(),
-            holding.getPurchasedPrice(),
-            holding.getQuantity()
-        );
-    }
 }
