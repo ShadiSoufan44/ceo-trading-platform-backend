@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import com.ceo.trading_platform_backend.models.InstrumentCandle;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
+import com.ceo.trading_platform_backend.dto.PerformanceResponse;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 import com.ceo.trading_platform_backend.services.MarketService.QuoteData;
 import com.ceo.trading_platform_backend.utils.MoneyUtilities;
@@ -155,6 +158,95 @@ public class PortfolioService {
         }
 
         return summaries;
+    }
+
+    @Transactional
+    public List<PerformanceResponse> getPortfolioPerformance(UUID portfolioId, String timeframe) {
+        LocalDate end = LocalDate.now();
+        LocalDate start = calculateStartDate(timeframe, end); // all instrument candles share the start date, calculate once
+        Portfolio portfolio = getPortfolioById(portfolioId);
+        if (portfolio.getHoldings().isEmpty()) {
+            return List.of();
+        }
+
+        // Preserve current-position valuation while consolidating repeated holding rows.
+        Map<PerformanceInstrument, BigDecimal> quantities = new LinkedHashMap<>();
+        for (Holding holding : portfolio.getHoldings()) {
+            Instrument instrument = holding.getInstrument();
+            PerformanceInstrument key = new PerformanceInstrument(instrument.getSymbol(), instrument.getType());
+            quantities.merge(key, holding.getQuantity(), BigDecimal::add);
+        }
+
+        Map<PerformanceInstrument, NavigableMap<LocalDate, BigDecimal>> prices = new LinkedHashMap<>();
+        for (var position : quantities.entrySet()) {
+            PerformanceInstrument instrument = position.getKey();
+            if (position.getValue().signum() == 0 || isPerformanceUsd(instrument)) {
+                continue;
+            }
+            NavigableMap<LocalDate, BigDecimal> closes = new TreeMap<>();
+            List<InstrumentCandle> candles = instrumentCacheService.findOrInsertCandles(
+                instrument.symbol(), instrument.type(), start, end
+            );
+            for (InstrumentCandle candle : candles) {
+                if (candle.getClose() != null) {
+                    closes.put(candle.getCandleDate().atZone(ZoneOffset.UTC).toLocalDate(), candle.getClose());
+                }
+            }
+            prices.put(instrument, closes);
+        }
+
+        List<PerformanceResponse> performanceResponses = new ArrayList<>();
+        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            BigDecimal balance = BigDecimal.ZERO;
+            boolean complete = true;
+            for (var position : quantities.entrySet()) {
+                if (position.getValue().signum() == 0) {
+                    continue;
+                }
+                PerformanceInstrument instrument = position.getKey();
+                BigDecimal price = BigDecimal.ONE;
+                if (!isPerformanceUsd(instrument)) {
+                    // Use the latest known close, never a future price, on non-trading days.
+                    var close = prices.get(instrument).floorEntry(date);
+                    if (close == null) {
+                        complete = false;
+                        break;
+                    }
+                    price = close.getValue();
+                }
+                balance = balance.add(price.multiply(position.getValue()));
+            }
+            // A range may begin before its first trading day. Do not invent missing prices.
+            if (complete) {
+                performanceResponses.add(new PerformanceResponse(
+                    date.atStartOfDay(ZoneOffset.UTC).toInstant().toString(), balance
+                ));
+            }
+        }
+        return performanceResponses;
+    }
+
+    private record PerformanceInstrument(String symbol, InstrumentType type) {
+    }
+
+    private boolean isPerformanceUsd(PerformanceInstrument instrument) {
+        return instrument.type() == InstrumentType.CASH && US_CURRENCY_SYMBOL.equals(instrument.symbol());
+    }
+
+    private LocalDate calculateStartDate(String timeframe, LocalDate end) {
+        if ("1W".equals(timeframe)) {
+            return end.minusWeeks(1);
+        } else if ("1M".equals(timeframe)) {
+            return end.minusMonths(1);
+        } else if ("3M".equals(timeframe)) {
+            return end.minusMonths(3);
+        } else if ("1Y".equals(timeframe)) {
+            return end.minusYears(1);
+        } else if ("5Y".equals(timeframe)) {
+            return end.minusYears(5);
+        } else {
+            throw new IllegalArgumentException("Invalid timeframe: " + timeframe);
+        }
     }
 
     @Transactional 
