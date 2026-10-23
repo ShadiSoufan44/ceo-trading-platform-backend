@@ -48,6 +48,10 @@ public class OrderStatusChange {
         return this.status;
     }
 
+    public String getMessage() {
+        return this.message;
+    }
+
     public Instant getDate() {
         return this.date;
     }

@@ -4,5 +4,8 @@ CREATE INDEX IF NOT EXISTS idx_order_status_change_fulfilled_lookup
 CREATE INDEX IF NOT EXISTS idx_order_add_instrument_id
   ON public."order"(add_instrument_id);
 
+CREATE INDEX IF NOT EXISTS idx_order_subtract_instrument_id
+  ON public."order"(subtract_instrument_id);
+
 CREATE INDEX IF NOT EXISTS idx_order_client_id
   ON public."order"(client_id);

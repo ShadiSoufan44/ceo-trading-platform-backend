@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 // import java.time.LocalDate;
@@ -17,6 +18,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.Clock;
 
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
@@ -25,9 +27,13 @@ import com.ceo.trading_platform_backend.models.OrderStatusChange;
 
 import com.ceo.trading_platform_backend.repositories.OrderRepository; // waiting for implementation
 import com.ceo.trading_platform_backend.dto.OrderRequestDTO;
+import com.ceo.trading_platform_backend.dto.OrderStatusUpdateDTO;
 import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.enums.Side;
+import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
+import com.ceo.trading_platform_backend.messaging.OrderStatusChangedEvent;
+import com.ceo.trading_platform_backend.messaging.OrderStatusNotifier;
 
 @Service
 public class OrderService {
@@ -38,6 +44,7 @@ public class OrderService {
     private final PortfolioService portfolioService;
     private final InstrumentService instrumentService;
     private final MarketService marketService;
+    private final Clock clock;
 
     private final LocalTime OPEN_TIME_LOCAL_US = LocalTime.of(9, 30, 0); // shoudl these be find
     private final LocalTime CLOSE_TIME_LOCAL_US = LocalTime.of(16, 0, 0);
@@ -48,11 +55,18 @@ public class OrderService {
     private final String TIME_ZONE_STRING_INDIA = "Asia/Kolkata";
 
 
-    public OrderService(OrderRepository repository, PortfolioService portfolioService, InstrumentService instrumentService, MarketService marketService) {
+    public OrderService(
+        OrderRepository repository,
+        PortfolioService portfolioService,
+        InstrumentService instrumentService,
+        MarketService marketService,
+        Clock clock
+    ) {
         this.repository = repository;
         this.portfolioService = portfolioService;
         this.instrumentService = instrumentService;
         this.marketService = marketService;
+        this.clock = clock;
     }
 
     // TODO move to ordercontroller and orderservice only gets order objects?
@@ -111,6 +125,16 @@ public class OrderService {
             throw new AccessDeniedException("You cannot access this order");
         }
     }
+    // read-only tx so the lazy order history loads outside a web request (STOMP subscribe)
+    @Transactional(readOnly = true)
+    public OrderStatusUpdateDTO getCurrentStatusUpdate(UUID orderId) {
+        Order order = repository.findById(orderId)
+            .orElseThrow(() -> new ResourceNotFoundException("order id " + orderId + " not found in DB"));
+        OrderStatusChange current = order.getCurrentOrderStatus();
+        return OrderStatusNotifier.toUpdate(new OrderStatusChangedEvent(
+            orderId, current.getStatus(), current.getMessage(), current.getDate()
+        ));
+    }
 
     public Order save(Order order) {
         return repository.save(order);
@@ -121,7 +145,7 @@ public class OrderService {
             order.addOrderStatusChange(new OrderStatusChange(
                 OrderStatus.REJECTED,
                 message,
-                Instant.now()
+                clock.instant()
             ));
             repository.save(order);
         });
@@ -137,15 +161,15 @@ public class OrderService {
         if (!isCryptoTransaction(order)) {
             // forex or equity cannot occure on weekends
             if (outOfHoursWeekend(order, order.getCreatedDate())) {
-                Instant today = Instant.now();
-                OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+                Instant today = clock.instant();
+                OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
                 order.addOrderStatusChange(rejectedOrderStatus);
                 return order;
             }
             if (isEquityTransaction(order)) {
                 if (outOfHours(order, order.getCreatedDate())) {
-                    Instant today = Instant.now();
-                    OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+                    Instant today = clock.instant();
+                    OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
                     order.addOrderStatusChange(rejectedOrderStatus);
                     return order; // early return, don't validate --> this functionality may change depending on if allowing extra hours
                 }
@@ -153,13 +177,13 @@ public class OrderService {
         } 
         // should check this for all types of transactions?
         if (!instrumentIsTradeable(order.getAddInstrumentId())) {
-            Instant today = Instant.now();
+            Instant today = clock.instant();
             String symbol = instrumentService.getInstrumentById(order.getAddInstrumentId()).getSymbol();
             OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "instrument" + symbol + "not tradable", today);
             order.addOrderStatusChange(rejectedOrderStatus);
             return order;
         } else if (!instrumentIsTradeable(order.getSubtractInstrumentId())){
-            Instant today = Instant.now();
+            Instant today = clock.instant();
             String symbol = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getSymbol();
             OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "instrument" + symbol + "not tradable", today);
             order.addOrderStatusChange(rejectedOrderStatus);
@@ -167,13 +191,13 @@ public class OrderService {
         }
         if (order.getSide() == Side.SELL) {
             if (!hasSufficientHoldingsSell(order)) {
-                Instant today = Instant.now();
+                Instant today = clock.instant();
                 OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "insufficient holdings", today);
                 order.addOrderStatusChange(rejectedOrderStatus);
                 return order;
             }
         }
-        Instant today = Instant.now();
+        Instant today = clock.instant();
         OrderStatusChange acceptedOrderStatus = new OrderStatusChange(OrderStatus.ACCEPTED, "order accepted", today);
         order.addOrderStatusChange(acceptedOrderStatus);
         return order; // go ahead to send to queue base don order status
@@ -193,25 +217,25 @@ public class OrderService {
         BigDecimal subtractPrice = marketService.getPriceWithType(subtractInstrument.getType(), subtractInstrument.getSymbol());
         BigDecimal activePrice = (order.getSide() == Side.SELL) ? subtractPrice : addPrice;
 
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         if (
             (isEquityTransaction(order) && outOfHours(order, now)) || 
             (isForexTransaction(order) && outOfHoursWeekend(order, now))
         ) {
-            Instant today = Instant.now();
-            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting", today); // case in which subitted before hours, after validation is after
+            Instant today = clock.instant();
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
             order.addOrderStatusChange(rejectedOrderStatus);
             return order; // early return, don't execute
         }
         if (!withinChangeThreshold(order, activePrice)) {
-            Instant today = Instant.now();
+            Instant today = clock.instant();
             OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "price " + activePrice + " changed past threshold since submitting "+ order.getQuote(), today);
             order.addOrderStatusChange(rejectedOrderStatus);
             return order;
         }
         if (order.getSide() == Side.BUY) {
             if (!hasSufficientFundsBuy(order, activePrice)) {
-                Instant today = Instant.now();
+                Instant today = clock.instant();
                 OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "insufficient funds", today);
                 order.addOrderStatusChange(rejectedOrderStatus);
                 return order;
@@ -220,7 +244,7 @@ public class OrderService {
   
         portfolioService.updateHoldingsFromOrder(order, addPrice, subtractPrice);
         // update status - shoudl this happen based on portfolio service results above or is it just assumed thos will work?
-        Instant today = Instant.now();
+        Instant today = clock.instant();
         OrderStatusChange fulfilledOrderStatus = new OrderStatusChange(OrderStatus.FULFILLED, "order fulfilled", today);
         order.addOrderStatusChange(fulfilledOrderStatus);
         return order;
@@ -237,7 +261,7 @@ public class OrderService {
         LocalTime open;
         LocalTime close;
         ZoneId zone = ZoneId.of(order.getMarket()); // market is aither "America/New_York" or "America/Kolkata"
-        if(zone == ZoneId.of(TIME_ZONE_STRING_US)) {
+        if(zone.equals(ZoneId.of(TIME_ZONE_STRING_US))) {
             open = OPEN_TIME_LOCAL_US;
             close = CLOSE_TIME_LOCAL_US;
         } else { // india

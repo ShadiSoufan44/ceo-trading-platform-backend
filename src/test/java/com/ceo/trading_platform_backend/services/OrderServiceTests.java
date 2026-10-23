@@ -4,7 +4,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -14,7 +13,6 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,10 +25,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.ceo.trading_platform_backend.models.Holding;
@@ -59,7 +54,6 @@ public class OrderServiceTests {
     @Mock
     private PortfolioService portfolioService;
 
-    @InjectMocks
     private OrderService orderService;
 
     
@@ -75,7 +69,13 @@ public class OrderServiceTests {
     void setUp() {
         stockInstrument = new Instrument("AAPL", InstrumentType.EQUITY, "Apple Inc.");
         usdInstrument = new Instrument("USD", InstrumentType.CASH, "United States Dollar");
-
+        orderService = new OrderService(
+            orderRepository,
+            portfolioService,
+            instrumentService,
+            marketService,
+            Clock.fixed(Instant.parse("2026-10-22T16:00:00Z"), ZoneOffset.UTC)
+        );
 
     }
 
@@ -366,40 +366,31 @@ public class OrderServiceTests {
     @DisplayName("Test execute()")
     class Execute {
 
-        // @Test  I DONT KNOW HOW TO STUB INSTANT.MNOW
+        @Test
         @DisplayName("Should reject out of hours order")
         void testOutOfHoursOrder() {
+            Instant afterClose = Instant.parse("2026-10-09T21:00:00Z");
+            orderService = new OrderService(
+                orderRepository,
+                portfolioService,
+                instrumentService,
+                marketService,
+                Clock.fixed(afterClose, ZoneOffset.UTC)
+            );
+            Order badOrder = createWorkingSellOrder(uuid1);
+            badOrder.setAddInstrumentId(uuid2);
+            badOrder.setSubtractInstrumentId(uuid4);
 
+            when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument);
+            when(instrumentService.getInstrumentById(uuid4)).thenReturn(usdInstrument);
+            when(marketService.getPriceWithType(stockInstrument.getType(), stockInstrument.getSymbol()))
+                .thenReturn(BigDecimal.ONE);
+            when(marketService.getPriceWithType(usdInstrument.getType(), usdInstrument.getSymbol()))
+                .thenReturn(BigDecimal.ONE);
 
-            Instant specificTime = Instant.parse("2026-10-09T19:00:00Z"); // execution chekcs time NOW so need to stub the insant.now to be out ofhours
-            // try (MockedStatic<Instant> mockedInstant = Mockito.mockStatic(Instant.class, Mockito.CALLS_REAL_METHODS)) {
-            //     mockedInstant.when(Instant::now).thenReturn(specificTime);
-                var clock = Clock.fixed(specificTime, ZoneOffset.UTC);
-                var mockedInstant = Instant.now(clock);
-                MockedStatic<Instant> mockedStatic = Mockito.mockStatic(Instant.class, Mockito.CALLS_REAL_METHODS);
-                mockedStatic.when(Instant::now).thenReturn(mockedInstant);
-                OrderService orderService = new OrderService(orderRepository, portfolioService, instrumentService, marketService);
-                Order badOrder = createWorkingSellOrder(uuid1);
-                badOrder.setAddInstrumentId(uuid2);
-                LocalTime time = LocalTime.of(19, 0); // 7pm
-                ZoneId easternZone = ZoneId.of("America/New_York");
-                LocalDate date = LocalDate.now();
-                ZonedDateTime easternDateTime = ZonedDateTime.of(date, time, easternZone);
-                Instant instantUTC = easternDateTime.toInstant();
+            Order resultOrder = orderService.execute(badOrder);
 
-                OrderStatusChange initialStatusChange = new OrderStatusChange(OrderStatus.PENDING, "order submitted", instantUTC);
-                badOrder.addOrderStatusChange(initialStatusChange);
-
-                assertEquals(specificTime, Instant.now());
-
-                when(instrumentService.getInstrumentById(uuid2)).thenReturn(stockInstrument); 
-                when(marketService.getPriceWithType(stockInstrument.getType(), stockInstrument.getSymbol())).thenReturn(BigDecimal.ONE);
-
-                Order resultOrder = orderService.execute(badOrder);
-        
-                assertThat(resultOrder.getCurrentOrderStatus().getStatus()).isEqualTo(OrderStatus.REJECTED);
-            // }
- 
+            assertThat(resultOrder.getCurrentOrderStatus().getStatus()).isEqualTo(OrderStatus.REJECTED);
         }
 
         @Test
@@ -440,15 +431,6 @@ public class OrderServiceTests {
             badOrder.setSide(Side.BUY);
             badOrder.setPortfolioId(uuid3);
             badOrder.setChangeThreshold(new BigDecimal(100)); // within threshold to isolate funds
-            // make time in ours ot isolate insufficient funds
-            LocalTime time = LocalTime.of(12, 0); // 7pm
-            ZoneId easternZone = ZoneId.of("America/New_York");
-            LocalDate date = LocalDate.now();
-            ZonedDateTime easternDateTime = ZonedDateTime.of(date, time, easternZone);
-            Instant instantUTC = easternDateTime.toInstant();
-
-            OrderStatusChange initialStatusChange = new OrderStatusChange(OrderStatus.PENDING, "order submitted", instantUTC);
-            badOrder.addOrderStatusChange(initialStatusChange);
 
             when(instrumentService.getInstrumentById(badOrder.getAddInstrumentId())).thenReturn(stockInstrument);
             when(instrumentService.getInstrumentById(badOrder.getSubtractInstrumentId())).thenReturn(usdInstrument);
@@ -461,6 +443,7 @@ public class OrderServiceTests {
             Order resultOrder = orderService.execute(badOrder);
     
             assertThat(resultOrder.getCurrentOrderStatus().getStatus()).isEqualTo(OrderStatus.REJECTED);
+            verify(portfolioService).getBuyingPowerByPortfolioId(badOrder.getPortfolioId());
 
         }
 

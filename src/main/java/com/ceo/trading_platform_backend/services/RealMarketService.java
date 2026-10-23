@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ import com.ceo.trading_platform_backend.services.MarketService.SymbolMetadataDat
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-//@Service // UNCOMMMENT THIS FOR REAL MARKET SERVICE AND COMMENT IN MOCK
+@Service // UNCOMMMENT THIS FOR REAL MARKET SERVICE AND COMMENT IN MOCK
 public class RealMarketService implements com.ceo.trading_platform_backend.services.MarketService {
 
 	private static final int MAX_BATCH_QUOTES = 25;
@@ -94,10 +95,14 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 
 	public QuoteData getQuoteByType(String symbol, InstrumentType type) {
 		if(type == InstrumentType.CASH) {
+			BigDecimal price = getCashPrice(symbol);
+			if (symbol.equals("USD")) {
+				price = BigDecimal.ONE;
+			}
 			// for cash just build the price directly without fetching a quote
 			QuoteData data = new QuoteData(
 				symbol,
-				getCashPrice(symbol),
+				price,
 				null,
 				null,
 				null,
@@ -116,6 +121,9 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 
 	// Fetches quote data for up to 25 symbols in a single network call.
 	public List<BatchQuoteResult> getQuotes(List<String> symbols) {
+		for (String symbol : symbols) {
+			System.out.println(symbol);
+		}
 		if (symbols == null || symbols.isEmpty()) {
 			throw new IllegalArgumentException("At least one symbol is required.");
 		}
@@ -145,6 +153,29 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 	}
 
 	public List<Candle> getCandlesByType(String symbol, InstrumentType type, LocalDate from, LocalDate to) {
+		if (type == InstrumentType.CASH && "USD".equalsIgnoreCase(symbol)) {
+			List<Candle> candles = new ArrayList<>();
+			LocalDate start = from != null ? from : (to != null ? to : LocalDate.now());
+			LocalDate end = to != null ? to : LocalDate.now();
+
+			for (LocalDate date = start; !date.isAfter(end);) {
+				candles.add(new Candle(
+						date,
+						BigDecimal.ONE,
+						BigDecimal.ONE,
+						BigDecimal.ONE,
+						BigDecimal.ONE,
+						BigDecimal.ONE,
+						0L,
+						true));
+				if (date.equals(end)) {
+					break;
+				}
+				date = date.plusDays(1);
+			}
+			return candles;
+		}
+
 		return getCandles(normalizeSymbolByType(symbol, type), from, to);
 	}
 
@@ -243,7 +274,7 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 
 
 	public String normalizeSymbolByType(String symbol, InstrumentType type) {
-		if (symbol.equals("USD")) {
+		if (symbol.equals("USD") && type.equals(InstrumentType.CASH)) {
 			return "USD";
 		}
 		if (type == InstrumentType.EQUITY) {

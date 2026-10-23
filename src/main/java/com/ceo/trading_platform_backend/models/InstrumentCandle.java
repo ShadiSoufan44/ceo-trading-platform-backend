@@ -50,6 +50,10 @@ public class InstrumentCandle {
     @Column(name = "synthetic")
     private boolean synthetic;
 
+    // null for candles cached before this was tracked
+    @Column(name = "fetched_at")
+    private Instant fetchedAt;
+
     public InstrumentCandle() {
     }
 
@@ -113,5 +117,34 @@ public class InstrumentCandle {
 
     public boolean getSynthetic() {
         return synthetic;
+    }
+
+    public Instant getFetchedAt() {
+        return fetchedAt;
+    }
+
+    public void setFetchedAt(Instant fetchedAt) {
+        this.fetchedAt = fetchedAt;
+    }
+
+    // overwrite with freshly fetched values, e.g. when the cached candle was saved before its day ended
+    public void refresh(
+        BigDecimal open,
+        BigDecimal high,
+        BigDecimal low,
+        BigDecimal close,
+        BigDecimal adjustedClose,
+        BigDecimal volume,
+        boolean synthetic,
+        Instant fetchedAt
+    ) {
+        this.open = open;
+        this.high = high;
+        this.low = low;
+        this.close = close;
+        this.adjustedClose = adjustedClose;
+        this.volume = volume;
+        this.synthetic = synthetic;
+        this.fetchedAt = fetchedAt;
     }
 }
