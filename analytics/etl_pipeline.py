@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import random
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -9,7 +10,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from sqlalchemy import create_engine, text
+from sqlalchemy import URL, create_engine, text
 
 
 @dataclass
@@ -19,7 +20,7 @@ class InsightBundle:
     client_activity_trends: pd.DataFrame
 
 
-def extract_fulfilled_trades_from_db(db_url: str) -> pd.DataFrame:
+def extract_fulfilled_trades_from_db(db_url: str | URL) -> pd.DataFrame:
     query = text(
         '''
         SELECT
@@ -245,7 +246,7 @@ def write_cli_report(insights: InsightBundle, output_dir: Path) -> Path:
     return report_path
 
 
-def load_reporting_trade_fact(df: pd.DataFrame, db_url: str) -> None:
+def load_reporting_trade_fact(df: pd.DataFrame, db_url: str | URL) -> None:
     engine = create_engine(
         db_url,
         pool_size=1,
@@ -315,7 +316,7 @@ def load_reporting_trade_fact(df: pd.DataFrame, db_url: str) -> None:
 
 def run_pipeline(
     output_dir: Path,
-    db_url: str | None = None,
+    db_url: str | URL | None = None,
     input_csv: Path | None = None,
     generated_rows: int | None = None,
     load_reporting: bool = False,
@@ -359,11 +360,31 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _database_url_from_environment() -> URL | None:
+    host = os.getenv("ANALYST_ETL_DB_HOST")
+    name = os.getenv("ANALYST_ETL_DB_NAME")
+    username = os.getenv("ANALYST_ETL_DB_USERNAME")
+    password = os.getenv("ANALYST_ETL_DB_PASSWORD")
+    if not all((host, name, username, password)):
+        return None
+
+    port = int(os.getenv("ANALYST_ETL_DB_PORT", "5432"))
+    return URL.create(
+        "postgresql+psycopg",
+        username=username,
+        password=password,
+        host=host,
+        port=port,
+        database=name,
+    )
+
+
 def main() -> None:
     args = _parse_args()
+    db_url = args.db_url or _database_url_from_environment()
     _, report_path = run_pipeline(
         output_dir=args.output_dir,
-        db_url=args.db_url,
+        db_url=db_url,
         input_csv=args.input_csv,
         generated_rows=args.generate_rows,
         load_reporting=args.load_reporting,

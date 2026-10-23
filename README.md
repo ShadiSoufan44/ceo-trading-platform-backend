@@ -73,6 +73,16 @@ The initial `V1__init_schema.sql` had several gaps that were dangerous for a sys
 ### 9. Deployment: containerized, target AWS
 The app is containerized via the existing `Dockerfile` so it can run anywhere consistently (local dev, CI, eventual hosting). We intend to deploy to AWS, but don't yet have AWS access/account details — the container is being built to be cloud-agnostic in the meantime so that decision doesn't block local development.
 
+### 10. Analyst reporting ETL
+The backend automatically runs `analytics/etl_pipeline.py` after startup and then every five minutes. It extracts fulfilled orders and upserts them into `reporting_trade_fact`; the upsert is keyed by order ID, so repeated runs do not duplicate trades. The app image includes Python and the ETL dependencies.
+
+Configure the schedule with these environment variables:
+
+- `ANALYTICS_ETL_ENABLED`: defaults to `true`; set to `false` to disable scheduled runs.
+- `ANALYTICS_ETL_INITIAL_DELAY_MS`: defaults to `60000` (one minute after startup).
+- `ANALYTICS_ETL_FIXED_DELAY_MS`: defaults to `300000` (five minutes after each run completes).
+- `ANALYTICS_ETL_PYTHON`: optional Python executable override; auto-detected locally and set in the Docker image.
+
 ## Open questions / not yet decided
 
 - **Database schema**: core tables and constraints are in `V1__init_schema.sql` (see #8a); still missing `marketdata`, `statistics`, and `audit` tables.

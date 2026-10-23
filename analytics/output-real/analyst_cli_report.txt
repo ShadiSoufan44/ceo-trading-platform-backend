@@ -1,5 +1,5 @@
 ANALYST INSIGHT REPORT
-Generated at UTC: 2026-10-23T18:04:28.584064+00:00
+Generated at UTC: 2026-10-23T19:52:38.820585+00:00
 
 Insight 1: Trading Volume
 - Total notional traded: 7,310.40

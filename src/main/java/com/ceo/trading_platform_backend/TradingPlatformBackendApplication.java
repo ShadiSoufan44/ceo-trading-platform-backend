@@ -1,15 +1,17 @@
 package com.ceo.trading_platform_backend;
 
-import java.time.Instant;
 import java.time.Clock;
+import java.time.Instant;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import com.ceo.trading_platform_backend.models.Client;
 
 @SpringBootApplication
+@EnableScheduling
 public class TradingPlatformBackendApplication {
 
 	@Bean
