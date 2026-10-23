@@ -2,17 +2,19 @@ package com.ceo.trading_platform_backend.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,8 +32,13 @@ class InstrumentCacheServiceTest {
 
     private static final String SYMBOL = "AAPL";
     private static final InstrumentType TYPE = InstrumentType.EQUITY;
+
+    // "now" is Monday 2026-01-05 15:00 UTC, so the last finished day is Sunday 01-04
+    private static final Instant NOW = Instant.parse("2026-01-05T15:00:00Z");
+    private static final LocalDate TODAY = LocalDate.of(2026, 1, 5);
+    private static final LocalDate LAST_FINISHED_DAY = TODAY.minusDays(1);
     private static final LocalDate FROM = LocalDate.of(2026, 1, 1);
-    private static final LocalDate TO = LocalDate.of(2026, 1, 3);
+    private static final Instant EARLIER_TODAY = Instant.parse("2026-01-05T09:00:00Z");
 
     @Mock
     private InstrumentCandleRepository instrumentCandleRepository;
@@ -48,92 +55,133 @@ class InstrumentCacheServiceTest {
     @BeforeEach
     void setUp() {
         instrumentCacheService = new InstrumentCacheService(
-            instrumentCandleRepository, marketService, instrumentService
+            instrumentCandleRepository, marketService, instrumentService, Clock.fixed(NOW, ZoneOffset.UTC)
         );
         instrument = new Instrument(SYMBOL, TYPE, "Apple Inc.");
-
     }
 
     @Test
-    void returnsCachedCandlesWithoutCallingMarketServiceWhenCacheIsFull() {
-        when(instrumentService.getInstrumentBySymbolAndType(SYMBOL, TYPE))
-            .thenReturn(instrument);
+    void returnsCachedCandlesWithoutCallingMarketServiceWhenCacheIsUpToDate() {
         List<InstrumentCandle> cachedCandles = List.of(
-            candle(FROM, "100", "105", "99", "104"),
-            candle(FROM.plusDays(1), "104", "108", "103", "107"),
-            candle(TO, "107", "110", "106", "109")
+            candle(FROM, "104", EARLIER_TODAY),
+            candle(LocalDate.of(2026, 1, 2), "107", EARLIER_TODAY)
         );
-        when(instrumentCandleRepository.findCandleInDateRange(
-            eq(instrument.getID()), eq(utcStart(FROM)), eq(utcStart(TO.plusDays(1)))
-        )).thenReturn(cachedCandles);
+        givenCached(cachedCandles);
 
-        List<InstrumentCandle> result = instrumentCacheService.findOrInsertCandles(
-            SYMBOL, TYPE, FROM, TO
-        );
+        List<InstrumentCandle> result = instrumentCacheService.findOrInsertCandles(SYMBOL, TYPE, FROM, TODAY);
 
         assertThat(result).containsExactlyElementsOf(cachedCandles);
         verify(marketService, never()).getCandlesByType(any(), any(), any(), any());
-        verify(instrumentCandleRepository, never()).save(any());
+        verify(instrumentCandleRepository, never()).saveAll(anyList());
     }
 
     @Test
-    void fetchesAndPersistsCandlesWhenCacheIsIncomplete() {
-        when(instrumentService.getInstrumentBySymbolAndType(SYMBOL, TYPE))
-            .thenReturn(instrument);
-        MarketService.Candle marketCandle = marketCandle(FROM, "100", "105", "99", "104");
-        when(instrumentCandleRepository.findCandleInDateRange(
-            eq(instrument.getID()), eq(utcStart(FROM)), eq(utcStart(TO.plusDays(1)))
-        )).thenReturn(List.of());
-        when(marketService.getCandlesByType(eq(SYMBOL), eq(TYPE), eq(FROM), eq(TO)))
-            .thenReturn(List.of(marketCandle));
-        when(instrumentCandleRepository.findByInstrumentIDAndCandleDate(
-            eq(instrument.getID()), eq(utcStart(FROM))
-        )).thenReturn(List.of());
-        when(instrumentCandleRepository.save(any(InstrumentCandle.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+    void fetchesAndPersistsFinishedCandlesButNeverTodays() {
+        givenCached(List.of());
+        when(marketService.getCandlesByType(SYMBOL, TYPE, FROM, LAST_FINISHED_DAY)).thenReturn(List.of(
+            marketCandle(LocalDate.of(2026, 1, 2), "104"),
+            marketCandle(TODAY, "999")
+        ));
+        givenSaveAllReturnsInput();
 
-        List<InstrumentCandle> result = instrumentCacheService.findOrInsertCandles(
-            SYMBOL, TYPE, FROM, TO
-        );
+        List<InstrumentCandle> result = instrumentCacheService.findOrInsertCandles(SYMBOL, TYPE, FROM, TODAY);
 
         assertThat(result).hasSize(1);
-        InstrumentCandle savedCandle = result.get(0);
-        assertThat(savedCandle.getInstrument()).isSameAs(instrument);
-        assertThat(savedCandle.getCandleDate()).isEqualTo(utcStart(FROM));
-        assertThat(savedCandle.getOpen()).isEqualByComparingTo("100");
-        assertThat(savedCandle.getHigh()).isEqualByComparingTo("105");
-        assertThat(savedCandle.getLow()).isEqualByComparingTo("99");
-        assertThat(savedCandle.getClose()).isEqualByComparingTo("104");
-        assertThat(savedCandle.getVolume()).isEqualByComparingTo("1000");
-        assertThat(savedCandle.getSynthetic()).isFalse();
-        verify(instrumentCandleRepository).save(savedCandle);
+        InstrumentCandle saved = result.get(0);
+        assertThat(saved.getInstrument()).isSameAs(instrument);
+        assertThat(saved.getCandleDate()).isEqualTo(utcStart(LocalDate.of(2026, 1, 2)));
+        assertThat(saved.getClose()).isEqualByComparingTo("104");
+        assertThat(saved.getVolume()).isEqualByComparingTo("1000");
+        assertThat(saved.getFetchedAt()).isEqualTo(NOW);
     }
 
     @Test
-    void reusesExistingCandleWhenMarketDataAlreadyExistsForDate() {
-        when(instrumentService.getInstrumentBySymbolAndType(SYMBOL, TYPE))
-            .thenReturn(instrument);
-        InstrumentCandle existingCandle = candle(FROM, "100", "105", "99", "104");
+    void storesSyntheticCandleThatHasNoVolume() {
+        // the API fills gaps with synthetic candles whose volume is null
+        BigDecimal price = new BigDecimal("79.51");
+        givenCached(List.of());
+        when(marketService.getCandlesByType(SYMBOL, TYPE, FROM, LAST_FINISHED_DAY)).thenReturn(List.of(
+            new MarketService.Candle(LocalDate.of(2026, 1, 2), price, price, price, price, price, null, true)
+        ));
+        givenSaveAllReturnsInput();
+
+        List<InstrumentCandle> result = instrumentCacheService.findOrInsertCandles(SYMBOL, TYPE, FROM, TODAY);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getVolume()).isNull();
+        assertThat(result.get(0).getSynthetic()).isTrue();
+        assertThat(result.get(0).getClose()).isEqualByComparingTo("79.51");
+    }
+
+    @Test
+    void overwritesCandleThatWasCachedBeforeItsDayEnded() {
+        LocalDate day = LocalDate.of(2026, 1, 2);
+        InstrumentCandle partial = candle(day, "100", Instant.parse("2026-01-02T15:00:00Z"));
+        givenCached(List.of(candle(FROM, "98", EARLIER_TODAY), partial));
+        when(marketService.getCandlesByType(SYMBOL, TYPE, FROM, LAST_FINISHED_DAY)).thenReturn(List.of(
+            marketCandle(FROM, "98"),
+            marketCandle(day, "104")
+        ));
+        givenSaveAllReturnsInput();
+
+        List<InstrumentCandle> result = instrumentCacheService.findOrInsertCandles(SYMBOL, TYPE, FROM, TODAY);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(1)).isSameAs(partial);
+        assertThat(partial.getClose()).isEqualByComparingTo("104");
+        assertThat(partial.getFetchedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void refetchesCandlesCachedBeforeFetchedAtWasTracked() {
+        givenCached(List.of(candle(FROM, "98", null), candle(LocalDate.of(2026, 1, 2), "104", null)));
+        when(marketService.getCandlesByType(SYMBOL, TYPE, FROM, LAST_FINISHED_DAY)).thenReturn(List.of());
+        givenSaveAllReturnsInput();
+
+        instrumentCacheService.findOrInsertCandles(SYMBOL, TYPE, FROM, TODAY);
+
+        verify(marketService).getCandlesByType(SYMBOL, TYPE, FROM, LAST_FINISHED_DAY);
+    }
+
+    @Test
+    void asksTheApiAgainOnceANewDayHasFinished() {
+        // final candles, but last checked yesterday: a new session may have finished since
+        Instant yesterday = Instant.parse("2026-01-04T10:00:00Z");
+        givenCached(List.of(candle(FROM, "98", yesterday), candle(LocalDate.of(2026, 1, 2), "104", yesterday)));
+        when(marketService.getCandlesByType(SYMBOL, TYPE, FROM, LAST_FINISHED_DAY)).thenReturn(List.of());
+        givenSaveAllReturnsInput();
+
+        instrumentCacheService.findOrInsertCandles(SYMBOL, TYPE, FROM, TODAY);
+
+        verify(marketService).getCandlesByType(SYMBOL, TYPE, FROM, LAST_FINISHED_DAY);
+    }
+
+    @Test
+    void refetchesWhenTheCacheDoesNotReachBackToTheStartOfTheRange() {
+        LocalDate from = LocalDate.of(2025, 12, 1);
+        when(instrumentService.getInstrumentBySymbolAndType(SYMBOL, TYPE)).thenReturn(instrument);
         when(instrumentCandleRepository.findCandleInDateRange(
-            eq(instrument.getID()), eq(utcStart(FROM)), eq(utcStart(TO.plusDays(1)))
-        )).thenReturn(List.of());
-        when(marketService.getCandlesByType(eq(SYMBOL), eq(TYPE), eq(FROM), eq(TO)))
-            .thenReturn(List.of(marketCandle(FROM, "90", "95", "89", "94")));
-        when(instrumentCandleRepository.findByInstrumentIDAndCandleDate(
-            eq(instrument.getID()), eq(utcStart(FROM))
-        )).thenReturn(List.of(existingCandle));
+            eq(instrument.getID()), eq(utcStart(from)), eq(utcStart(TODAY))
+        )).thenReturn(List.of(candle(LocalDate.of(2026, 1, 2), "104", EARLIER_TODAY)));
+        when(marketService.getCandlesByType(SYMBOL, TYPE, from, LAST_FINISHED_DAY)).thenReturn(List.of());
+        givenSaveAllReturnsInput();
 
-        List<InstrumentCandle> result = instrumentCacheService.findOrInsertCandles(
-            SYMBOL, TYPE, FROM, TO
-        );
+        instrumentCacheService.findOrInsertCandles(SYMBOL, TYPE, from, TODAY);
 
-        assertThat(result).containsExactly(existingCandle);
-        verify(instrumentCandleRepository, never()).save(any());
+        verify(marketService).getCandlesByType(SYMBOL, TYPE, from, LAST_FINISHED_DAY);
+    }
+
+    @Test
+    void returnsNothingForARangeWithNoFinishedDays() {
+        List<InstrumentCandle> result = instrumentCacheService.findOrInsertCandles(SYMBOL, TYPE, TODAY, TODAY);
+
+        assertThat(result).isEmpty();
+        verifyNoInteractions(marketService, instrumentCandleRepository);
     }
 
     @Test
     void returnsCloseForCandleOnDate() {
-        InstrumentCandle candle = candle(FROM, "100", "105", "99", "104");
+        InstrumentCandle candle = candle(FROM, "104", EARLIER_TODAY);
         when(instrumentService.getOrInsertInstrumentBySymbolAndType(SYMBOL, TYPE))
             .thenReturn(instrument);
         when(instrumentCandleRepository.findByInstrumentIDAndCandleDate(
@@ -145,35 +193,29 @@ class InstrumentCacheServiceTest {
         assertThat(result).isEqualByComparingTo("104");
     }
 
-    private InstrumentCandle candle(
-        LocalDate date, String open, String high, String low, String close
-    ) {
-        return new InstrumentCandle(
-            instrument,
-            utcStart(date),
-            new BigDecimal(open),
-            new BigDecimal(high),
-            new BigDecimal(low),
-            new BigDecimal(close),
-            null,
-            BigDecimal.valueOf(1000),
-            false
-        );
+    private void givenCached(List<InstrumentCandle> candles) {
+        when(instrumentService.getInstrumentBySymbolAndType(SYMBOL, TYPE)).thenReturn(instrument);
+        when(instrumentCandleRepository.findCandleInDateRange(
+            eq(instrument.getID()), eq(utcStart(FROM)), eq(utcStart(TODAY))
+        )).thenReturn(candles);
     }
 
-    private MarketService.Candle marketCandle(
-        LocalDate date, String open, String high, String low, String close
-    ) {
-        return new MarketService.Candle(
-            date,
-            new BigDecimal(open),
-            new BigDecimal(high),
-            new BigDecimal(low),
-            new BigDecimal(close),
-            null,
-            1000L,
-            false
+    private void givenSaveAllReturnsInput() {
+        when(instrumentCandleRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private InstrumentCandle candle(LocalDate date, String close, Instant fetchedAt) {
+        BigDecimal price = new BigDecimal(close);
+        InstrumentCandle candle = new InstrumentCandle(
+            instrument, utcStart(date), price, price, price, price, null, BigDecimal.valueOf(1000), false
         );
+        candle.setFetchedAt(fetchedAt);
+        return candle;
+    }
+
+    private MarketService.Candle marketCandle(LocalDate date, String close) {
+        BigDecimal price = new BigDecimal(close);
+        return new MarketService.Candle(date, price, price, price, price, null, 1000L, false);
     }
 
     private Instant utcStart(LocalDate date) {
