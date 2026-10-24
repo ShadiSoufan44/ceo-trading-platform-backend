@@ -31,7 +31,7 @@ import com.ceo.trading_platform_backend.models.Order;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/order")
+@RequestMapping("/api/order")
 @PreAuthorize("hasAnyRole('CLIENT', 'ADMIN')")
 public class OrderController {
 
