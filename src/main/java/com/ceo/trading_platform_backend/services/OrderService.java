@@ -158,18 +158,25 @@ public class OrderService {
     public Order validate(Order order) {
         // TODO need to check time and put into different queues if doing after hours
 
+        if (isDepositTransaction(order)) {
+            Instant today = clock.instant();
+            OrderStatusChange acceptedOrderStatus = new OrderStatusChange(OrderStatus.ACCEPTED, "order accepted", today);
+            order.addOrderStatusChange(acceptedOrderStatus);
+            return order;
+        }
+
         if (!isCryptoTransaction(order)) {
             // forex or equity cannot occure on weekends
             if (outOfHoursWeekend(order, order.getCreatedDate())) {
                 Instant today = clock.instant();
-                OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
+                OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "forex/equity market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
                 order.addOrderStatusChange(rejectedOrderStatus);
                 return order;
             }
             if (isEquityTransaction(order)) {
                 if (outOfHours(order, order.getCreatedDate())) {
                     Instant today = clock.instant();
-                    OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
+                    OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "equity market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
                     order.addOrderStatusChange(rejectedOrderStatus);
                     return order; // early return, don't validate --> this functionality may change depending on if allowing extra hours
                 }
@@ -217,13 +224,22 @@ public class OrderService {
         BigDecimal subtractPrice = marketService.getPriceWithType(subtractInstrument.getType(), subtractInstrument.getSymbol());
         BigDecimal activePrice = (order.getSide() == Side.SELL) ? subtractPrice : addPrice;
 
+        if (isDepositTransaction(order)) {
+            portfolioService.updateHoldingsFromOrder(order, addPrice, subtractPrice);
+            // update status - shoudl this happen based on portfolio service results above or is it just assumed thos will work?
+            Instant today = clock.instant();
+            OrderStatusChange fulfilledOrderStatus = new OrderStatusChange(OrderStatus.FULFILLED, "order fulfilled", today);
+            order.addOrderStatusChange(fulfilledOrderStatus);
+            return order;
+        }
+
         Instant now = clock.instant();
         if (
             (isEquityTransaction(order) && outOfHours(order, now)) || 
             (isForexTransaction(order) && outOfHoursWeekend(order, now))
         ) {
             Instant today = clock.instant();
-            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
+            OrderStatusChange rejectedOrderStatus = new OrderStatusChange(OrderStatus.REJECTED, "forex/equity market closed, rejecting: " + today, today); // case in which subitted before hours, after validation is after
             order.addOrderStatusChange(rejectedOrderStatus);
             return order; // early return, don't execute
         }
@@ -358,5 +374,9 @@ public class OrderService {
         InstrumentType type1 = instrumentService.getInstrumentById(order.getAddInstrumentId()).getType();
         InstrumentType type2 = instrumentService.getInstrumentById(order.getSubtractInstrumentId()).getType();
         return (type1 == InstrumentType.CASH && type2 == InstrumentType.CASH);
+    }
+
+    private boolean isDepositTransaction(Order order) {
+        return order.getSide() == Side.DEPOSIT;
     }
 }
