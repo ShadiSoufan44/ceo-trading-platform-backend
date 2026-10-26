@@ -8,6 +8,19 @@ CREATE TABLE public.user_account (
   CONSTRAINT user_account_pkey PRIMARY KEY (user_id)
 );
 
+CREATE TABLE public.refresh_token (
+  refresh_token_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  token_hash text NOT NULL,
+  expires_at timestamp with time zone NOT NULL,
+  revoked_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT refresh_token_pkey PRIMARY KEY (refresh_token_id),
+  CONSTRAINT refresh_token_user_id_fkey FOREIGN KEY (user_id)
+    REFERENCES public.user_account(user_id),
+  CONSTRAINT refresh_token_token_hash_unique UNIQUE (token_hash)
+);
+
 CREATE TABLE public.instrument (
   symbol text,
   full_name text,
@@ -19,7 +32,7 @@ CREATE TABLE public.instrument (
 CREATE TABLE public.portfolio (
   type text,
   portfolio_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  client_id uuid DEFAULT gen_random_uuid(),
+  client_id uuid NOT NULL,
   CONSTRAINT portfolio_pkey PRIMARY KEY (portfolio_id),
   CONSTRAINT portfolio_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.user_account(user_id)
 );

@@ -34,8 +34,8 @@ public class Portfolio {
     @Column(name = "type")
     private PortfolioType type;
 
-    @ManyToOne 
-    @JoinColumn(name = "client_id")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "client_id", nullable = false)
     private User client;
 
     public Portfolio() {}
@@ -57,6 +57,10 @@ public class Portfolio {
 
     public UUID getPortfolioId() {
         return portfolioId;
+    }
+
+    public User getClient() {
+        return client;
     }
 
     public void setClient(User client) {

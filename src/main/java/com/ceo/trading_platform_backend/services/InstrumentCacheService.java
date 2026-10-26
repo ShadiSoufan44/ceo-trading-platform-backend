@@ -89,10 +89,10 @@ public class InstrumentCacheService {
         List<InstrumentCandle> cached = findCandles(instrument.getID(), from, lastFinishedDay);
 
         if (isUpToDate(cached, from, lastFinishedDay)) {
-            System.out.println("Instrument cache full HIT");
+            System.out.println("Instrument cache full HIT | " + instrumentSymbol + ": " + instrumentType);
             return cached;
         }
-        System.out.println("Instrument cache partial or full MISS");
+        System.out.println("Instrument cache partial or full MISS | " + instrumentSymbol + ": " + instrumentType);
 
         Map<Instant, InstrumentCandle> cachedByDate = new HashMap<>();
         cached.forEach((candle) -> cachedByDate.putIfAbsent(candle.getCandleDate(), candle));

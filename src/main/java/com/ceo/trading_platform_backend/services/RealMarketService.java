@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -120,6 +121,9 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 
 	// Fetches quote data for up to 25 symbols in a single network call.
 	public List<BatchQuoteResult> getQuotes(List<String> symbols) {
+		for (String symbol : symbols) {
+			System.out.println(symbol);
+		}
 		if (symbols == null || symbols.isEmpty()) {
 			throw new IllegalArgumentException("At least one symbol is required.");
 		}
@@ -149,6 +153,29 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 	}
 
 	public List<Candle> getCandlesByType(String symbol, InstrumentType type, LocalDate from, LocalDate to) {
+		if (type == InstrumentType.CASH && "USD".equalsIgnoreCase(symbol)) {
+			List<Candle> candles = new ArrayList<>();
+			LocalDate start = from != null ? from : (to != null ? to : LocalDate.now());
+			LocalDate end = to != null ? to : LocalDate.now();
+
+			for (LocalDate date = start; !date.isAfter(end);) {
+				candles.add(new Candle(
+						date,
+						BigDecimal.ONE,
+						BigDecimal.ONE,
+						BigDecimal.ONE,
+						BigDecimal.ONE,
+						BigDecimal.ONE,
+						0L,
+						true));
+				if (date.equals(end)) {
+					break;
+				}
+				date = date.plusDays(1);
+			}
+			return candles;
+		}
+
 		return getCandles(normalizeSymbolByType(symbol, type), from, to);
 	}
 

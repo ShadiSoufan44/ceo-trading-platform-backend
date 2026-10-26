@@ -12,6 +12,169 @@ servers:
     description: Production server
 
 paths:
+  /api/auth/login:
+    post:
+      summary: Log in
+      description: Authenticates a user and returns an access token and refresh token.
+      operationId: login
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401':
+          description: Invalid email or password
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/auth/refresh:
+    post:
+      summary: Refresh authentication tokens
+      description: Rotates the valid HttpOnly refresh-token cookie and returns a new access token. The response sets a replacement refresh-token cookie.
+      operationId: refreshTokens
+      tags: [Authentication]
+      responses:
+        '200':
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401':
+          description: Invalid, expired, or revoked refresh token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/auth/logout:
+    post:
+      summary: Log out
+      description: Revokes the refresh-token cookie and clears it.
+      operationId: logout
+      tags: [Authentication]
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LogoutResponse' }
+
+  /api/auth/change-password:
+    post:
+      summary: Change the current user's password
+      description: Verifies the current password and replaces it with a new BCrypt hash.
+      operationId: changePassword
+      tags: [Authentication]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChangePasswordResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401':
+          description: Authentication required or current password is incorrect
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/auth/me:
+    get:
+      summary: Get the current authenticated user
+      operationId: getCurrentUser
+      tags: [Authentication]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/users:
+    post:
+      summary: Create a user account
+      description: Creates a new user account with the CLIENT role by default.
+      operationId: createUser
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+      responses:
+        '201':
+          description: User account created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: Email is already registered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/users/{userId}:
+    get:
+      summary: Get a user profile
+      operationId: getUser
+      tags: [Users]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      summary: Update user profile information
+      description: Updates the supplied name and/or email fields.
+      operationId: updateUser
+      tags: [Users]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/UserId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateInfoRequest' }
+      responses:
+        '200':
+          description: User profile updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Email is already registered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
   /api/users/{userId}/portfolios:
     get:
       summary: Get all portfolios for a user
@@ -260,6 +423,34 @@ paths:
         '500':
           description: Internal server error.
 
+  /api/analytics/top-movers:
+    get:
+      summary: Get instruments with the largest current percentage price moves
+      operationId: getTopMovers
+      tags:
+        - Analyst Analytics
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of movers to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 25
+            default: 5
+      responses:
+        '200':
+          description: Current market movers ranked by absolute percentage change.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TopMover'
+        '500':
+          description: Market data service error.
+
   /api/analytics/client-activity-trends:
     get:
       summary: Get client activity trends
@@ -414,6 +605,70 @@ components:
 
   
   schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword, confirmNewPassword]
+      properties:
+        currentPassword: { type: string, format: password }
+        newPassword: { type: string, format: password, minLength: 8 }
+        confirmNewPassword: { type: string, format: password, minLength: 8 }
+    ChangePasswordResponse:
+      type: object
+      properties:
+        message: { type: string }
+        changedAt: { type: string, format: date-time }
+    LogoutResponse:
+      type: object
+      properties:
+        message: { type: string }
+        loggedOutAt: { type: string, format: date-time }
+    LoginResponse:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        email: { type: string, format: email }
+        accessToken: { type: string }
+        expiresIn:
+          type: integer
+          format: int64
+          description: Access-token lifetime in milliseconds.
+        role:
+          type: string
+          enum: [CLIENT, ANALYST, ADMIN]
+    CreateUserRequest:
+      type: object
+      required: [fullName, email, password]
+      properties:
+        fullName: { type: string }
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+    UpdateInfoRequest:
+      type: object
+      description: At least one field should be supplied.
+      properties:
+        newName: { type: string }
+        newEmail: { type: string, format: email }
+    UserResponse:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        joinDate: { type: string, format: date-time }
+        role:
+          type: string
+          enum: [CLIENT, ANALYST, ADMIN]
     TradingVolumeInsight:
       type: object
       required:
@@ -465,6 +720,26 @@ components:
           type: integer
           format: int64
 
+    TopMover:
+      type: object
+      required:
+        - symbol
+        - currentPrice
+        - previousClose
+        - percentageChange
+      properties:
+        symbol:
+          type: string
+        currentPrice:
+          type: number
+          format: double
+        previousClose:
+          type: number
+          format: double
+        percentageChange:
+          type: number
+          format: double
+
     ClientActivityTrendPoint:
       type: object
       required:
@@ -515,7 +790,6 @@ components:
           format: int64
         synthetic:
           type: boolean
-
     OrderRequestDTO:
       type: object
       required: [clientId, clientName, portfolioId, addInstrumentSymbol, addInstrumentType, subtractInstrumentSymbol, subtractInstrumentType, quantity, quotedPrice, side, changeThreshold, market]
