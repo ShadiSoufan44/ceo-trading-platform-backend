@@ -460,7 +460,8 @@ public class PortfolioService {
             quote.change(),
             percentChange,
             weekLow52,
-            weekHigh52
+            weekHigh52,
+            holding.getDateCreated()
         );
     }
 
