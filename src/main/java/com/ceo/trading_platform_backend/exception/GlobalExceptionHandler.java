@@ -7,6 +7,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.ceo.trading_platform_backend.services.RealMarketService.MarketClientException;
+import com.ceo.trading_platform_backend.services.RealMarketService.MarketServerException;
+import com.ceo.trading_platform_backend.services.RealMarketService.MarketSymbolNotFoundException;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +22,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(MarketSymbolNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleMarketSymbolNotFound(MarketSymbolNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(MarketClientException.class)
+    public ResponseEntity<Map<String, Object>> handleMarketClientError(MarketClientException ex) {
+        HttpStatus status = ex.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS.value()
+                ? HttpStatus.TOO_MANY_REQUESTS
+                : HttpStatus.BAD_GATEWAY;
+        return build(status, ex.getMessage());
+    }
+
+    @ExceptionHandler(MarketServerException.class)
+    public ResponseEntity<Map<String, Object>> handleMarketServerError(MarketServerException ex) {
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage());
     }
 
     @ExceptionHandler(DuplicateResourceException.class)

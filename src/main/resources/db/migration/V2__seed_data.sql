@@ -3,7 +3,7 @@
 -- Insert test users
 INSERT INTO public.user_account (user_id, full_name, email, password_hash, join_date, role)
 VALUES 
-    ('2c522b92-7151-4daa-92db-81a2253c772a', 'John Doe', 'johndoe@email.com', 'HASHED_PASSWORD', NOW(), 'CLIENT');
+    ('2c522b92-7151-4daa-92db-81a2253c772a', 'John Doe', 'johndoe@email.com', 'cec8e25fe5228a9e7e1f158ec89416919241d0a7e8a31c5123933ce23f05d90a', NOW(), 'CLIENT');
 
 -- Insert portfolios
 INSERT INTO public.portfolio (portfolio_id, type, client_id)
