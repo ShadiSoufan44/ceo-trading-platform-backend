@@ -376,9 +376,15 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 	}
 
 	public static class MarketClientException extends RuntimeException {
+		private final int statusCode;
 
 		public MarketClientException(int statusCode, String message) {
 			super("Market API returned " + statusCode + ": " + message);
+			this.statusCode = statusCode;
+		}
+
+		public int getStatusCode() {
+			return statusCode;
 		}
 	}
 
