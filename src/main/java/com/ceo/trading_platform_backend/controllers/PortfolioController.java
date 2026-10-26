@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 import com.ceo.trading_platform_backend.dto.PerformanceResponse;
 import com.ceo.trading_platform_backend.dto.PortfolioResponse;
+import com.ceo.trading_platform_backend.enums.PortfolioType;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.services.PortfolioService;
@@ -76,6 +77,16 @@ public class PortfolioController {
         if (response == null || response.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/new/{type}/{clientId}")
+    public ResponseEntity<PortfolioResponse> createPortfolio(
+        @PathVariable PortfolioType type,
+        @PathVariable String clientId
+    ) {
+        Portfolio portfolio = service.createPortfolio(type, clientId);
+        PortfolioResponse response = createPortfolioResponse(portfolio);
         return ResponseEntity.ok(response);
     }
 

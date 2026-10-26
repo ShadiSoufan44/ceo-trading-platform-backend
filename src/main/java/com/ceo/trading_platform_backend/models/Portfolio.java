@@ -58,4 +58,8 @@ public class Portfolio {
     public UUID getPortfolioId() {
         return portfolioId;
     }
+
+    public void setClient(User client) {
+        this.client = client;
+    }
 }

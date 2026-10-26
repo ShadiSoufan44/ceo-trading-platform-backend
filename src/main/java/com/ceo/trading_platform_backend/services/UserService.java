@@ -55,6 +55,10 @@ public class UserService {
         return toResponse(user);
     }
     
+    public User getUserEntity(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+    }
 
     public boolean isOwnProfile(UUID userId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
