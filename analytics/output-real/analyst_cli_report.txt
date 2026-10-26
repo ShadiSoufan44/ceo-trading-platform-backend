@@ -1,12 +1,12 @@
 ANALYST INSIGHT REPORT
-Generated at UTC: 2026-10-26T13:55:49.806884+00:00
+Generated at UTC: 2026-10-26T19:34:13.881530+00:00
 
 Insight 1: Trading Volume
-- Total notional traded: 7,310.40
-- Total executed trades: 6
+- Total notional traded: 48,550.68
+- Total executed trades: 11
 
 Insight 2: Most Active Instruments
-- Top instrument by notional: AAPL
+- Top instrument by notional: MU
 
 Insight 3: Client Activity Trends
 - Segments covered: RETAIL
