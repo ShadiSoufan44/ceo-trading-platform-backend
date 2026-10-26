@@ -19,6 +19,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import com.ceo.trading_platform_backend.enums.InstrumentType;
+import com.ceo.trading_platform_backend.enums.PortfolioType;
 import com.ceo.trading_platform_backend.enums.Side;
 import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.models.Holding;
@@ -26,11 +27,14 @@ import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.InstrumentCandle;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
+import com.ceo.trading_platform_backend.models.User;
 import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 import com.ceo.trading_platform_backend.dto.PerformanceResponse;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 import com.ceo.trading_platform_backend.services.MarketService.QuoteData;
 import com.ceo.trading_platform_backend.utils.MoneyUtilities;
+import com.ceo.trading_platform_backend.services.UserService;
+
 
 import jakarta.transaction.Transactional;
 import org.springframework.security.access.AccessDeniedException;
@@ -43,6 +47,7 @@ public class PortfolioService {
     private final PortfolioRepository repository;
     private final InstrumentService instrumentService;
     private final MarketService marketService;
+    private final UserService userService;
 
     private final String US_CURRENCY_SYMBOL = "USD";
     private static final int CANDLE_LOOKBACK_BUFFER_DAYS = 7;
@@ -51,12 +56,14 @@ public class PortfolioService {
         PortfolioRepository repository,
         InstrumentService instrumentService, 
         InstrumentCacheService instrumentCacheService,
-        MarketService marketService
+        MarketService marketService,
+        UserService userService
     ) {
         this.repository = repository;
         this.instrumentService = instrumentService;
         this.instrumentCacheService = instrumentCacheService;
         this.marketService = marketService;
+        this.userService = userService;
     }
 
     private BigDecimal getPortfolioBuyingPower(Portfolio portfolio) {
@@ -392,6 +399,14 @@ public class PortfolioService {
         repository.save(portfolio);
     }
 
+    // method to create portfolio o`bject and save to db
+    @Transactional
+    public Portfolio createPortfolio(PortfolioType type, String clientId) {
+        Portfolio portfolio = new Portfolio(type);
+        User client = userService.getUserEntity(UUID.fromString(clientId));
+        portfolio.setClient(client);
+        return repository.save(portfolio);
+    }
 
     private HoldingSummaryResponse toHoldingSummaryResponse(UUID portfolioId, Holding holding, QuoteData quote) {
         Instrument instrument = holding.getInstrument();
