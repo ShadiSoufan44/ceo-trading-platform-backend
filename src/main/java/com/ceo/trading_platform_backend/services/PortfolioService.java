@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.Locale;
 
 import org.springframework.stereotype.Service;
 
@@ -402,8 +403,21 @@ public class PortfolioService {
     // method to create portfolio o`bject and save to db
     @Transactional
     public Portfolio createPortfolio(PortfolioType type, String clientId) {
-        Portfolio portfolio = new Portfolio(type);
-        User client = userService.getUserEntity(UUID.fromString(clientId));
+        String defaultName = type.name().toLowerCase(Locale.ROOT) + " Portfolio";
+        return createPortfolio(type, UUID.fromString(clientId), defaultName);
+    }
+
+    @Transactional
+    public Portfolio createPortfolio(PortfolioType type, UUID clientId, String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Portfolio name is required");
+        }
+        if (name.length() > Portfolio.NAME_MAX_LENGTH) {
+            throw new IllegalArgumentException("Portfolio name must be at most 100 characters");
+        }
+
+        Portfolio portfolio = new Portfolio(type, name.trim());
+        User client = userService.getUserEntity(clientId);
         portfolio.setClient(client);
         return repository.save(portfolio);
     }

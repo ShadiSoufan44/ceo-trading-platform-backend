@@ -1,9 +1,9 @@
 ANALYST INSIGHT REPORT
-Generated at UTC: 2026-10-26T19:34:13.881530+00:00
+Generated at UTC: 2026-10-27T15:29:24.193321+00:00
 
 Insight 1: Trading Volume
-- Total notional traded: 48,550.68
-- Total executed trades: 11
+- Total notional traded: 50,450.68
+- Total executed trades: 13
 
 Insight 2: Most Active Instruments
 - Top instrument by notional: MU

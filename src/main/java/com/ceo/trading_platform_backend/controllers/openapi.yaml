@@ -269,6 +269,24 @@ paths:
               schema: { type: number, format: double }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /api/portfolio:
+    post:
+      summary: Create a portfolio
+      operationId: createPortfolio
+      tags: [Portfolios]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePortfolioRequest' }
+      responses:
+        '201':
+          description: Portfolio created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PortfolioResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
   /api/portfolio/{portfolioId}/total_value:
     get:
       summary: Get total portfolio value
@@ -861,10 +879,18 @@ components:
       type: object
       properties:
         ID: { type: string, format: uuid }
+        name: { type: string, maxLength: 100 }
         holdingIds:
           type: array
           items: { type: string, format: uuid }
         type: { $ref: '#/components/schemas/PortfolioType' }
+    CreatePortfolioRequest:
+      type: object
+      required: [name, type, clientId]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        type: { $ref: '#/components/schemas/PortfolioType' }
+        clientId: { type: string, format: uuid }
     QuoteData:
       type: object
       properties:
@@ -918,6 +944,7 @@ components:
       type: object
       properties:
         portfolioId: { type: string, format: uuid }
+        name: { type: string, maxLength: 100 }
         holdings:
           type: array
           items: { $ref: '#/components/schemas/HoldingModel' }
