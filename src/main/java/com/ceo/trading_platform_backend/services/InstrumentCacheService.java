@@ -186,4 +186,11 @@ public class InstrumentCacheService {
             throw new IllegalArgumentException("Invalid timeframe: " + timeframe);
         }
     }
+
+    public List<MarketService.Candle> getTodaysCandle(UUID instrumentId) {
+        Instrument instrument = instrumentService.getInstrumentById(instrumentId);
+        LocalDate today = LocalDate.now();
+        List<MarketService.Candle> candles = marketService.getCandlesByType(instrument.getSymbol(), instrument.getType(), today, today);
+        return candles;
+    }
 }
