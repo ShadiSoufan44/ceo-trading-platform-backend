@@ -167,4 +167,30 @@ public class InstrumentCacheService {
         InstrumentCandle candle = findCandleByDate(instrument.getID(), date).orElse(null);
         return candle.getClose();
     }
+
+    // same as portfolio service except with one day
+    public LocalDate calculateStartDate(String timeframe, LocalDate end) {
+        if ("1D".equals(timeframe)) {
+            return end.minusDays(1);
+        } else if ("1W".equals(timeframe)) {
+            return end.minusWeeks(1);
+        } else if ("1M".equals(timeframe)) {
+            return end.minusMonths(1);
+        } else if ("3M".equals(timeframe)) {
+            return end.minusMonths(3);
+        } else if ("1Y".equals(timeframe)) {
+            return end.minusYears(1);
+        } else if ("5Y".equals(timeframe)) {
+            return end.minusYears(5);
+        } else {
+            throw new IllegalArgumentException("Invalid timeframe: " + timeframe);
+        }
+    }
+
+    public List<MarketService.Candle> getTodaysCandle(UUID instrumentId) {
+        Instrument instrument = instrumentService.getInstrumentById(instrumentId);
+        LocalDate today = LocalDate.now();
+        List<MarketService.Candle> candles = marketService.getCandlesByType(instrument.getSymbol(), instrument.getType(), today, today);
+        return candles;
+    }
 }
