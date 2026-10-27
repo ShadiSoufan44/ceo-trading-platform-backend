@@ -121,11 +121,12 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 
 	// Fetches quote data for up to 25 symbols in a single network call.
 	public List<BatchQuoteResult> getQuotes(List<String> symbols) {
-		for (String symbol : symbols) {
-			System.out.println(symbol);
-		}
+
 		if (symbols == null || symbols.isEmpty()) {
 			throw new IllegalArgumentException("At least one symbol is required.");
+		}
+		for (String symbol : symbols) {
+			System.out.println(symbol);
 		}
 		if (symbols.size() > MAX_BATCH_QUOTES) {
 			throw new IllegalArgumentException("The quotes endpoint accepts at most 25 symbols per request.");
