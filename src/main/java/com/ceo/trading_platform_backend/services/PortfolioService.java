@@ -1,6 +1,7 @@
 package com.ceo.trading_platform_backend.services;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,6 +20,7 @@ import java.util.UUID;
 import java.util.Locale;
 
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.PortfolioType;
@@ -34,7 +37,6 @@ import com.ceo.trading_platform_backend.dto.PerformanceResponse;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 import com.ceo.trading_platform_backend.services.MarketService.QuoteData;
 import com.ceo.trading_platform_backend.utils.MoneyUtilities;
-import com.ceo.trading_platform_backend.services.UserService;
 
 
 import jakarta.transaction.Transactional;
@@ -49,10 +51,12 @@ public class PortfolioService {
     private final InstrumentService instrumentService;
     private final MarketService marketService;
     private final UserService userService;
+    private final Clock clock;
 
     private final String US_CURRENCY_SYMBOL = "USD";
     private static final int CANDLE_LOOKBACK_BUFFER_DAYS = 7;
 
+    @Autowired
     public PortfolioService(
         PortfolioRepository repository,
         InstrumentService instrumentService, 
@@ -60,11 +64,23 @@ public class PortfolioService {
         MarketService marketService,
         UserService userService
     ) {
+        this(repository, instrumentService, instrumentCacheService, marketService, userService, Clock.systemUTC());
+    }
+
+    PortfolioService(
+        PortfolioRepository repository,
+        InstrumentService instrumentService,
+        InstrumentCacheService instrumentCacheService,
+        MarketService marketService,
+        UserService userService,
+        Clock clock
+    ) {
         this.repository = repository;
         this.instrumentService = instrumentService;
         this.instrumentCacheService = instrumentCacheService;
         this.marketService = marketService;
         this.userService = userService;
+        this.clock = clock;
     }
 
     private BigDecimal getPortfolioBuyingPower(Portfolio portfolio) {
@@ -242,41 +258,45 @@ public class PortfolioService {
 
     @Transactional
     public List<PerformanceResponse> getPortfolioPerformance(UUID portfolioId, String timeframe) {
-        LocalDate end = LocalDate.now();
-        LocalDate start = calculateStartDate(timeframe, end); // all instrument candles share the start date, calculate once
+        LocalDate today = LocalDate.now(clock);
+        LocalDate end = today.minusDays(1);
+        LocalDate start = calculateStartDate(timeframe, today);
         Portfolio portfolio = getPortfolioById(portfolioId);
         if (portfolio.getHoldings().isEmpty()) {
             return List.of();
         }
 
-        // Preserve current-position valuation while consolidating repeated holding rows.
-        Map<PerformanceInstrument, BigDecimal> quantities = new LinkedHashMap<>();
+        Instant cutoff = today.atStartOfDay(ZoneOffset.UTC).toInstant();
+        List<Holding> history = new ArrayList<>();
         for (Holding holding : portfolio.getHoldings()) {
-            Instrument instrument = holding.getInstrument();
-            PerformanceInstrument key = new PerformanceInstrument(instrument.getSymbol(), instrument.getType());
-            quantities.merge(key, holding.getQuantity(), BigDecimal::add);
+            if (holding.getDateCreated() == null) {
+                throw new IllegalStateException("Cannot reconstruct portfolio " + portfolioId + ": holding has no date");
+            }
+            if (holding.getDateCreated().isBefore(cutoff)) {
+                history.add(holding);
+            }
+        }
+        history.sort(Comparator.comparing(Holding::getDateCreated));
+        if (history.isEmpty()) {
+            return List.of();
         }
 
+        Map<PerformanceInstrument, BigDecimal> quantities = new LinkedHashMap<>();
         Map<PerformanceInstrument, NavigableMap<LocalDate, BigDecimal>> prices = new LinkedHashMap<>();
-        for (var position : quantities.entrySet()) {
-            PerformanceInstrument instrument = position.getKey();
-            if (position.getValue().signum() == 0 || isPerformanceUsd(instrument)) {
+        List<PerformanceResponse> performanceResponses = new ArrayList<>();
+        int nextHolding = 0;
+        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            Instant dayEnd = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+            // Replay all earlier events as well, so the first day has the correct opening positions.
+            while (nextHolding < history.size() && history.get(nextHolding).getDateCreated().isBefore(dayEnd)) {
+                Holding holding = history.get(nextHolding++);
+                Instrument instrument = holding.getInstrument();
+                PerformanceInstrument key = new PerformanceInstrument(instrument.getSymbol(), instrument.getType());
+                quantities.merge(key, holding.getQuantity(), BigDecimal::add);
+            }
+            if (nextHolding == 0) {
                 continue;
             }
-            NavigableMap<LocalDate, BigDecimal> closes = new TreeMap<>();
-            List<InstrumentCandle> candles = instrumentCacheService.findOrInsertCandles(
-                instrument.symbol(), instrument.type(), start, end
-            );
-            for (InstrumentCandle candle : candles) {
-                if (candle.getClose() != null) {
-                    closes.put(candle.getCandleDate().atZone(ZoneOffset.UTC).toLocalDate(), candle.getClose());
-                }
-            }
-            prices.put(instrument, closes);
-        }
-
-        List<PerformanceResponse> performanceResponses = new ArrayList<>();
-        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
             BigDecimal balance = BigDecimal.ZERO;
             boolean complete = true;
             for (var position : quantities.entrySet()) {
@@ -286,7 +306,19 @@ public class PortfolioService {
                 PerformanceInstrument instrument = position.getKey();
                 BigDecimal price = BigDecimal.ONE;
                 if (!isPerformanceUsd(instrument)) {
-                    // Use the latest known close, never a future price, on non-trading days.
+                    if (!prices.containsKey(instrument)) {
+                        NavigableMap<LocalDate, BigDecimal> closes = new TreeMap<>();
+                        List<InstrumentCandle> candles = instrumentCacheService.findOrInsertCandles(
+                            instrument.symbol(), instrument.type(), start.minusDays(CANDLE_LOOKBACK_BUFFER_DAYS), end
+                        );
+                        for (InstrumentCandle candle : candles) {
+                            if (candle.getClose() != null) {
+                                closes.put(candle.getCandleDate().atZone(ZoneOffset.UTC).toLocalDate(), candle.getClose());
+                            }
+                        }
+                        prices.put(instrument, closes);
+                    }
+                    // Use the latest known close on non-trading days.
                     var close = prices.get(instrument).floorEntry(date);
                     if (close == null) {
                         complete = false;
@@ -296,7 +328,7 @@ public class PortfolioService {
                 }
                 balance = balance.add(price.multiply(position.getValue()));
             }
-            // A range may begin before its first trading day. Do not invent missing prices.
+            // Missing prices for active positions must not produce partial balances.
             if (complete) {
                 performanceResponses.add(new PerformanceResponse(
                     date.atStartOfDay(ZoneOffset.UTC).toInstant().toString(), balance
