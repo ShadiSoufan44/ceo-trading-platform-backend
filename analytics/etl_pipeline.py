@@ -48,6 +48,7 @@ def extract_fulfilled_trades_from_db(db_url: str | URL) -> pd.DataFrame:
         LEFT JOIN public.instrument subtract_instrument
             ON subtract_instrument.instrument_id = o.subtract_instrument_id
         INNER JOIN public.user_account ua ON ua.user_id = o.client_id
+        WHERE o.side <> 'DEPOSIT'
         '''
     )
 
@@ -128,6 +129,7 @@ def clean_trade_data(df: pd.DataFrame) -> pd.DataFrame:
     cleaned["symbol"] = cleaned["symbol"].astype(str).str.strip().str.upper()
     cleaned["client_segment"] = cleaned["client_segment"].astype(str).str.strip().str.upper()
     cleaned["side"] = cleaned["side"].astype(str).str.strip().str.upper()
+    cleaned = cleaned[cleaned["side"] != "DEPOSIT"]
 
     cleaned["notional"] = cleaned["quantity"] * cleaned["price"]
     cleaned["executed_day"] = cleaned["executed_at"].dt.floor("D")
@@ -247,6 +249,10 @@ def write_cli_report(insights: InsightBundle, output_dir: Path) -> Path:
 
 
 def load_reporting_trade_fact(df: pd.DataFrame, db_url: str | URL) -> None:
+    if df.empty:
+        print("No fulfilled trades to load into reporting_trade_fact")
+        return
+
     engine = create_engine(
         db_url,
         pool_size=1,
