@@ -17,7 +17,6 @@ import org.mockito.MockitoAnnotations;
 import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.repositories.InstrumentRepository;
-import com.ceo.trading_platform_backend.services.InstrumentCacheService;
 
 public class InstrumentServiceTest {
     
@@ -28,14 +27,11 @@ public class InstrumentServiceTest {
     
     @Mock
     private MarketService mockMarketService;
-
-    @Mock
-    private InstrumentCacheService mockCandleService;
     
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
-        instrumentService = new InstrumentService(mockRepository, mockMarketService, mockCandleService);
+        instrumentService = new InstrumentService(mockRepository, mockMarketService);
     }
     
     /**

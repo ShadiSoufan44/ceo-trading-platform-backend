@@ -14,6 +14,7 @@ import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.services.InstrumentCacheService;
 import com.ceo.trading_platform_backend.services.InstrumentService;
+import com.ceo.trading_platform_backend.services.InstrumentPerformanceService;
 import com.ceo.trading_platform_backend.services.MarketService;
 
 import com.ceo.trading_platform_backend.dto.PerformanceResponse;
@@ -22,23 +23,25 @@ import com.ceo.trading_platform_backend.dto.PerformanceResponse;
  * CandleController handles candle requests.
  */
 @RestController
-@RequestMapping("/api/candles")
+@RequestMapping("/api/candles/{symbol}/{type}")
 public class CandleController {
 
     private final MarketService marketService;
     private final InstrumentCacheService candleService;
     private final InstrumentService instrumentService;
+    private final InstrumentPerformanceService instrumentPerformanceService;
 
-    public CandleController(MarketService marketService, InstrumentCacheService candleService, InstrumentService instrumentService) {
+    public CandleController(MarketService marketService, InstrumentCacheService candleService, InstrumentService instrumentService, InstrumentPerformanceService instrumentPerformanceService) {
         this.marketService = marketService;
         this.candleService = candleService;
         this.instrumentService = instrumentService;
+        this.instrumentPerformanceService = instrumentPerformanceService;
     }
 
     /**
      * Get stcok info for frontend stock display page timeframe not including today
      */
-    @GetMapping("/{symbol}/{type}/{timeframe}")
+    @GetMapping("/{timeframe}")
     @PreAuthorize("hasAnyRole('CLIENT', 'ADMIN')")
     public ResponseEntity<Object> getInstrumentPerformance(
         @PathVariable String symbol,
@@ -50,11 +53,11 @@ public class CandleController {
         // Object candle = candleService.findOrInsertCandles(symbol, type, start, end);
         // return ResponseEntity.ok(candle);
         Instrument instrument = instrumentService.getOrInsertInstrumentBySymbolAndType(symbol, type);
-        List<PerformanceResponse> performance = instrumentService.getInstrumentPerformance(instrument.getID(), timeframe);
+        List<PerformanceResponse> performance = instrumentPerformanceService.getInstrumentPerformance(instrument.getID(), timeframe);
         return ResponseEntity.ok(performance);
     }
 
-    @GetMapping("/{symbol}/{type}/today")
+    @GetMapping("/today")
     @PreAuthorize("hasAnyRole('CLIENT', 'ADMIN')")
     public ResponseEntity<Object> getTodaysCandle(
         @PathVariable String symbol,
