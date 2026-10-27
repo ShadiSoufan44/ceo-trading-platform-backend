@@ -26,7 +26,7 @@ import com.ceo.trading_platform_backend.services.MarketService.SymbolMetadataDat
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-// @Service // UNCOMMMENT THIS FOR REAL MARKET SERVICE AND COMMENT IN MOCK
+@Service
 public class RealMarketService implements com.ceo.trading_platform_backend.services.MarketService {
 
 	private static final int MAX_BATCH_QUOTES = 25;
