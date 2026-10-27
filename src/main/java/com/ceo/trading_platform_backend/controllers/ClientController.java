@@ -44,6 +44,7 @@ public class ClientController {
             .toList();
         return new PortfolioResponse(
             portfolio.getPortfolioId(),
+            portfolio.getName(),
             holdingIds,
             portfolio.getType()
         );
