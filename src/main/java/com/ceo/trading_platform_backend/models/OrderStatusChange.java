@@ -44,6 +44,10 @@ public class OrderStatusChange {
         this.date = date;
     }
 
+    public UUID getOrderStatusChangeId() {
+        return orderStatusChangeId;
+    }
+
     public OrderStatus getStatus() {
         return this.status;
     }
