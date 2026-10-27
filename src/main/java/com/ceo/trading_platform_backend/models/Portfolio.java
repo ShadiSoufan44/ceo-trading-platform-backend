@@ -17,14 +17,23 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Entity 
 @Table(name = "portfolio")
 public class Portfolio {
+
+    public static final int NAME_MAX_LENGTH = 100;
     
     @Id @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "portfolio_id")
     private UUID portfolioId;
+
+    @NotBlank
+    @Size(max = NAME_MAX_LENGTH)
+    @Column(name = "name", nullable = false, length = NAME_MAX_LENGTH)
+    private String name;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "portfolio_id")
@@ -44,11 +53,20 @@ public class Portfolio {
         this.type = type;
     }
 
+    public Portfolio(PortfolioType type, String name) {
+        this.type = type;
+        this.name = name;
+    }
+
     public List<Holding> getHoldings() {
         return this.holdings;
     }
     public PortfolioType getType() {
         return type;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public void addHolding(Holding holding) {

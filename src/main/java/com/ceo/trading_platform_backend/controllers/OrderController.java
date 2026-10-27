@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.util.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +27,9 @@ import com.ceo.trading_platform_backend.exception.ResourceNotFoundException;
 import com.ceo.trading_platform_backend.messaging.OrderProducers;
 import com.ceo.trading_platform_backend.services.InstrumentService;
 import com.ceo.trading_platform_backend.services.OrderService;
+import com.ceo.trading_platform_backend.services.PortfolioService;
+import com.ceo.trading_platform_backend.utils.MoneyUtilities;
+import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Order;
 
 import jakarta.validation.Valid;
@@ -37,13 +41,18 @@ public class OrderController {
 
     private final OrderService orderService;
     private final InstrumentService instrumentService;
+    private final PortfolioService portfolioService;
     private final OrderProducers producers;
 
 
-    public OrderController(OrderService orderService, InstrumentService instrumentService, OrderProducers producers) {
+    public OrderController(
+        OrderService orderService, InstrumentService instrumentService, 
+        OrderProducers producers, PortfolioService portfolioService
+    ) {
         this.orderService = orderService;
         this.instrumentService = instrumentService;
         this.producers = producers;
+        this.portfolioService = portfolioService;
     }
 
     //get all orders 
@@ -126,6 +135,30 @@ public class OrderController {
         String createdDate = order.getCreatedDate().toString();
         BigDecimal quantity = order.getQuantity();
         BigDecimal quotedPrice = order.getQuote();
+
+        BigDecimal resolvedPrice;
+        List<Holding> holdings = portfolioService.getHoldingsByOrder(order);
+        if (holdings.size() == 0) {
+            resolvedPrice = null;
+        } else {
+            Holding addHolding = holdings.get(0);
+            if (holdings.size() == 1) {
+                resolvedPrice = addHolding.getPurchasedPrice();
+            } else {
+                Holding subHolding = holdings.get(1);
+                if (addInstrumentType == InstrumentType.CASH && subtractInstrumentType == InstrumentType.CASH) {
+                    resolvedPrice = MoneyUtilities.safeDivide(addHolding.getPurchasedPrice(), subHolding.getPurchasedPrice());
+                } else {
+                    if (order.getSide() == Side.BUY || order.getSide() == Side.DEPOSIT) {
+                        resolvedPrice = addHolding.getPurchasedPrice();
+                    } else {
+                        resolvedPrice = subHolding.getPurchasedPrice();
+                    }
+                }
+            }
+        }
+        
+
         Side side = order.getSide();
         BigDecimal changeThreshold = order.getChangeThreshold();
         String resolvedDate = "";
@@ -133,7 +166,15 @@ public class OrderController {
             resolvedDate = order.getCurrentOrderStatus().getDate().toString();
         }
         OrderStatus currentStatus = order.getCurrentOrderStatus().getStatus();
-        OrderResponseDTO response = new OrderResponseDTO(orderId, clientId, portfolioId, addInstrumentSymbol, addInstrumentType, addInstrumentFullName, subtractInstrumentSymbol, subtractInstrumentType, subtractInstrumentFullName, quantity, quotedPrice, side, changeThreshold, createdDate, resolvedDate, currentStatus); 
+        OrderResponseDTO response = new OrderResponseDTO(
+            orderId, clientId, portfolioId, 
+            addInstrumentSymbol, addInstrumentType, addInstrumentFullName, 
+            subtractInstrumentSymbol, subtractInstrumentType, subtractInstrumentFullName, 
+            quantity, quotedPrice, resolvedPrice, 
+            side, changeThreshold, 
+            createdDate, resolvedDate, 
+            currentStatus
+        ); 
 
         return response;
     }

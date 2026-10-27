@@ -4,6 +4,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -32,6 +33,9 @@ import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.InstrumentCandle;
 import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
+import com.ceo.trading_platform_backend.models.User;
+import com.ceo.trading_platform_backend.enums.UserRole;
+import com.ceo.trading_platform_backend.repositories.HoldingRepository;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 
@@ -40,6 +44,9 @@ import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 public class PortfolioServiceTest {
     @Mock 
     private PortfolioRepository portfolioRepository;
+    
+    @Mock 
+    private HoldingRepository holdingRepository;
 
     @Mock
     private InstrumentService instrumentService;
@@ -49,6 +56,9 @@ public class PortfolioServiceTest {
 
     @Mock
     private InstrumentCacheService instrumentCacheService;
+
+    @Mock
+    private UserService userService;
 
     private PortfolioService portfolioService;
 
@@ -71,7 +81,9 @@ public class PortfolioServiceTest {
             portfolioRepository, 
             instrumentService,
             instrumentCacheService,
-            marketService
+            marketService,
+            userService,
+            holdingRepository
         );
         
         // Default mock behavior: USD has price of 1
@@ -96,6 +108,37 @@ public class PortfolioServiceTest {
             null
         );
         return order;
+    }
+
+    @Test
+    void createPortfolioPersistsSuppliedNameAndClient() {
+        User client = new User("Test Client", "test@example.com", "hash", Instant.now(), UserRole.CLIENT);
+        when(userService.getUserEntity(uuid1)).thenReturn(client);
+        when(portfolioRepository.save(any(Portfolio.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Portfolio created = portfolioService.createPortfolio(
+            PortfolioType.BROKERAGE, uuid1, "  Long-term Growth  ");
+
+        assertThat(created.getName()).isEqualTo("Long-term Growth");
+        assertThat(created.getClient()).isSameAs(client);
+        verify(portfolioRepository).save(created);
+    }
+
+    @Test
+    void createPortfolioRejectsBlankName() {
+        assertThatThrownBy(() -> portfolioService.createPortfolio(
+                PortfolioType.BROKERAGE, uuid1, "   "))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Portfolio name is required");
+    }
+
+    @Test
+    void createPortfolioRejectsNameLongerThanMaximum() {
+        assertThatThrownBy(() -> portfolioService.createPortfolio(
+                PortfolioType.BROKERAGE, uuid1, "x".repeat(Portfolio.NAME_MAX_LENGTH + 1)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Portfolio name must be at most 100 characters");
     }
 
     private Holding createCashHolding(BigDecimal quantity, Portfolio portfolio) {

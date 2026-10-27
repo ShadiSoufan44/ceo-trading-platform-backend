@@ -7,7 +7,7 @@ import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.OrderStatus;
 import com.ceo.trading_platform_backend.enums.Side;
 
-public record OrderResponseDTO(
+public record OrderResponseDTO (
     UUID orderId,
     UUID clientId,
     UUID portfolioId,
@@ -19,6 +19,7 @@ public record OrderResponseDTO(
     String subtractInstrumentFullName,
     BigDecimal quantity,
     BigDecimal quotedPrice,
+    BigDecimal resolvedPrice,
     Side side,
     BigDecimal changeThreshold,
     String createdDate,

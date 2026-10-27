@@ -20,6 +20,7 @@ public interface AnalystReportingRepository extends JpaRepository<ReportingTrade
             FROM reporting_trade_fact
             WHERE executed_at >= :fromTs
               AND executed_at < :toTs
+              AND side <> 'DEPOSIT'
               AND (:symbol IS NULL OR symbol = :symbol)
               AND (:clientSegment IS NULL OR client_segment = :clientSegment)
             """, nativeQuery = true)
@@ -38,6 +39,7 @@ public interface AnalystReportingRepository extends JpaRepository<ReportingTrade
             FROM reporting_trade_fact
             WHERE executed_at >= :fromTs
               AND executed_at < :toTs
+              AND side <> 'DEPOSIT'
             GROUP BY symbol
             ORDER BY total_notional DESC
             LIMIT :resultLimit
@@ -57,6 +59,7 @@ public interface AnalystReportingRepository extends JpaRepository<ReportingTrade
             FROM reporting_trade_fact
             WHERE executed_at >= :fromTs
               AND executed_at < :toTs
+              AND side <> 'DEPOSIT'
               AND (:clientSegment IS NULL OR client_segment = :clientSegment)
             GROUP BY period_start, client_segment
             ORDER BY period_start ASC, client_segment ASC

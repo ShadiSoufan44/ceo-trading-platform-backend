@@ -26,7 +26,7 @@ import com.ceo.trading_platform_backend.services.MarketService.SymbolMetadataDat
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-@Service // UNCOMMMENT THIS FOR REAL MARKET SERVICE AND COMMENT IN MOCK
+@Service
 public class RealMarketService implements com.ceo.trading_platform_backend.services.MarketService {
 
 	private static final int MAX_BATCH_QUOTES = 25;
@@ -130,6 +130,9 @@ public class RealMarketService implements com.ceo.trading_platform_backend.servi
 		}
 		if (symbols.size() > MAX_BATCH_QUOTES) {
 			throw new IllegalArgumentException("The quotes endpoint accepts at most 25 symbols per request.");
+		}
+		for (String symbol : symbols) {
+			System.out.println(symbol);
 		}
 
 		String joinedSymbols = symbols.stream()

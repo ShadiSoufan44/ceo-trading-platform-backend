@@ -5,7 +5,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 import com.ceo.trading_platform_backend.dto.PerformanceResponse;
+import com.ceo.trading_platform_backend.dto.CreatePortfolioRequest;
 import com.ceo.trading_platform_backend.dto.PortfolioResponse;
+import com.ceo.trading_platform_backend.enums.PortfolioType;
 import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.services.PortfolioService;
@@ -18,7 +20,10 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 
@@ -85,6 +90,25 @@ public class PortfolioController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/new/{type}/{clientId}")
+    public ResponseEntity<PortfolioResponse> createPortfolio(
+        @PathVariable PortfolioType type,
+        @PathVariable String clientId
+    ) {
+        Portfolio portfolio = service.createPortfolio(type, clientId);
+        PortfolioResponse response = createPortfolioResponse(portfolio);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping
+    public ResponseEntity<PortfolioResponse> createPortfolio(
+        @Valid @RequestBody CreatePortfolioRequest request
+    ) {
+        Portfolio portfolio = service.createPortfolio(request.type(), request.clientId(), request.name());
+        PortfolioResponse response = createPortfolioResponse(portfolio);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
     private PortfolioResponse createPortfolioResponse(Portfolio portfolio) {
         if (portfolio == null) return null;
 
@@ -94,7 +118,7 @@ public class PortfolioController {
             holdingIds.add(holding.getID());
         }
         return new PortfolioResponse(
-            portfolio.getPortfolioId(), holdingIds, portfolio.getType()
+            portfolio.getPortfolioId(), portfolio.getName(), holdingIds, portfolio.getType()
         );
     }
 
