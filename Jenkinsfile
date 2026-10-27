@@ -188,7 +188,7 @@ pipeline {
                         docker run -d \
                             --name trading-platform-backend \
                             --restart unless-stopped \
-                            -p 8081:8081 \
+                            -p 8081:5000 \
                             --env-file "$CLEAN_ENV" \
                             "$IMAGE_REPO:$BUILD_NUMBER"
 
