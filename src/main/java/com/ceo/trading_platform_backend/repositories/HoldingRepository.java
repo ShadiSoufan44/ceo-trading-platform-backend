@@ -10,5 +10,7 @@ import com.ceo.trading_platform_backend.models.Holding;
 
 public interface HoldingRepository extends JpaRepository<Holding, UUID> {
 
+	List<Holding> findByOrderOrderId(UUID orderId);
+
 	List<Holding> findByOrderOrderIdIn(Collection<UUID> orderIds);
 }

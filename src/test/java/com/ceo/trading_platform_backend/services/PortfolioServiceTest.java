@@ -35,6 +35,7 @@ import com.ceo.trading_platform_backend.models.Order;
 import com.ceo.trading_platform_backend.models.Portfolio;
 import com.ceo.trading_platform_backend.models.User;
 import com.ceo.trading_platform_backend.enums.UserRole;
+import com.ceo.trading_platform_backend.repositories.HoldingRepository;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 
@@ -43,6 +44,9 @@ import com.ceo.trading_platform_backend.dto.HoldingSummaryResponse;
 public class PortfolioServiceTest {
     @Mock 
     private PortfolioRepository portfolioRepository;
+    
+    @Mock 
+    private HoldingRepository holdingRepository;
 
     @Mock
     private InstrumentService instrumentService;
@@ -78,7 +82,8 @@ public class PortfolioServiceTest {
             instrumentService,
             instrumentCacheService,
             marketService,
-            userService
+            userService,
+            holdingRepository
         );
         
         // Default mock behavior: USD has price of 1
