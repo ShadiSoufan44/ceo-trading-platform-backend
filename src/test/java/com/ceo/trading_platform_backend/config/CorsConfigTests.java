@@ -1,5 +1,7 @@
 package com.ceo.trading_platform_backend.config;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -10,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class CorsConfigTests {
 
-    private final CorsFilter filter = new CorsFilter(new CorsConfig().corsConfigurationSource());
+    private final CorsFilter filter = new CorsFilter(new CorsConfig().corsConfigurationSource(List.of("http://localhost:4200")));
 
     @Test
     void allowsSignupPreflightWithAuthorizationAndContentType() throws Exception {
