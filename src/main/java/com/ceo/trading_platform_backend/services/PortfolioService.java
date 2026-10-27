@@ -1,5 +1,6 @@
 package com.ceo.trading_platform_backend.services;
 
+import com.ceo.trading_platform_backend.repositories.HoldingRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -21,6 +22,7 @@ import java.util.Locale;
 
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.util.Pair;
 
 import com.ceo.trading_platform_backend.enums.InstrumentType;
 import com.ceo.trading_platform_backend.enums.PortfolioType;
@@ -46,6 +48,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service 
 public class PortfolioService {
+    private final HoldingRepository holdingRepository;
     private final InstrumentCacheService instrumentCacheService;
     private final PortfolioRepository repository;
     private final InstrumentService instrumentService;
@@ -62,9 +65,10 @@ public class PortfolioService {
         InstrumentService instrumentService, 
         InstrumentCacheService instrumentCacheService,
         MarketService marketService,
-        UserService userService
+        UserService userService,
+         HoldingRepository holdingRepository
     ) {
-        this(repository, instrumentService, instrumentCacheService, marketService, userService, Clock.systemUTC());
+        this(repository, instrumentService, instrumentCacheService, marketService, userService, Clock.systemUTC(), holdingRepository);
     }
 
     PortfolioService(
@@ -73,7 +77,8 @@ public class PortfolioService {
         InstrumentCacheService instrumentCacheService,
         MarketService marketService,
         UserService userService,
-        Clock clock
+        Clock clock,
+        HoldingRepository holdingRepository
     ) {
         this.repository = repository;
         this.instrumentService = instrumentService;
@@ -81,6 +86,7 @@ public class PortfolioService {
         this.marketService = marketService;
         this.userService = userService;
         this.clock = clock;
+        this.holdingRepository = holdingRepository;
     }
 
     private BigDecimal getPortfolioBuyingPower(Portfolio portfolio) {
@@ -254,6 +260,26 @@ public class PortfolioService {
         }
 
         return summaries;
+    }
+
+    public List<Holding> getHoldingsByOrder(Order order) {
+        List<Holding> holdings = holdingRepository.findByOrderOrderId(order.getOrderId());
+        if (holdings.size() <= 1) {
+            return holdings;
+        }
+        Holding addHolding = null; 
+        Holding subtractHolding = null;
+        for (Holding holding : holdings) {
+            if (holding.getQuantity().compareTo(BigDecimal.ZERO) < 0) {
+                subtractHolding = holding;
+            } else {
+                addHolding = holding;
+            }
+        }
+        List<Holding> holdingsList = new ArrayList<>();
+        holdingsList.add(addHolding);
+        holdingsList.add(subtractHolding);
+        return holdingsList;
     }
 
     @Transactional

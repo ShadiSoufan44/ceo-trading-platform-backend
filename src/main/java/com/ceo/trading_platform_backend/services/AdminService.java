@@ -265,7 +265,7 @@ public class AdminService {
                 added == null ? null : added.getFullName(),
                 subtracted == null ? null : subtracted.getSymbol(), subtracted == null ? null : subtracted.getType(),
                 subtracted == null ? null : subtracted.getFullName(),
-                order.getQuantity(), order.getQuote(), order.getSide(), order.getChangeThreshold(),
+                order.getQuantity(), order.getQuote(), order.getQuote(), order.getSide(), order.getChangeThreshold(),
                 created == null ? null : created.toString(), resolved, status);
     }
 

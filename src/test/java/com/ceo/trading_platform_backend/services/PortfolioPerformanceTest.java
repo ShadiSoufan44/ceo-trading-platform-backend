@@ -28,12 +28,14 @@ import com.ceo.trading_platform_backend.models.Holding;
 import com.ceo.trading_platform_backend.models.Instrument;
 import com.ceo.trading_platform_backend.models.InstrumentCandle;
 import com.ceo.trading_platform_backend.models.Portfolio;
+import com.ceo.trading_platform_backend.repositories.HoldingRepository;
 import com.ceo.trading_platform_backend.repositories.PortfolioRepository;
 
 @ExtendWith(MockitoExtension.class)
 class PortfolioPerformanceTest {
 
-    @Mock private PortfolioRepository repository;
+    @Mock private PortfolioRepository portfolioRepository;
+    @Mock private HoldingRepository holdingRepository;
     @Mock private InstrumentService instrumentService;
     @Mock private InstrumentCacheService cache;
     @Mock private MarketService marketService;
@@ -48,8 +50,8 @@ class PortfolioPerformanceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PortfolioService(repository, instrumentService, cache, marketService, userService,
-            Clock.fixed(today.atTime(12, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
+        service = new PortfolioService(portfolioRepository, instrumentService, cache, marketService, userService,
+            Clock.fixed(today.atTime(12, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC), holdingRepository);
     }
 
     @Test
@@ -74,11 +76,11 @@ class PortfolioPerformanceTest {
         assertThat(result.getFirst().date()).isEqualTo(timestamp(start));
         assertThat(result.getFirst().balance()).isEqualByComparingTo("140");
         assertThat(result.getLast().balance()).isEqualByComparingTo("144");
-        verify(repository).getReferenceById(portfolioId);
+        verify(portfolioRepository).getReferenceById(portfolioId);
         verify(cache).findOrInsertCandles("AAPL", InstrumentType.EQUITY, priceStart, end);
         verify(cache).findOrInsertCandles("BTC", InstrumentType.CRYPTO, priceStart, end);
         // In particular, no getPriceWithTypeAtDate() calls and no market API calls.
-        verifyNoMoreInteractions(repository, cache);
+        verifyNoMoreInteractions(portfolioRepository, cache);
         verifyNoInteractions(instrumentService, marketService);
     }
 
@@ -154,7 +156,7 @@ class PortfolioPerformanceTest {
         assertThatThrownBy(() -> service.getPortfolioPerformance(portfolioId, "invalid"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid timeframe");
-        verifyNoInteractions(repository, cache, marketService, instrumentService);
+        verifyNoInteractions(portfolioRepository, cache, marketService, instrumentService);
     }
 
     @Test
@@ -279,7 +281,7 @@ class PortfolioPerformanceTest {
 
     private Portfolio portfolio() {
         Portfolio portfolio = new Portfolio(PortfolioType.values()[0]);
-        when(repository.getReferenceById(portfolioId)).thenReturn(portfolio);
+        when(portfolioRepository.getReferenceById(portfolioId)).thenReturn(portfolio);
         return portfolio;
     }
 
