@@ -73,6 +73,8 @@ The initial `V1__init_schema.sql` had several gaps that were dangerous for a sys
 ### 9. Deployment: containerized, target AWS
 The app is containerized via the existing `Dockerfile` so it can run anywhere consistently (local dev, CI, eventual hosting). We intend to deploy to AWS, but don't yet have AWS access/account details — the container is being built to be cloud-agnostic in the meantime so that decision doesn't block local development.
 
+Kafka uses the same configured bootstrap server for both producers and consumers. Set `KAFKA_BOOTSTRAP_SERVERS` to the broker address (for example, `localhost:9092` for the local Compose broker) in the project-root `.env` file or as a process environment variable. Spring loads `.env` for local runs; container deployments should pass the variable through their environment (the Jenkins deployment already supplies its credentials file with `--env-file`). The legacy `KAFKA_IP` variable remains a fallback for existing `.env` files.
+
 ### 10. Analyst reporting ETL
 The backend automatically runs `analytics/etl_pipeline.py` after startup and then every five minutes. It extracts fulfilled orders and upserts them into `reporting_trade_fact`; the upsert is keyed by order ID, so repeated runs do not duplicate trades. The app image includes Python and the ETL dependencies.
 

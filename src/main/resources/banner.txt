@@ -1,9 +1,12 @@
-  __  __                _                      _    
- |  \/  | ___ _ __ _ __(_)_ __ ___   __ _  ___| | __
- | |\/| |/ _ \ '__| '__| | '_ ` _ \ / _` |/ __| |/ /
- | |  | |  __/ |  | |  | | | | | | | (_| | (__|   < 
- |_|  |_|\___|_|  |_|  |_|_| |_| |_|\__,_|\___|_|\_\
-                                                    
+______  ___  _    _ _____ _   _ _____  _   __ _____ _____ 
+| ___ \/ _ \| |  | |_   _| | | /  __ \| | / /|  ___|_   _|
+| |_/ / /_\ \ |  | | | | | | | | /  \/| |/ / | |__   | |  
+|  __/|  _  | |/\| | | | | | | | |    |    \ |  __|  | |  
+| |   | | | \  /\  / | | | |_| | \__/\| |\  \| |___  | |  
+\_|   \_| |_/\/  \/  \_/  \___/ \____/\_| \_/\____/  \_/  
+                                                                                                     
+${application.title} ${application.version}
+Powered by Spring Boot ${spring-boot.version}
 ${application.title:Simple Kafka Store} ${application.version:1.0.0}
 Powered by Spring Boot ${spring-boot.version}
 Profile: ${spring.profiles.active:${spring.profiles.default:default}} | Port: ${server.port:8080}
