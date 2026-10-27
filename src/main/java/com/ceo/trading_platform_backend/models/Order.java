@@ -170,6 +170,12 @@ public class Order extends AbstractAggregateRoot<Order> {
         return orderHistory.getLast();
     }
 
+    /** Read-only snapshot; callers must not assume persistence collection ordering. */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public List<OrderStatusChange> getOrderHistory() {
+        return List.copyOf(orderHistory);
+    }
+
     public String getMarket() {
         return market;
     }
