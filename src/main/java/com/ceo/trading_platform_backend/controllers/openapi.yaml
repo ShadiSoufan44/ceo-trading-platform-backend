@@ -482,7 +482,7 @@ paths:
         '500':
           description: Internal server error.
 
-  /api/analytics/candles/{symbol}:
+  /api/analytics/candles/{symbol}/{type}:
     get:
       summary: Get historical candles
       description: Returns historical daily market candles for an instrument.
@@ -497,6 +497,14 @@ paths:
           schema:
             type: string
           example: AAPL
+        - name: type
+          in: path
+          required: true
+          description: Instrument type.
+          schema:
+            type: string
+            enum: [EQUITY, CASH, CRYPTO]
+          example: EQUITY
         - name: from
           in: query
           required: false
@@ -520,6 +528,12 @@ paths:
                   $ref: '#/components/schemas/Candle'
         '400':
           description: Invalid date range or symbol.
+        '404':
+          description: Instrument symbol was not found by the market data provider.
+        '429':
+          description: Market data provider quota or rate limit was reached.
+        '502':
+          description: Market data provider returned a server error.
         '500':
           description: Internal server error.
 

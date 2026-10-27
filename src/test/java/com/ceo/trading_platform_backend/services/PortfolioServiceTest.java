@@ -50,6 +50,9 @@ public class PortfolioServiceTest {
     @Mock
     private InstrumentCacheService instrumentCacheService;
 
+    @Mock
+    private UserService userService;
+
     private PortfolioService portfolioService;
 
     private Instrument usdInstrument;
@@ -71,7 +74,8 @@ public class PortfolioServiceTest {
             portfolioRepository, 
             instrumentService,
             instrumentCacheService,
-            marketService
+            marketService,
+            userService
         );
         
         // Default mock behavior: USD has price of 1

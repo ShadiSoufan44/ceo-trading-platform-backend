@@ -36,6 +36,7 @@ class PortfolioPerformanceTest {
     @Mock private InstrumentService instrumentService;
     @Mock private InstrumentCacheService cache;
     @Mock private MarketService marketService;
+    @Mock private UserService userService;
 
     private PortfolioService service;
     private final UUID portfolioId = UUID.randomUUID();
@@ -44,7 +45,7 @@ class PortfolioPerformanceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PortfolioService(repository, instrumentService, cache, marketService);
+        service = new PortfolioService(repository, instrumentService, cache, marketService, userService);
     }
 
     @Test

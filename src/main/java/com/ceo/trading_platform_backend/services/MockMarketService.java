@@ -8,7 +8,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.ceo.trading_platform_backend.enums.InstrumentType;
-// @Service // UNCOMMMENT THIS FOR MOCK MARKET SERVICE AND COMMENT IN REAL
+@Service // UNCOMMMENT THIS FOR MOCK MARKET SERVICE AND COMMENT IN REAL
 public class MockMarketService implements com.ceo.trading_platform_backend.services.MarketService{
     
     public MockMarketService() {} // idk what does in constructor for mock
