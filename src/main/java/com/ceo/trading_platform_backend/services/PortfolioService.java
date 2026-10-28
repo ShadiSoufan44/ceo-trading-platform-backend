@@ -289,22 +289,29 @@ public class PortfolioService {
         LocalDate start = calculateStartDate(timeframe, today);
         Portfolio portfolio = getPortfolioById(portfolioId);
         if (portfolio.getHoldings().isEmpty()) {
-            return List.of();
+            return List.of();// dont return empty list because controller returns 404 if this is empty
         }
 
         Instant cutoff = today.atStartOfDay(ZoneOffset.UTC).toInstant();
         List<Holding> history = new ArrayList<>();
+        List<Holding> todayHoldings = new ArrayList<>();
         for (Holding holding : portfolio.getHoldings()) {
             if (holding.getDateCreated() == null) {
                 throw new IllegalStateException("Cannot reconstruct portfolio " + portfolioId + ": holding has no date");
             }
             if (holding.getDateCreated().isBefore(cutoff)) {
                 history.add(holding);
+            } else {
+                todayHoldings.add(holding);
             }
         }
         history.sort(Comparator.comparing(Holding::getDateCreated));
-        if (history.isEmpty()) {
+        if (history.isEmpty() && todayHoldings.isEmpty()) {
             return List.of();
+        } else if (history.isEmpty()) {
+            // If there is no history but there are today's holdings, just use balance
+            BigDecimal balance = getPortfolioTotalValue(portfolio);
+            return List.of(new PerformanceResponse(today.toString(), balance));
         }
 
         Map<PerformanceInstrument, BigDecimal> quantities = new LinkedHashMap<>();
