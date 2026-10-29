@@ -1,0 +1,17 @@
+______  ___  _    _ _____ _   _ _____  _   __ _____ _____ 
+| ___ \/ _ \| |  | |_   _| | | /  __ \| | / /|  ___|_   _|
+| |_/ / /_\ \ |  | | | | | | | | /  \/| |/ / | |__   | |  
+|  __/|  _  | |/\| | | | | | | | |    |    \ |  __|  | |  
+| |   | | | \  /\  / | | | |_| | \__/\| |\  \| |___  | |  
+\_|   \_| |_/\/  \/  \_/  \___/ \____/\_| \_/\____/  \_/  
+                                                                                                     
+${application.title} ${application.version}
+Powered by Spring Boot ${spring-boot.version}
+${application.title:Simple Kafka Store} ${application.version:1.0.0}
+Powered by Spring Boot ${spring-boot.version}
+Profile: ${spring.profiles.active:${spring.profiles.default:default}} | Port: ${server.port:8080}
+DB Driver: ${spring.datasource.driver-class-name:(unset)}
+DB URL: ${spring.datasource.url:(unset)}
+DB User: ${spring.datasource.username:(unset)} | DB Password: [hidden - see startup logs for blank warning]
+Kafka Bootstrap: ${spring.kafka.bootstrap-servers:(embedded or unset)}
+Admin: /admin.html | Overrides: runtime/admin-overrides.properties | Logs: runtime/app.log
