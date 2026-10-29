@@ -84,7 +84,7 @@ public class PortfolioController {
     @GetMapping("/{portfolioId}/performance/{timeframe}")
     public ResponseEntity<List<PerformanceResponse>> getPortfolioPerformance(@PathVariable UUID portfolioId, @PathVariable String timeframe) {
         List<PerformanceResponse> response = service.getPortfolioPerformance(portfolioId, timeframe);
-        if (response == null || response.isEmpty()) {
+        if (response == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
         return ResponseEntity.ok(response);
